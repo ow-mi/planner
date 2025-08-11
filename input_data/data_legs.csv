@@ -1,0 +1,9 @@
+project_id,project_name,project_leg_id,leg_number,leg_name,priority,start_iso_week
+DCC,DCC,DCC_6,6,Water protection,20,2025-W14
+DCC,DCC,DCC_2,2,Sequence,5,2025-W12
+DCC,DCC,DCC_3,3,Life,12,2025-W26
+DCC,DCC,DCC_4,4,VDA,13,2025-W32
+MWCU_B10,mwcu - b10,MWCU_B10_6,6,Water protection,3,2025-W06
+MWCU_B10,mwcu - b10,MWCU_B10_2,2,Sequence,1,2025-W13
+MWCU_B10,mwcu - b10,MWCU_B10_3,3,Life,2,2025-W10
+MWCU_B10,mwcu - b10,MWCU_B10_4,4,VDA,6,2025-W21
