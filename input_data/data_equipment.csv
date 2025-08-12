@@ -1,9 +1,6 @@
 equipment_id,available_start_week_iso,available_end_week_iso
-Setup_1,2025-W5,2025-W12
-Setup_1,2025-W14,2025-W20
-Setup_2,2025-W10,2025-W16
-Setup_2,2025-W25,2026-W35
-Setup_3,2025-W10,2025-W12
-Setup_3,2025-W20,2026-W30
-Setup_4,2025-W10,2025-W16
-Setup_4,2025-W19,2026-W48
+chamber,2025-W02,2026-W47
+none,2025-W02,2026-W47
+esd,2025-W02,2026-W47
+emc,2025-W02,2026-W47
+CCS,2025-W02,2026-W47

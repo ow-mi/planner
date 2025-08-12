@@ -1,0 +1,8 @@
+equipment_id,available_start_week_iso,available_end_week_iso
+Setup_1,2025-W5,2026-W12
+Setup_2,2025-W10,2026-W16
+Setup_3,2025-W10,2026-W12
+Setup_4,2025-W10,2026-W16
+PS_500A,2025-W10,2026-W16
+PS_250A,2025-W10,2025-W47
+PS_250A,2065-W02,2026-W16
