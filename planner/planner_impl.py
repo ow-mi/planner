@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+import re
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Tuple, Optional
 
@@ -18,10 +19,11 @@ class Leg:
     project_id: str
     project_name: str
     project_leg_id: str
-    leg_number: int
+    leg_number: str  # Changed from int to str to support alphanumeric (e.g., "2a", "2b")
     leg_name: str
     priority: int
     start_monday: date
+    parent_leg_id: str = ""  # New field to track parent leg for hierarchical relationships
 
 
 @dataclass
@@ -57,16 +59,30 @@ def parse_iso_week(iso_week: str) -> date:
 def load_legs(path: str) -> Dict[str, Leg]:
     df = pd.read_csv(path)
     legs: Dict[str, Leg] = {}
+
+    # First pass: create all legs
     for _, row in df.iterrows():
-        legs[str(row["project_leg_id"]).strip()] = Leg(
+        project_leg_id = str(row["project_leg_id"]).strip()
+        leg_number = str(row["leg_number"]).strip()
+        legs[project_leg_id] = Leg(
             project_id=str(row["project_id"]).strip(),
             project_name=str(row["project_name"]).strip(),
-            project_leg_id=str(row["project_leg_id"]).strip(),
-            leg_number=int(row["leg_number"]),
+            project_leg_id=project_leg_id,
+            leg_number=leg_number,
             leg_name=str(row["leg_name"]).strip(),
             priority=int(row["priority"]),
             start_monday=parse_iso_week(str(row["start_iso_week"]))
         )
+
+    # Second pass: establish parent-child relationships
+    for leg_id, leg in legs.items():
+        # Check if this is a sub-leg by looking for pattern like "mwcu_b10_2.a" -> parent "mwcu_b10_2"
+        if '.' in leg_id:
+            # Extract potential parent ID (everything before the last dot)
+            potential_parent = leg_id.rsplit('.', 1)[0]
+            if potential_parent in legs:
+                leg.parent_leg_id = potential_parent
+
     return legs
 
 
@@ -184,6 +200,22 @@ def build_and_solve(
         for prev, nxt in zip(leg_tests_sorted, leg_tests_sorted[1:]):
             model.Add(end_vars[prev.uid] <= start_vars[nxt.uid])
 
+    # Hierarchical sequencing: sub-legs must start after their parent leg completes
+    for leg_id, leg_tests in by_leg.items():
+        leg = legs[leg_id]
+        if leg.parent_leg_id and leg.parent_leg_id in by_leg:
+            # This is a sub-leg, find the latest end time of parent leg tests
+            parent_tests = by_leg[leg.parent_leg_id]
+            if parent_tests:
+                # Find the maximum end time of all parent leg tests
+                parent_end_times = [end_vars[t.uid] for t in parent_tests]
+                parent_max_end = model.NewIntVar(0, horizon, f"parent_max_end_{leg_id}")
+                model.AddMaxEquality(parent_max_end, parent_end_times)
+
+                # All sub-leg tests must start after parent leg completes
+                for sub_test in leg_tests:
+                    model.Add(start_vars[sub_test.uid] >= parent_max_end)
+
     # equipment assignment
     equip_nooverlap = {i: [] for i in range(len(equip_windows))}
     equip_nooverlap_by_resource: Dict[str, List[cp_model.IntervalVar]] = {}
@@ -192,7 +224,12 @@ def build_and_solve(
         lits = []
         for r_idx, (a, b) in equip_bounds.items():
             eq_id = equip_windows[r_idx].resource_id
-            allowed = (t.equipment_assigned == "*") or (t.equipment_assigned.lower() in eq_id.lower())
+            # Support '|' as OR operator in selector (case-insensitive substring match)
+            if t.equipment_assigned == "*" or t.equipment_assigned.strip() == "":
+                allowed = True
+            else:
+                tokens = [tok.strip().lower() for tok in str(t.equipment_assigned).split("|")]
+                allowed = any(tok and tok in eq_id.lower() for tok in tokens)
             x = model.NewBoolVar(f"xeq_{t.uid}_{r_idx}")
             opt_ivl = model.NewOptionalIntervalVar(start_vars[t.uid], t.duration_units, end_vars[t.uid], x, f"ivleq_{t.uid}_{r_idx}")
             model.Add(start_vars[t.uid] >= a).OnlyEnforceIf(x)
@@ -220,7 +257,12 @@ def build_and_solve(
         lits = []
         for r_idx, (a, b) in fte_bounds.items():
             fte_id = fte_windows[r_idx].resource_id
-            allowed = (t.fte_assigned == "*") or (t.fte_assigned.lower() in fte_id.lower())
+            # Support '|' as OR operator in selector (case-insensitive substring match)
+            if t.fte_assigned == "*" or t.fte_assigned.strip() == "":
+                allowed = True
+            else:
+                tokens = [tok.strip().lower() for tok in str(t.fte_assigned).split("|")]
+                allowed = any(tok and tok in fte_id.lower() for tok in tokens)
             x = model.NewBoolVar(f"xft_{t.uid}_{r_idx}")
             work_dur = max(0, t.fte_time_units)
             # Model FTE usage for only a portion of the test: place an optional sub-interval inside [start,end]
@@ -318,6 +360,9 @@ def plan_and_output(sample_dir: str, outputs_dir_data: str, outputs_dir_plots: s
     rows = []
     equip_usage = {}
     fte_usage = {}
+
+    # Create mapping from test_id to test_name for CSV output
+    test_id_to_name = {t.test_id: t.test_name for t in tests}
     for t in sched_tests:
         s = solver.Value(start_vars[t.uid])
         e = solver.Value(end_vars[t.uid])
@@ -357,19 +402,40 @@ def plan_and_output(sample_dir: str, outputs_dir_data: str, outputs_dir_plots: s
     erows = []
     for eq_id, ivls in equip_usage.items():
         for s_dt, e_dt, test_id in sorted(ivls, key=lambda x: x[0]):
-            erows.append({"equipment_id": eq_id, "test_id": test_id, "start": s_dt.isoformat(), "end": e_dt.isoformat()})
+            erows.append({
+                "equipment_id": eq_id,
+                "test_id": test_id,
+                "test_name": test_id_to_name.get(test_id, ""),
+                "start": s_dt.isoformat(),
+                "end": e_dt.isoformat()
+            })
     pd.DataFrame(erows).to_csv(os.path.join(outputs_dir_data, "equipment_usage.csv"), index=False)
     frows = []
     for ft_id, ivls in fte_usage.items():
         for s_dt, e_dt, test_id in sorted(ivls, key=lambda x: x[0]):
-            frows.append({"fte_id": ft_id, "test_id": test_id, "start": s_dt.isoformat(), "end": e_dt.isoformat()})
+            frows.append({
+                "fte_id": ft_id,
+                "test_id": test_id,
+                "test_name": test_id_to_name.get(test_id, ""),
+                "start": s_dt.isoformat(),
+                "end": e_dt.isoformat()
+            })
     pd.DataFrame(frows).to_csv(os.path.join(outputs_dir_data, "fte_usage.csv"), index=False)
 
     # plots
     def plot_gantt(data: List[Tuple[str, datetime, datetime, str]], title: str, fname: str) -> None:
         if not data:
             return
-        rows_sorted = sorted(set(lbl for lbl, *_ in data))
+        # Numeric-aware sort for labels like "Test Group 1", "Test Group 10"
+        num_re = re.compile(r"(\d+)")
+        def label_key(lbl: str) -> tuple:
+            m = num_re.search(lbl or "")
+            if m:
+                # Sort by non-numeric prefix then numeric value
+                prefix = num_re.sub("", lbl).strip().lower()
+                return (prefix, int(m.group(1)))
+            return (lbl.lower(), -1)
+        rows_sorted = sorted(set(lbl for lbl, *_ in data), key=label_key)
         ymap = {lbl: i for i, lbl in enumerate(rows_sorted)}
         fig, ax = plt.subplots(figsize=(12, max(4, 0.4*len(rows_sorted))))
         for lbl, s_dt, e_dt, key in data:
@@ -413,11 +479,16 @@ def plan_and_output(sample_dir: str, outputs_dir_data: str, outputs_dir_plots: s
     def plot_availability_and_usage(resource_windows: List[ResourceWindow], usage_map: Dict[str, List[Tuple[datetime, datetime, str]]], title: str, fname: str) -> None:
         if not resource_windows:
             return
-        # stable unique order of resource ids
-        rows_sorted: List[str] = []
-        for w in resource_windows:
-            if w.resource_id not in rows_sorted:
-                rows_sorted.append(w.resource_id)
+        # Unique resource ids, numeric-aware sort (e.g., Setup_1, Setup_10)
+        ids = list({w.resource_id for w in resource_windows})
+        num_re = re.compile(r"(\d+)")
+        def id_key(rid: str) -> tuple:
+            m = num_re.search(rid or "")
+            if m:
+                prefix = num_re.sub("", rid).strip().lower()
+                return (prefix, int(m.group(1)))
+            return (rid.lower(), -1)
+        rows_sorted: List[str] = sorted(ids, key=id_key)
         ymap = {rid: i*2 for i, rid in enumerate(rows_sorted)}  # double spacing for availability and usage rows
         fig, ax = plt.subplots(figsize=(12, max(4, 0.6*len(rows_sorted))))
         # availability bars (row y) – draw ALL windows per resource

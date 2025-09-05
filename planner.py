@@ -344,6 +344,9 @@ def plan_and_output(sample_dir: str = "sample_data", outputs_dir: str = "outputs
     sched_tests = [t for t in tests if t.completion_pct < 100]
     completed_tests = [t for t in tests if t.completion_pct >= 100]
 
+    # Create mapping from test_id to test_name for CSV output
+    test_id_to_name = {t.test_id: t.test_name for t in tests}
+
     for t in sched_tests:
         s_units = solver.Value(start_vars[t.uid])
         e_units = solver.Value(end_vars[t.uid])
@@ -401,6 +404,7 @@ def plan_and_output(sample_dir: str = "sample_data", outputs_dir: str = "outputs
             equip_rows.append({
                 "equipment_id": eq_id,
                 "test_id": test_id,
+                "test_name": test_id_to_name.get(test_id, ""),
                 "start": s_dt.isoformat(),
                 "end": e_dt.isoformat(),
             })
@@ -412,6 +416,7 @@ def plan_and_output(sample_dir: str = "sample_data", outputs_dir: str = "outputs
             fte_rows.append({
                 "fte_id": ft_id,
                 "test_id": test_id,
+                "test_name": test_id_to_name.get(test_id, ""),
                 "start": s_dt.isoformat(),
                 "end": e_dt.isoformat(),
             })

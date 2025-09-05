@@ -1,6 +1,8 @@
 equipment_id,available_start_week_iso,available_end_week_iso
-chamber,2025-W02,2026-W47
-none,2025-W02,2026-W47
-esd,2025-W02,2026-W47
-emc,2025-W02,2026-W47
-CCS,2025-W02,2026-W47
+setup_1,2025-W02,2027-W47
+setup_2,2025-W02,2027-W47
+setup_3,2025-W02,2027-W47
+setup_4,2025-W02,2027-W47
+setup_5,2025-W02,2027-W47
+setup_6,2025-W02,2027-W47
+ext_akuvib,2025-W02,2027-W47

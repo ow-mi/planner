@@ -98,10 +98,10 @@ def validate_inputs(input_dir: str) -> List[Issue]:
             for i, row in legs.iterrows():
                 if not _valid_iso_week(str(row["start_iso_week"])):
                     issues.append(Issue("ERROR", "data_legs.csv", i + 2, "start_iso_week", "Invalid ISO week, expected YYYY-Www"))
-                try:
-                    ln = int(row["leg_number"])  # noqa
-                except Exception:
-                    issues.append(Issue("ERROR", "data_legs.csv", i + 2, "leg_number", "Not an integer"))
+                # Validate leg_number is a non-empty string (supports both numeric and alphanumeric)
+                ln = str(row["leg_number"]).strip()
+                if not ln:
+                    issues.append(Issue("ERROR", "data_legs.csv", i + 2, "leg_number", "Cannot be empty"))
                 try:
                     pr = int(row["priority"])  # noqa
                 except Exception:
@@ -177,17 +177,21 @@ def validate_inputs(input_dir: str) -> List[Issue]:
 
             # Assigned filters match something
             if not eq.empty:
-                eq_ids = [str(x) for x in eq["equipment_id"].unique()]
+                eq_ids = [str(x).lower() for x in eq["equipment_id"].unique()]
                 for i, row in tests.iterrows():
                     s = str(row.get("equipment_assigned", "*")).strip()
-                    if s != "*" and not any(s.lower() in eid.lower() for eid in eq_ids):
-                        issues.append(Issue("WARN", "data_test.csv", i + 2, "equipment_assigned", f"No equipment id contains '{s}'"))
+                    if s != "*" and s != "":
+                        tokens = [tok.strip().lower() for tok in s.split("|") if tok.strip()]
+                        if tokens and not any(any(tok in eid for tok in tokens) for eid in eq_ids):
+                            issues.append(Issue("WARN", "data_test.csv", i + 2, "equipment_assigned", f"No equipment id matches any of '{s}'"))
             if not fte.empty:
-                fte_ids = [str(x) for x in fte["fte_id"].unique()]
+                fte_ids = [str(x).lower() for x in fte["fte_id"].unique()]
                 for i, row in tests.iterrows():
                     s = str(row.get("fte_assigned", "*")).strip()
-                    if s != "*" and not any(s.lower() in fid.lower() for fid in fte_ids):
-                        issues.append(Issue("WARN", "data_test.csv", i + 2, "fte_assigned", f"No fte id contains '{s}'"))
+                    if s != "*" and s != "":
+                        tokens = [tok.strip().lower() for tok in s.split("|") if tok.strip()]
+                        if tokens and not any(any(tok in fid for tok in tokens) for fid in fte_ids):
+                            issues.append(Issue("WARN", "data_test.csv", i + 2, "fte_assigned", f"No fte id matches any of '{s}'"))
 
     # FTE windows
     if not fte.empty:

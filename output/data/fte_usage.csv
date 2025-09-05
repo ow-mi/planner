@@ -1,0 +1,58 @@
+fte_id,test_id,test_name,start,end
+fte_micky,mwcu_b10_2_P-03l,P-03l,2025-09-15T00:00:00,2025-10-06T00:00:00
+fte_micky,mwcu_b10_2_K-09,K-09,2025-10-06T00:00:00,2025-10-23T12:00:00
+fte_micky,mwcu_b10_2_Leak test,Leak test,2025-10-23T12:00:00,2025-10-27T00:00:00
+fte_micky,mwcu_b10_5_M-07,M-07,2025-10-27T00:00:00,2025-10-30T12:00:00
+fte_micky,mwcu_b10_5_M-07,M-07,2025-10-30T12:00:00,2025-11-03T00:00:00
+fte_micky,mwcu_b10_4_Leak test,Leak test,2025-11-03T00:00:00,2025-11-06T12:00:00
+fte_micky,mwcu_b10_4_P-03E,P-03E,2025-11-06T12:00:00,2025-12-04T12:00:00
+fte_micky,mwcu_b10_2_M-05 (Mech. Shock),M-05 (Mech. Shock),2025-12-04T12:00:00,2025-12-11T12:00:00
+fte_micky,mwcu_b10_2_P-02l,P-02l,2025-12-11T12:00:00,2025-12-15T00:00:00
+fte_micky,mwcu_b10_2_M-04 (Vib.),M-04 (Vib.),2025-12-15T00:00:00,2025-12-22T00:00:00
+fte_micky,mwcu_b10_2_M-04 (Vib.),M-04 (Vib.),2025-12-22T00:00:00,2025-12-29T00:00:00
+fte_micky,mwcu_b10_2.a_P-03E,P-03E,2025-12-29T00:00:00,2026-01-19T00:00:00
+fte_micky,mwcu_b10_2.a_P-03E,P-03E,2026-01-19T00:00:00,2026-01-22T12:00:00
+fte_micky,mwcu_b10_2.a_P-03E,P-03E,2026-01-22T12:00:00,2026-01-26T00:00:00
+fte_micky,mwcu_b10_2.b_P-03,P-03,2026-01-26T00:00:00,2026-01-29T12:00:00
+fte_micky,mwcu_b10_2.b_HV Safety,HV Safety,2026-01-29T12:00:00,2026-02-12T12:00:00
+fte_micky,mwcu_b10_2.a_Physical Analysis,Physical Analysis,2026-02-12T12:00:00,2026-02-19T12:00:00
+fte_micky,mwcu_b10_5_P-02,P-02,2026-02-19T12:00:00,2026-03-05T12:00:00
+fte_micky,mwcu_b10_2.b_K_02,K-02,2026-03-05T12:00:00,2026-03-19T12:00:00
+fte_micky,mwcu_b10_2.b_P-03E,P-03E,2026-03-19T12:00:00,2026-04-16T12:00:00
+fte_micky,mwcu_b10_2.b_Leak test,Leak test,2026-04-16T12:00:00,2026-04-20T00:00:00
+fte_micky,mwcu_b10_2.b_Physical Analysis,Physical Analysis,2026-04-20T00:00:00,2026-04-27T00:00:00
+fte_micky,mwcu_b10_5_C-01,C-01,2026-04-27T00:00:00,2026-05-18T00:00:00
+fte_micky,mwcu_b10_5_Leak test,Leak test,2026-05-18T00:00:00,2026-05-21T12:00:00
+fte_micky,mwcu_b10_5_P-02l,P-02l,2026-05-21T12:00:00,2026-05-25T00:00:00
+fte_micky,mwcu_b10_5_K-14 Damp heat,K-14 Damp heat,2026-05-25T00:00:00,2026-06-18T12:00:00
+fte_micky,mwcu_b10_5_Leak test,Leak test,2026-06-18T12:00:00,2026-06-22T00:00:00
+fte_micky,mwcu_b10_5_P-03E,P-03E,2026-06-22T00:00:00,2026-07-20T00:00:00
+fte_micky,mwcu_b10_5_Physical Analysis,Physical Analysis,2026-07-20T00:00:00,2026-07-27T00:00:00
+fte_micky,mwcu_b10_3_Leak test,Leak test,2026-08-31T00:00:00,2026-09-03T12:00:00
+fte_mark,mwcu_b10_5_K-01,K-01,2025-09-08T00:00:00,2025-09-11T12:00:00
+fte_mark,mwcu_b10_5_P-03,P-03,2025-09-29T00:00:00,2025-10-27T00:00:00
+fte_mark,mwcu_b10_2_P-03l,P-03l,2025-10-27T00:00:00,2025-11-17T00:00:00
+fte_mark,mwcu_b10_2_K-03,K-03,2025-11-17T00:00:00,2025-11-20T12:00:00
+fte_mark,mwcu_b10_2_P-02,P-02,2025-11-20T12:00:00,2025-12-04T12:00:00
+fte_mark,mwcu_b10_4_Physical Analysis,Physical Analysis,2025-12-04T12:00:00,2025-12-11T12:00:00
+fte_mark,mwcu_b10_5_M-07,M-07,2025-12-11T12:00:00,2026-01-01T12:00:00
+fte_mark,mwcu_b10_2.b_P-03,P-03,2026-01-01T12:00:00,2026-01-22T12:00:00
+fte_mark,mwcu_b10_2.b_P-03,P-03,2026-01-22T12:00:00,2026-01-26T00:00:00
+fte_mark,mwcu_b10_2.a_HV Safety,HV Safety,2026-01-26T00:00:00,2026-02-09T00:00:00
+fte_mark,mwcu_b10_2.a_Leak test,Leak test,2026-02-09T00:00:00,2026-02-12T12:00:00
+fte_mark,mwcu_b10_2.b_M-03 (Dust),M-03 (Dust),2026-02-12T12:00:00,2026-02-19T12:00:00
+fte_mark,mwcu_b10_3_P-03,P-03,2026-02-19T12:00:00,2026-03-23T00:00:00
+fte_mark,mwcu_b10_3_L-03 (0-50%),L-03 (0-50%),2026-03-23T00:00:00,2026-04-23T12:00:00
+fte_mark,mwcu_b10_3_P-02,P-02,2026-04-23T12:00:00,2026-04-30T12:00:00
+fte_mark,mwcu_b10_3_P-02,P-02,2026-04-30T12:00:00,2026-05-07T12:00:00
+fte_mark,mwcu_b10_3_L-03 (50-100%),L-03 (50-100%),2026-05-07T12:00:00,2026-05-28T12:00:00
+fte_mark,mwcu_b10_3_L-03 (50-100%),L-03 (50-100%),2026-05-28T12:00:00,2026-06-08T00:00:00
+fte_mark,mwcu_b10_3_P-02,P-02,2026-06-08T00:00:00,2026-06-22T00:00:00
+fte_mark,mwcu_b10_3_P-03,P-03,2026-06-22T00:00:00,2026-07-13T00:00:00
+fte_mark,mwcu_b10_3_P-03,P-03,2026-07-13T00:00:00,2026-07-20T00:00:00
+fte_mark,mwcu_b10_3_K-02,K-02,2026-07-20T00:00:00,2026-08-03T00:00:00
+fte_mark,mwcu_b10_3_P-03E,P-03E,2026-08-03T00:00:00,2026-08-31T00:00:00
+fte_mark,mwcu_b10_3_Physical Analysis,Physical Analysis,2026-09-03T12:00:00,2026-09-10T12:00:00
+ext_akuvib,mwcu_b10_4_VDA corrosion,VDA corrosion,2025-09-08T00:00:00,2025-09-13T12:00:00
+ext_akuvib,mwcu_b10_2.b_K-10 (Water protection),K-10 (Water protection),2026-02-19T12:00:00,2026-02-26T12:00:00
+ext_akuvib,mwcu_b10_2.b_K-11 (Steam jet),K-11 (Steam jet),2026-02-26T12:00:00,2026-03-05T12:00:00
