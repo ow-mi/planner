@@ -7,6 +7,8 @@ from typing import List, Dict, Any
 
 import pandas as pd
 
+from .debug import debug, info, warning, error, exception, timeit, inspect_data
+
 
 ISO_WEEK_RE = re.compile(r"^\d{4}-W\d{1,2}$")
 
@@ -42,7 +44,9 @@ def _valid_iso_week(value: str) -> bool:
     return value == "*" or (isinstance(value, str) and ISO_WEEK_RE.match(value) is not None)
 
 
+@timeit
 def validate_inputs(input_dir: str) -> List[Issue]:
+    info(f"Validating input data in {input_dir}")
     issues: List[Issue] = []
 
     # Load CSVs
@@ -51,30 +55,63 @@ def validate_inputs(input_dir: str) -> List[Issue]:
     fte_path = os.path.join(input_dir, "data_fte.csv")
     eq_path = os.path.join(input_dir, "data_equipment.csv")
     duts_path = os.path.join(input_dir, "data_test_duts.csv")
+    
+    debug(f"Checking for required input files")
+    for path, required in [
+        (legs_path, True),
+        (tests_path, True),
+        (fte_path, True),
+        (eq_path, True),
+        (duts_path, False)
+    ]:
+        if not os.path.exists(path):
+            severity = "ERROR" if required else "WARN"
+            msg = f"File does not exist: {path}"
+            error(msg) if required else warning(msg)
+            issues.append(Issue(severity, os.path.basename(path), None, None, "File does not exist"))
 
     try:
+        debug(f"Loading legs data from {legs_path}")
         legs = pd.read_csv(legs_path)
+        inspect_data(legs, "legs")
     except Exception as e:
+        error(f"Failed to read legs data: {e}")
         issues.append(Issue("ERROR", "data_legs.csv", None, None, f"Failed to read: {e}"))
         legs = pd.DataFrame()
+    
     try:
+        debug(f"Loading tests data from {tests_path}")
         tests = pd.read_csv(tests_path)
+        inspect_data(tests, "tests")
     except Exception as e:
+        error(f"Failed to read tests data: {e}")
         issues.append(Issue("ERROR", "data_test.csv", None, None, f"Failed to read: {e}"))
         tests = pd.DataFrame()
+    
     try:
+        debug(f"Loading FTE data from {fte_path}")
         fte = pd.read_csv(fte_path)
+        inspect_data(fte, "fte")
     except Exception as e:
+        error(f"Failed to read FTE data: {e}")
         issues.append(Issue("ERROR", "data_fte.csv", None, None, f"Failed to read: {e}"))
         fte = pd.DataFrame()
+    
     try:
+        debug(f"Loading equipment data from {eq_path}")
         eq = pd.read_csv(eq_path)
+        inspect_data(eq, "equipment")
     except Exception as e:
+        error(f"Failed to read equipment data: {e}")
         issues.append(Issue("ERROR", "data_equipment.csv", None, None, f"Failed to read: {e}"))
         eq = pd.DataFrame()
+    
     try:
+        debug(f"Loading DUTs data from {duts_path}")
         duts = pd.read_csv(duts_path)
+        inspect_data(duts, "duts")
     except Exception as e:
+        warning(f"Failed to read DUTs data (optional): {e}")
         issues.append(Issue("WARN", "data_test_duts.csv", None, None, f"Failed to read (optional): {e}"))
         duts = pd.DataFrame()
 
@@ -207,19 +244,19 @@ def validate_inputs(input_dir: str) -> List[Issue]:
             # overlap detection per fte
             for fte_id, grp in fte.groupby("fte_id"):
                 weeks = grp[["available_start_week_iso", "available_end_week_iso"]].values.tolist()
-                # naive overlap check by sorting
+                # overlap check with year consideration
                 try:
                     parsed = []
                     for s, e in weeks:
-                        sv = int(str(s).split('-W')[1])
-                        ev = int(str(e).split('-W')[1])
-                        parsed.append((sv, ev))
+                        syear, sweek = map(int, str(s).split('-W'))
+                        eyear, eweek = map(int, str(e).split('-W'))
+                        parsed.append(((syear, sweek), (eyear, eweek)))
                     parsed.sort()
                     last = None
-                    for sv, ev in parsed:
-                        if last and sv <= last:
+                    for start, end in parsed:
+                        if last and start <= last:
                             issues.append(Issue("WARN", "data_fte.csv", None, "fte_id", f"Overlapping windows for '{fte_id}'"))
-                        last = max(last or 0, ev)
+                        last = end
                 except Exception:
                     pass
 
@@ -239,15 +276,15 @@ def validate_inputs(input_dir: str) -> List[Issue]:
                 try:
                     parsed = []
                     for s, e in weeks:
-                        sv = int(str(s).split('-W')[1])
-                        ev = int(str(e).split('-W')[1])
-                        parsed.append((sv, ev))
+                        syear, sweek = map(int, str(s).split('-W'))
+                        eyear, eweek = map(int, str(e).split('-W'))
+                        parsed.append(((syear, sweek), (eyear, eweek)))
                     parsed.sort()
                     last = None
-                    for sv, ev in parsed:
-                        if last and sv <= last:
+                    for start, end in parsed:
+                        if last and start <= last:
                             issues.append(Issue("WARN", "data_equipment.csv", None, "equipment_id", f"Overlapping windows for '{eq_id}'"))
-                        last = max(last or 0, ev)
+                        last = end
                 except Exception:
                     pass
 
@@ -262,14 +299,54 @@ def validate_inputs(input_dir: str) -> List[Issue]:
     return issues
 
 
+@timeit
 def write_report(issues: List[Issue], output_dir: str) -> None:
-    os.makedirs(output_dir, exist_ok=True)
-    df = pd.DataFrame([it.to_row() for it in issues])
-    df.to_csv(os.path.join(output_dir, "validation_report.csv"), index=False)
-    # Summary
-    errors = sum(1 for it in issues if it.severity == "ERROR")
-    warns = sum(1 for it in issues if it.severity == "WARN")
-    with open(os.path.join(output_dir, "validation_summary.txt"), "w", encoding="utf-8") as f:
-        f.write(f"errors={errors}\n")
-        f.write(f"warnings={warns}\n")
+    """
+    Write validation report to CSV and summary to text file.
+    
+    Args:
+        issues: List of validation issues
+        output_dir: Output directory for report files
+    """
+    info(f"Writing validation report to {output_dir}")
+    
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Create DataFrame from issues
+        df = pd.DataFrame([it.to_row() for it in issues])
+        
+        # Count errors and warnings
+        errors = sum(1 for it in issues if it.severity == "ERROR")
+        warns = sum(1 for it in issues if it.severity == "WARN")
+        
+        # Log summary
+        info(f"Validation summary: {errors} errors, {warns} warnings")
+        if errors > 0:
+            error_files = set(it.file for it in issues if it.severity == "ERROR")
+            error(f"Validation errors in files: {', '.join(error_files)}")
+        
+        # Write CSV report
+        report_path = os.path.join(output_dir, "validation_report.csv")
+        df.to_csv(report_path, index=False)
+        info(f"Validation report written to {report_path}")
+        
+        # Write summary text file
+        summary_path = os.path.join(output_dir, "validation_summary.txt")
+        with open(summary_path, "w", encoding="utf-8") as f:
+            f.write(f"errors={errors}\n")
+            f.write(f"warnings={warns}\n")
+        info(f"Validation summary written to {summary_path}")
+        
+        # Log detailed issues at debug level
+        if issues:
+            for issue in issues:
+                log_func = error if issue.severity == "ERROR" else warning
+                log_func(f"Validation issue: {issue.message}", {
+                    "file": issue.file,
+                    "row": issue.row,
+                    "field": issue.field
+                })
+    except Exception as e:
+        exception(f"Failed to write validation report", {"error": str(e)})
 
