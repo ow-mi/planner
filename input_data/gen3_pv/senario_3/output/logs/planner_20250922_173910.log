@@ -1,0 +1,27 @@
+2025-09-22 17:39:10,670 - __main__ - INFO - ============================================================
+2025-09-22 17:39:10,671 - __main__ - INFO - Test Planner V2 - Starting
+2025-09-22 17:39:10,671 - __main__ - INFO - ============================================================
+2025-09-22 17:39:10,672 - __main__ - INFO - Input folder: input_data/gen3_pv/senario_3
+2025-09-22 17:39:10,672 - __main__ - INFO - Output folder: input_data/gen3_pv/senario_3\output
+2025-09-22 17:39:10,672 - __main__ - INFO - Debug level: INFO
+2025-09-22 17:39:10,673 - __main__ - INFO - Time limit: 60.0 seconds
+2025-09-22 17:39:10,677 - __main__ - INFO - Step 1: Loading and validating input data...
+2025-09-22 17:39:10,745 - __main__ - ERROR - Error during planning process: Data validation failed:
+  - Leg mwcu_b10_2a has non-continuous sequence indices: [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  - Leg mwcu_b10_2b has non-continuous sequence indices: [18, 19, 20, 21]
+  - Leg mwcu_a7_2a has non-continuous sequence indices: [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  - Leg mwcu_a7_2b has non-continuous sequence indices: [18, 19, 20, 21]
+  - Leg dcc_21a_2a has non-continuous sequence indices: [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  - Leg dcc_21a_2b has non-continuous sequence indices: [18, 19, 20, 21]
+Traceback (most recent call last):
+  File "C:\Users\x3092808\planning_test_program\planner_v2\main.py", line 104, in main
+    data = load_data(input_folder)
+  File "C:\Users\x3092808\planning_test_program\planner_v2\data_loader.py", line 337, in load_data
+    raise ValueError(error_msg)
+ValueError: Data validation failed:
+  - Leg mwcu_b10_2a has non-continuous sequence indices: [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  - Leg mwcu_b10_2b has non-continuous sequence indices: [18, 19, 20, 21]
+  - Leg mwcu_a7_2a has non-continuous sequence indices: [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  - Leg mwcu_a7_2b has non-continuous sequence indices: [18, 19, 20, 21]
+  - Leg dcc_21a_2a has non-continuous sequence indices: [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  - Leg dcc_21a_2b has non-continuous sequence indices: [18, 19, 20, 21]

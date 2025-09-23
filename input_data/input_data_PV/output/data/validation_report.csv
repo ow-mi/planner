@@ -1,0 +1,574 @@
+severity,file,row,field,message
+ERROR,data_test.csv,2,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,3,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,4,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,5,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,6,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,7,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,8,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,9,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,10,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,11,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,12,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,13,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,14,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,15,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,16,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,17,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,18,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,19,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,20,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,21,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,22,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,23,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,24,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,25,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,26,project_leg_id,Unknown leg '1'
+ERROR,data_test.csv,27,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,28,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,29,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,30,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,31,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,32,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,33,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,34,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,35,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,36,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,37,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,38,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,39,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,40,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,41,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,42,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,43,project_leg_id,Unknown leg '2'
+ERROR,data_test.csv,44,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,45,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,46,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,47,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,48,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,49,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,50,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,51,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,52,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,53,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,54,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,55,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,56,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,57,project_leg_id,Unknown leg '2a'
+ERROR,data_test.csv,58,project_leg_id,Unknown leg '2b'
+ERROR,data_test.csv,59,project_leg_id,Unknown leg '2b'
+ERROR,data_test.csv,60,project_leg_id,Unknown leg '2b'
+ERROR,data_test.csv,61,project_leg_id,Unknown leg '2b'
+ERROR,data_test.csv,62,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,63,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,64,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,65,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,66,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,67,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,68,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,69,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,70,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,71,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,72,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,73,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,74,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,75,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,76,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,77,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,78,project_leg_id,Unknown leg '3'
+ERROR,data_test.csv,79,project_leg_id,Unknown leg '4'
+ERROR,data_test.csv,80,project_leg_id,Unknown leg '4'
+ERROR,data_test.csv,81,project_leg_id,Unknown leg '4'
+ERROR,data_test.csv,82,project_leg_id,Unknown leg '4'
+ERROR,data_test.csv,83,project_leg_id,Unknown leg '4'
+ERROR,data_test.csv,84,project_leg_id,Unknown leg '4'
+ERROR,data_test.csv,85,project_leg_id,Unknown leg '4'
+ERROR,data_test.csv,86,project_leg_id,Unknown leg '5'
+ERROR,data_test.csv,87,project_leg_id,Unknown leg '5'
+ERROR,data_test.csv,88,project_leg_id,Unknown leg '5'
+ERROR,data_test.csv,89,project_leg_id,Unknown leg '5'
+ERROR,data_test.csv,90,project_leg_id,Unknown leg '5'
+ERROR,data_test.csv,91,project_leg_id,Unknown leg '5'
+ERROR,data_test.csv,92,project_leg_id,Unknown leg '5'
+ERROR,data_test.csv,93,project_leg_id,Unknown leg '5'
+ERROR,data_test.csv,94,project_leg_id,Unknown leg '5'
+ERROR,data_test.csv,95,project_leg_id,Unknown leg '5'
+ERROR,data_test.csv,96,project_leg_id,Unknown leg '5'
+ERROR,data_test.csv,97,project_leg_id,Unknown leg '5'
+ERROR,data_test.csv,98,project_leg_id,Unknown leg '6'
+ERROR,data_test.csv,99,project_leg_id,Unknown leg '6'
+ERROR,data_test.csv,100,project_leg_id,Unknown leg '6'
+ERROR,data_test.csv,101,project_leg_id,Unknown leg '6'
+ERROR,data_test.csv,102,project_leg_id,Unknown leg '6'
+ERROR,data_test.csv,103,project_leg_id,Unknown leg '6'
+ERROR,data_test.csv,104,project_leg_id,Unknown leg '6'
+ERROR,data_test.csv,105,project_leg_id,Unknown leg '6'
+ERROR,data_test.csv,106,project_leg_id,Unknown leg '6'
+ERROR,data_test.csv,107,project_leg_id,Unknown leg '6'
+ERROR,data_test.csv,108,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,109,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,110,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,111,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,112,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,113,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,114,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,115,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,116,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,117,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,118,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,119,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,120,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,121,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,122,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,123,project_leg_id,Unknown leg '7'
+ERROR,data_test.csv,124,project_leg_id,Unknown leg '8'
+ERROR,data_test.csv,125,project_leg_id,Unknown leg '8'
+ERROR,data_test.csv,126,project_leg_id,Unknown leg '8'
+ERROR,data_test.csv,127,project_leg_id,Unknown leg '8'
+ERROR,data_test.csv,128,project_leg_id,Unknown leg '8'
+ERROR,data_test.csv,129,project_leg_id,Unknown leg '8'
+ERROR,data_test.csv,130,project_leg_id,Unknown leg '8'
+ERROR,data_test.csv,131,project_leg_id,Unknown leg '8'
+ERROR,data_test.csv,132,project_leg_id,Unknown leg '8'
+ERROR,data_test.csv,133,project_leg_id,Unknown leg '8'
+ERROR,data_test.csv,134,project_leg_id,Unknown leg '8'
+ERROR,data_test.csv,135,project_leg_id,Unknown leg '8'
+ERROR,data_test.csv,136,project_leg_id,Unknown leg '8'
+ERROR,data_test.csv,137,project_leg_id,Unknown leg '9'
+ERROR,data_test.csv,138,project_leg_id,Unknown leg '9'
+ERROR,data_test.csv,139,project_leg_id,Unknown leg '9'
+ERROR,data_test.csv,140,project_leg_id,Unknown leg '9'
+ERROR,data_test.csv,141,project_leg_id,Unknown leg '9'
+ERROR,data_test.csv,142,project_leg_id,Unknown leg '9'
+ERROR,data_test.csv,143,project_leg_id,Unknown leg '9'
+ERROR,data_test.csv,2,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,3,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,4,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,5,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,6,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,7,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,8,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,9,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,10,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,11,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,12,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,13,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,14,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,15,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,16,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,17,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,18,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,19,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,20,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,21,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,22,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,23,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,24,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,25,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,26,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,27,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,28,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,29,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,30,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,31,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,32,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,33,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,34,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,35,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,36,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,37,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,38,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,39,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,40,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,41,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,42,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,43,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,44,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,45,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,46,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,47,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,48,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,49,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,50,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,51,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,52,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,53,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,54,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,55,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,56,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,57,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,58,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,59,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,60,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,61,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,62,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,63,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,64,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,65,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,66,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,67,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,68,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,69,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,70,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,71,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,72,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,73,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,74,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,75,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,76,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,77,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,78,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,79,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,80,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,81,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,82,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,83,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,84,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,85,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,86,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,87,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,88,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,89,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,90,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,91,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,92,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,93,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,94,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,95,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,96,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,97,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,98,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,99,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,100,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,101,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,102,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,103,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,104,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,105,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,106,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,107,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,108,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,109,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,110,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,111,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,112,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,113,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,114,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,115,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,116,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,117,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,118,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,119,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,120,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,121,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,122,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,123,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,124,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,125,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,126,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,127,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,128,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,129,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,130,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,131,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,132,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,133,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,134,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,135,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,136,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,137,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,138,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,139,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,140,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,141,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,142,fte_time_pct,Must be between 0 and 100
+ERROR,data_test.csv,143,fte_time_pct,Must be between 0 and 100
+WARN,data_test.csv,2,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,3,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,4,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,5,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,6,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,7,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,8,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,9,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,10,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,11,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,12,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,13,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,14,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,15,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,16,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,17,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,18,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,19,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,20,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,21,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,22,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,23,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,24,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,25,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,26,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,27,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,28,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,29,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,30,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,31,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,32,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,33,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,34,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,35,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,36,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,37,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,38,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,39,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,40,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,41,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,42,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,43,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,44,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,45,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,46,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,47,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,48,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,49,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,50,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,51,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,52,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,53,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,54,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,55,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,56,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,57,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,58,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,59,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,60,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,61,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,62,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,63,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,64,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,65,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,66,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,67,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,68,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,69,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,70,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,71,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,72,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,73,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,74,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,75,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,76,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,77,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,78,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,79,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,80,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,81,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,82,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,83,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,84,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,85,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,86,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,87,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,88,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,89,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,90,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,91,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,92,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,93,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,94,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,95,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,96,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,97,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,98,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,99,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,100,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,101,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,102,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,103,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,104,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,105,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,106,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,107,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,108,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,109,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,110,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,111,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,112,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,113,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,114,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,115,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,116,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,117,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,118,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,119,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,120,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,121,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,122,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,123,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,124,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,125,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,126,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,127,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,128,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,129,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,130,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,131,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,132,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,133,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,134,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,135,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,136,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,137,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,138,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,139,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,140,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,141,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,142,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,143,equipment_assigned,No equipment id matches any of 'nan'
+WARN,data_test.csv,2,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,3,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,4,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,5,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,6,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,7,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,8,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,9,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,10,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,11,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,12,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,13,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,14,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,15,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,16,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,17,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,18,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,19,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,20,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,21,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,22,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,23,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,24,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,25,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,26,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,27,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,28,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,29,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,30,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,31,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,32,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,33,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,34,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,35,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,36,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,37,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,38,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,39,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,40,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,41,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,42,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,43,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,44,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,45,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,46,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,47,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,48,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,49,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,50,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,51,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,52,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,53,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,54,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,55,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,56,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,57,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,58,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,59,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,60,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,61,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,62,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,63,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,64,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,65,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,66,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,67,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,68,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,69,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,70,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,71,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,72,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,73,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,74,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,75,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,76,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,77,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,78,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,79,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,80,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,81,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,82,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,83,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,84,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,85,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,86,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,87,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,88,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,89,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,90,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,91,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,92,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,93,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,94,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,95,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,96,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,97,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,98,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,99,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,100,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,101,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,102,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,103,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,104,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,105,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,106,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,107,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,108,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,109,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,110,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,111,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,112,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,113,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,114,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,115,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,116,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,117,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,118,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,119,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,120,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,121,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,122,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,123,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,124,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,125,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,126,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,127,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,128,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,129,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,130,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,131,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,132,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,133,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,134,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,135,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,136,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,137,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,138,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,139,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,140,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,141,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,142,fte_assigned,No fte id matches any of 'nan'
+WARN,data_test.csv,143,fte_assigned,No fte id matches any of 'nan'
+WARN,data_fte.csv,,fte_id,Overlapping windows for 'ext_akuvib'
+WARN,data_fte.csv,,fte_id,Overlapping windows for 'fte_marco'
+WARN,data_fte.csv,,fte_id,Overlapping windows for 'fte_mark'
+WARN,data_fte.csv,,fte_id,Overlapping windows for 'fte_mark'
+WARN,data_fte.csv,,fte_id,Overlapping windows for 'fte_vincint'

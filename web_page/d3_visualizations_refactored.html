@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planning Test Program - D3 Visualizations</title>
+
+    <!-- External CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- External JavaScript Libraries -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Planning Test Program - Interactive Visualizations</h1>
+            <p>D3.js charts for project planning and resource management (Week-based timeline)</p>
+        </div>
+
+        <div class="nav">
+            <button onclick="showChart('tests')" class="active" id="btn-tests">
+                Tests by Leg
+            </button>
+            <button onclick="showChart('equipment')" id="btn-equipment">
+                Equipment Utilization
+            </button>
+            <button onclick="showChart('fte')" id="btn-fte">
+                FTE Utilization
+            </button>
+            <button onclick="showChart('concurrency')" id="btn-concurrency">
+                Active Tests vs Capacity
+            </button>
+        </div>
+
+        <div class="content">
+            <!-- Folder selection section -->
+            <div class="folder-section">
+                <h3>📂 Select Data Folder</h3>
+                <div class="folder-controls">
+                    <input type="file" id="folder-input" webkitdirectory directory multiple>
+                    <button class="primary-button" onclick="document.getElementById('folder-input').click()">
+                        Choose Folder
+                    </button>
+                    <button class="test-button" onclick="testFileAccess()" id="test-access-btn">
+                        Test File Access
+                    </button>
+                    <button class="load-button" onclick="loadSpecificFile()" id="load-file-btn">
+                        Force Load CSV
+                    </button>
+                    <button class="test-chart-button" onclick="testChartCreation()" id="test-chart-btn">
+                        Test Chart
+                    </button>
+                    <button class="init-chart-button" onclick="initializeCharts()" id="init-chart-btn">
+                        Initialize Charts
+                    </button>
+                    <div class="folder-status">
+                        <span id="folder-name" class="folder-name">No folder selected</span>
+                        <span class="folder-hint">(Select the folder containing your output/data files)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Title section -->
+            <div class="title-section">
+                <h3>Chart Title</h3>
+                <div class="title-controls">
+                    <input type="text" id="title-input" placeholder="Enter chart title" value="Project Timeline">
+                </div>
+            </div>
+
+            <div class="download-section">
+                <h3>Download Chart</h3>
+                <div class="download-controls">
+                    <input type="text" id="filename-input" placeholder="Enter filename (without .png)" value="chart">
+                    <button onclick="downloadChartAsPNG()" id="download-btn">
+                        📥 Download PNG
+                    </button>
+                    <button onclick="downloadAllChartsAsZIP()" id="download-all-btn">
+                        📦 Download All Charts (ZIP)
+                    </button>
+                </div>
+            </div>
+
+            <div id="plot">
+                <div class="initial-state">
+                    <h2>📂 Select Data Folder</h2>
+                    <p>To view visualizations, please select a data folder containing the following files:</p>
+                    <ul>
+                        <li>tests_schedule.csv</li>
+                        <li>equipment_usage.csv</li>
+                        <li>fte_usage.csv</li>
+                        <li>concurrency_timeseries.csv</li>
+                    </ul>
+                    <p>These files are typically found in the <code>output/data/</code> directory of your planning results.</p>
+                </div>
+            </div>
+
+            <div class="info">
+                <h3>Chart Information</h3>
+                <div id="chart-info">
+                    <p><strong>Tests by Leg:</strong> Gantt chart showing scheduled tests organized by project leg with timeline view.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JavaScript Modules -->
+    <script src="js/charts/tests-chart.js"></script>
+    <script src="js/charts/equipment-chart.js"></script>
+    <script src="js/charts/fte-chart.js"></script>
+    <script src="js/charts/concurrency-chart.js"></script>
+    <script src="js/utils/data-loader.js"></script>
+    <script src="js/utils/download-utils.js"></script>
+    <script src="js/ui/ui-controls.js"></script>
+
+    <!-- Main application initialization -->
+    <script>
+        // Make global variables accessible to modules
+        window.currentData = null;
+        window.currentChart = 'tests';
+        window.selectedFiles = null;
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing application');
+            
+            // Make sure global variables are initialized
+            if (!window.currentData) window.currentData = null;
+            if (!window.selectedFiles) window.selectedFiles = null;
+            if (!window.currentChart) window.currentChart = 'tests';
+            
+            initUIControls();
+            
+            // Add direct event listener to folder input
+            document.getElementById('folder-input').addEventListener('change', function(event) {
+                console.log('Folder selected via direct event listener');
+                console.log('Number of files:', event.target.files.length);
+                
+                if (event.target.files.length > 0) {
+                    // IMPORTANT: Set the global selectedFiles variable
+                    window.selectedFiles = event.target.files;
+                    
+                    const folderName = event.target.files[0].webkitRelativePath.split('/')[0];
+                    console.log('Selected folder:', folderName);
+                    
+                    // Log some sample file paths
+                    for (let i = 0; i < Math.min(5, event.target.files.length); i++) {
+                        console.log(`Sample file ${i}:`, event.target.files[i].webkitRelativePath);
+                    }
+                    
+                    // Update folder name display
+                    document.getElementById('folder-name').textContent = folderName;
+                    
+                    // Manually trigger chart loading
+                    console.log('Manually triggering chart loading...');
+                    setTimeout(function() {
+                        if (typeof initializeCharts === 'function') {
+                            initializeCharts();
+                        } else if (typeof showChart === 'function') {
+                            showChart('tests');
+                        } else {
+                            console.error('Chart functions not available');
+                        }
+                    }, 500); // Small delay to ensure everything is loaded
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+

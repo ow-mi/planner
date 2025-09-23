@@ -1,0 +1,13 @@
+{
+  "priority_mode": "completion_date",
+  "description": "Prioritize by completion deadlines with fallback to leg priorities",
+  "completion_deadlines": {
+    "mwcu_b10_2": "2025-W20",
+    "mwcu_b10_2.a": "2025-W28",
+    "mwcu_b10_2.b": "2025-W28",
+    "mwcu_b10_3": "2025-W22",
+    "mwcu_b10_4": "2025-W24",
+    "mwcu_b10_5": "2025-W26",
+    "mwcu_b10_6": "2025-W28"
+  }
+}

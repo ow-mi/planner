@@ -1,0 +1,4 @@
+{
+  "priority_mode": "makespan_minimize",
+  "description": "Finish testing program as quickly as possible - minimizes total project duration"
+}

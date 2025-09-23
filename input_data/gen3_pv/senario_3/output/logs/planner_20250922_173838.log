@@ -1,0 +1,17 @@
+2025-09-22 17:38:38,887 - __main__ - INFO - ============================================================
+2025-09-22 17:38:38,888 - __main__ - INFO - Test Planner V2 - Starting
+2025-09-22 17:38:38,888 - __main__ - INFO - ============================================================
+2025-09-22 17:38:38,889 - __main__ - INFO - Input folder: input_data/gen3_pv/senario_3
+2025-09-22 17:38:38,889 - __main__ - INFO - Output folder: input_data/gen3_pv/senario_3\output
+2025-09-22 17:38:38,889 - __main__ - INFO - Debug level: INFO
+2025-09-22 17:38:38,889 - __main__ - INFO - Time limit: 60.0 seconds
+2025-09-22 17:38:38,890 - __main__ - INFO - Step 1: Loading and validating input data...
+2025-09-22 17:38:38,895 - __main__ - ERROR - Error during planning process: invalid literal for int() with base 10: '2a'
+Traceback (most recent call last):
+  File "C:\Users\x3092808\planning_test_program\planner_v2\main.py", line 104, in main
+    data = load_data(input_folder)
+  File "C:\Users\x3092808\planning_test_program\planner_v2\data_loader.py", line 313, in load_data
+    legs = load_legs(input_folder)
+  File "C:\Users\x3092808\planning_test_program\planner_v2\data_loader.py", line 97, in load_legs
+    leg_number=int(row["leg_number"]),
+ValueError: invalid literal for int() with base 10: '2a'

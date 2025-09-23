@@ -1,0 +1,29 @@
+2025-09-22 17:42:39,311 - __main__ - INFO - ============================================================
+2025-09-22 17:42:39,311 - __main__ - INFO - Test Planner V2 - Starting
+2025-09-22 17:42:39,312 - __main__ - INFO - ============================================================
+2025-09-22 17:42:39,312 - __main__ - INFO - Input folder: input_data/gen3_pv/senario_2
+2025-09-22 17:42:39,312 - __main__ - INFO - Output folder: input_data/gen3_pv/senario_2\output
+2025-09-22 17:42:39,313 - __main__ - INFO - Debug level: INFO
+2025-09-22 17:42:39,313 - __main__ - INFO - Time limit: 400.0 seconds
+2025-09-22 17:42:39,320 - __main__ - INFO - Step 1: Loading and validating input data...
+2025-09-22 17:42:39,371 - __main__ - INFO - Successfully loaded:
+2025-09-22 17:42:39,371 - __main__ - INFO -   - 21 project legs
+2025-09-22 17:42:39,372 - __main__ - INFO -   - 243 tests
+2025-09-22 17:42:39,372 - __main__ - INFO -   - 44 FTE availability windows
+2025-09-22 17:42:39,372 - __main__ - INFO -   - 44 equipment availability windows
+2025-09-22 17:42:39,373 - __main__ - INFO - Step 2: Building constraint programming model...
+2025-09-22 17:42:41,100 - __main__ - INFO - Model built with:
+2025-09-22 17:42:41,100 - __main__ - INFO -   - 243 test variables
+2025-09-22 17:42:41,100 - __main__ - INFO -   - 1944 resource assignment variables
+2025-09-22 17:42:41,102 - __main__ - INFO -   - Time horizon: 4835 days
+2025-09-22 17:42:41,102 - __main__ - INFO - Step 3: Solving optimization problem...
+2025-09-22 17:49:21,645 - __main__ - INFO - Solver completed with status: FEASIBLE
+2025-09-22 17:49:21,645 - __main__ - INFO - Solve time: 400.38 seconds
+2025-09-22 17:49:21,645 - __main__ - INFO - Solution found:
+2025-09-22 17:49:21,646 - __main__ - INFO -   - Makespan: 938 days
+2025-09-22 17:49:21,646 - __main__ - INFO -   - Tests scheduled: 243
+2025-09-22 17:49:21,646 - __main__ - INFO -   - Objective value: 938.0
+2025-09-22 17:49:21,646 - __main__ - INFO - Step 4: Generating reports and visualizations...
+2025-09-22 17:49:26,568 - __main__ - INFO - ============================================================
+2025-09-22 17:49:26,568 - __main__ - INFO - Test Planner V2 - Completed Successfully
+2025-09-22 17:49:26,568 - __main__ - INFO - ============================================================
