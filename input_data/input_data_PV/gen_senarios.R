@@ -53,7 +53,8 @@ filter_data <- function(df, project_filter = NULL, leg_filter = NULL) {
 
 # Generate base data
 df_legs <- map_dfr(projects, ~ process_legs(df_leg, .x))
-df_tests <- map_dfr(projects, ~ process_tests(df_test, .x, dur_dic))
+df_tests <- map_dfr(projects, ~ process_tests(df_test, .x, dur_dic)) 
+
 
 # Create proper test_duts data based on actual test_ids
 df_duts <- df_tests %>%
@@ -61,22 +62,30 @@ df_duts <- df_tests %>%
   distinct() %>%
   mutate(dut_id = 1)
 
-filtering_legs <- c(3, 4, 5, 6, 2, "2a", "2b")
+filtering_legs <- c(3, "3a", "3b", 4, "4a", "4b", 5, "5a", "5b", 6, 2, "2a", "2b")
 # filtering_legs <- c(3, 4, 5, 6, 2)
 filtering_projects <- projects
 
 # Scenarios with filtering options
 scenarios <- list(
   list(
-    name = "senario_1",
+    name = "senario_1a_fte_1_projects_mw_dcc",
     equipment = paste0("setup_sofia_", 1:4),
     fte = "fte_sofia_1",
     fte_assigned = "fte_sofia",
-    project_filter = filtering_projects,  # Include all projects
+    project_filter = projects,  # Include all projects
     leg_filter = filtering_legs
   ),
   list(
-    name = "senario_2", 
+    name = "senario_1b_fte_1_projects_mw",
+    equipment = paste0("setup_sofia_", 1:4),
+    fte = "fte_sofia_1",
+    fte_assigned = "fte_sofia",
+    project_filter = c("mwcu_b10", "mwcu_a7"),
+    leg_filter = filtering_legs
+  ),
+  list(
+    name = "senario_2a_fte_4_project_mw_dcc", 
     equipment = paste0("setup_sofia_", 1:4),
     fte = paste0("fte_sofia_", 1:4),
     fte_assigned = "*",
@@ -84,7 +93,15 @@ scenarios <- list(
     leg_filter = filtering_legs
   ),
   list(
-    name = "senario_3",
+    name = "senario_2b_fte_4_project_mw", 
+    equipment = paste0("setup_sofia_", 1:4),
+    fte = paste0("fte_sofia_", 1:4),
+    fte_assigned = "*",
+    project_filter = c("mwcu_b10", "mwcu_a7"),
+    leg_filter = filtering_legs
+  ),
+  list(
+    name = "senario_3a_fte_8_sofia_hengelo_project_mw_dcc", 
     equipment = c(paste0("setup_sofia_", 1:4), paste0("setup_hengelo_", 1:4)),
     fte = c(paste0("fte_sofia_", 1:4), paste0("fte_hengelo_", 1:4)),
     fte_assigned = "*",
@@ -92,11 +109,27 @@ scenarios <- list(
     leg_filter = filtering_legs
   ),
   list(
-    name = "senario_4",
+    name = "senario_3b_fte_8_sofia_hengelo_project_mw", 
+    equipment = c(paste0("setup_sofia_", 1:4), paste0("setup_hengelo_", 1:4)),
+    fte = c(paste0("fte_sofia_", 1:4), paste0("fte_hengelo_", 1:4)),
+    fte_assigned = "*",
+    project_filter = c("mwcu_b10", "mwcu_a7"),
+    leg_filter = filtering_legs
+  ),
+  list(
+    name = "senario_4a_fte_4_hengelo_project_mw_dcc", 
     equipment = paste0("setup_hengelo_", 1:6),
     fte = paste0("fte_hengelo_", 1:4),
     fte_assigned = "fte_hengelo",
     project_filter = filtering_projects,  # Include all projects
+    leg_filter = filtering_legs
+  ),
+  list(
+    name = "senario_4b_fte_4_hengelo_project_mw", 
+    equipment = paste0("setup_hengelo_", 1:6),
+    fte = paste0("fte_hengelo_", 1:4),
+    fte_assigned = "fte_hengelo",
+    project_filter = c("mwcu_b10", "mwcu_a7"),
     leg_filter = filtering_legs
   )
 )
@@ -118,10 +151,54 @@ walk(scenarios, function(scenario) {
     scenario$leg_filter
     )
   filtered_tests <- filter_data(
-    df_tests, 
-    scenario$project_filter, 
+    df_tests,
+    scenario$project_filter,
     scenario$leg_filter
-    )
+  ) %>%
+    # Ensure consistent type before duplicating
+    mutate(leg_num = as.character(leg_num))
+
+  # Duplicate legs 3 and 4 into 3a/3b and 4a/4b for DCC projects
+  base_data <- filtered_tests %>%
+    mutate(to_duplicate = (grepl("^dcc", project_id) & leg_num %in% c("3", "4")))
+
+  dcc_a <- base_data %>%
+    filter(to_duplicate) %>%
+    mutate(
+      leg_num = ifelse(leg_num == "3", "3a", "4a"),
+      project_leg_id = paste0(project_id, "_", leg_num),
+      test_id = paste0(project_id, "_", leg_num, "_", test)
+    ) %>%
+    mutate(leg_num = as.character(leg_num)) %>%
+    select(all_of(names(base_data)))
+
+  dcc_b <- base_data %>%
+    filter(to_duplicate) %>%
+    mutate(
+      leg_num = ifelse(leg_num == "3", "3b", "4b"),
+      project_leg_id = paste0(project_id, "_", leg_num),
+      test_id = paste0(project_id, "_", leg_num, "_", test)
+    ) %>%
+    mutate(leg_num = as.character(leg_num)) %>%
+    select(all_of(names(base_data)))
+
+  filtered_tests <- base_data %>%
+    filter(!to_duplicate) %>%
+    bind_rows(dcc_a) %>%
+    bind_rows(dcc_b) %>%
+    select(-to_duplicate)
+
+  # DCC-specific rule: duplicate leg 5 and 5a; remove 5b
+  dcc_subset <- filtered_tests %>% filter(grepl("^dcc", project_id))
+  non_dcc_subset <- filtered_tests %>% filter(!grepl("^dcc", project_id))
+
+  dcc_without_5b <- dcc_subset %>% filter(leg_num != "5b")
+  dcc_5_dups <- dcc_without_5b %>%
+    filter(leg_num %in% c("5", "5a")) %>%
+    mutate(test_id = paste0(test_id, "_dup"))
+
+  filtered_tests <- bind_rows(non_dcc_subset, dcc_without_5b, dcc_5_dups)
+
   
   # Write filtered legs
   write_csv(filtered_legs, paste0(out_folder, "/data_legs.csv"))
@@ -151,4 +228,3 @@ walk(scenarios, function(scenario) {
     description = "Finish testing program as quickly as possible - minimizes total project duration"),
             paste0(out_folder, "/priority_config.json"), pretty = TRUE)    
 })
-
