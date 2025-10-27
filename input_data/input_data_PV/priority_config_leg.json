@@ -1,4 +1,0 @@
-{
-  "priority_mode": "leg_priority",
-  "description": "Use existing leg priorities from data_legs.csv (lower numbers = higher priority)"
-}

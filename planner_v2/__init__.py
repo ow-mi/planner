@@ -20,7 +20,3 @@ __all__ = [
     "generate_reports",
     "main"
 ]
-
-
-
-

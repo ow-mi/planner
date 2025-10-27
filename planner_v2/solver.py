@@ -39,46 +39,46 @@ class SolutionResult:
     resource_utilization: Dict[str, float]
 
 
-def extract_solution(model: ScheduleModel, solver: cp_model.CpSolver, 
+def extract_solution(model: ScheduleModel, solver: cp_model.CpSolver,
                     data: PlanningData, start_date: date, status: int) -> SolutionResult:
     """
     Extract the solution from the solved model.
-    
+
     Args:
         model: The solved ScheduleModel
         solver: The CP-SAT solver with solution
         data: Original planning data
         start_date: The reference start date for the schedule
-        
+
     Returns:
         SolutionResult with extracted schedule information
     """
     test_schedules = []
-    
+
     # Extract test schedules
     for test in data.tests:
         test_id = test.test_id
         if test_id in model.test_vars:
             start_var, end_var, duration = model.test_vars[test_id]
-            
+
             start_day = solver.Value(start_var)
             end_day = solver.Value(end_var)
-            
+
             # Convert to actual dates
             start_date_actual = start_date + timedelta(days=start_day)
             end_date_actual = start_date + timedelta(days=end_day)
-            
+
             # Find assigned resources
             assigned_fte = []
             assigned_equipment = []
-            
-            for (tid, resource_type, resource_id), assignment_var in model.resource_assignments.items():
+
+            for (tid, resource_type, resource_id), assignment_var in model.resource_assignments.items():        
                 if tid == test_id and solver.Value(assignment_var):
                     if resource_type == "fte":
                         assigned_fte.append(resource_id)
                     elif resource_type == "equipment":
                         assigned_equipment.append(resource_id)
-            
+
             schedule = TestSchedule(
                 test_id=test_id,
                 project_leg_id=test.project_leg_id,
@@ -92,21 +92,21 @@ def extract_solution(model: ScheduleModel, solver: cp_model.CpSolver,
                 assigned_equipment=assigned_equipment
             )
             test_schedules.append(schedule)
-    
+
     # Sort by start time
     test_schedules.sort(key=lambda t: t.start_day)
-    
+
     # Calculate resource utilization
     resource_utilization = calculate_resource_utilization(test_schedules, data)
-    
+
     # Get solver status
     status_map = {
         cp_model.OPTIMAL: "OPTIMAL",
-        cp_model.FEASIBLE: "FEASIBLE", 
+        cp_model.FEASIBLE: "FEASIBLE",
         cp_model.INFEASIBLE: "INFEASIBLE",
         cp_model.UNKNOWN: "UNKNOWN"
     }
-    
+
     solution = SolutionResult(
         status=status_map.get(status, "UNKNOWN"),
         makespan_days=solver.Value(model.makespan_var) if model.makespan_var is not None else 0,
@@ -115,133 +115,133 @@ def extract_solution(model: ScheduleModel, solver: cp_model.CpSolver,
         test_schedules=test_schedules,
         resource_utilization=resource_utilization
     )
-    
+
     return solution
 
 
-def calculate_resource_utilization(test_schedules: List[TestSchedule], 
+def calculate_resource_utilization(test_schedules: List[TestSchedule],
                                  data: PlanningData) -> Dict[str, float]:
     """
     Calculate utilization percentage for each resource.
-    
+
     Args:
         test_schedules: List of scheduled tests
         data: Original planning data
-        
+
     Returns:
         Dictionary mapping resource_id to utilization percentage
     """
     utilization = {}
-    
+
     # Get all resource IDs
     all_resources = set()
     for window in data.fte_windows + data.equipment_windows:
         all_resources.add(window.resource_id)
-    
+
     # Calculate total available time for each resource
     resource_available_days = {}
     for window in data.fte_windows + data.equipment_windows:
         resource_id = window.resource_id
         if resource_id not in resource_available_days:
             resource_available_days[resource_id] = 0
-        
+
         # Add days in this availability window
         days_available = (window.end_monday - window.start_monday).days + 1
         resource_available_days[resource_id] += days_available
-    
+
     # Calculate used time for each resource
     resource_used_days = {rid: 0 for rid in all_resources}
-    
+
     for schedule in test_schedules:
         # Add used time for assigned FTEs
         for fte_id in schedule.assigned_fte:
             if fte_id in resource_used_days:
                 resource_used_days[fte_id] += schedule.duration_days
-        
+
         # Add used time for assigned equipment
         for eq_id in schedule.assigned_equipment:
             if eq_id in resource_used_days:
                 resource_used_days[eq_id] += schedule.duration_days
-    
+
     # Calculate utilization percentages
     for resource_id in all_resources:
         available = resource_available_days.get(resource_id, 1)  # Avoid division by zero
         used = resource_used_days.get(resource_id, 0)
         utilization[resource_id] = (used / available) * 100.0 if available > 0 else 0.0
-    
+
     return utilization
 
 
-def solve_model(model: ScheduleModel, data: PlanningData, 
+def solve_model(model: ScheduleModel, data: PlanningData,
                 time_limit_seconds: float = None) -> SolutionResult:
     """
     Solve the CP-SAT model and return the solution.
-    
+
     Args:
         model: The built ScheduleModel to solve
         data: Original planning data for solution extraction
         time_limit_seconds: Maximum time to spend solving (default from config)
-        
+
     Returns:
         SolutionResult containing the solution or failure information
     """
     if time_limit_seconds is None:
         time_limit_seconds = SOLVER_TIME_LIMIT_SECONDS
-    
+
     # Create solver
     solver = cp_model.CpSolver()
-    
+
     # Set solver parameters
     solver.parameters.max_time_in_seconds = time_limit_seconds
     solver.parameters.log_search_progress = True  # Enable logging
-    
+
     print(f"Starting solver with time limit: {time_limit_seconds} seconds")
     print(f"Model has {len(model.test_vars)} test variables")
     print(f"Model has {len(model.resource_assignments)} resource assignment variables")
-    
+
     # Solve the model
     status = solver.Solve(model.model)
-    
+
     # Print solver statistics
     print(f"Solver finished with status: {solver.StatusName()}")
     print(f"Solve time: {solver.WallTime():.2f} seconds")
     print(f"Branches explored: {solver.NumBranches()}")
     print(f"Conflicts: {solver.NumConflicts()}")
-    
+
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
         print(f"Objective value (makespan): {solver.ObjectiveValue()} days")
-        
+
         # Calculate start date for solution extraction
         start_date = min(leg.start_monday for leg in data.legs.values() if leg.start_monday)
-        
+
         # Extract solution
         solution = extract_solution(model, solver, data, start_date, status)
-        
+
         print(f"Successfully scheduled {len(solution.test_schedules)} tests")
         print(f"Final makespan: {solution.makespan_days} days")
-        
+
         return solution, start_date
-    
+
     else:
         # Handle infeasible or unknown status
         print("No solution found!")
-        
+
         if status == cp_model.INFEASIBLE:
             print("The problem is infeasible - no valid schedule exists with the given constraints")
         else:
             print("Solver could not find a solution within the time limit")
-        
+
         # Calculate start date even for failed solutions
         start_date = min(leg.start_monday for leg in data.legs.values() if leg.start_monday)
-        
+
         # Return empty solution with status
         status_map = {
             cp_model.OPTIMAL: "OPTIMAL",
-            cp_model.FEASIBLE: "FEASIBLE", 
+            cp_model.FEASIBLE: "FEASIBLE",
             cp_model.INFEASIBLE: "INFEASIBLE",
             cp_model.UNKNOWN: "UNKNOWN"
         }
-        
+
         return SolutionResult(
             status=status_map.get(status, "UNKNOWN"),
             makespan_days=0,

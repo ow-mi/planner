@@ -1,27 +1,27 @@
 project_id,project_name,project_leg_id,leg_number,leg_name,priority,start_iso_week
-mwcu_b10,mwcu_b10,mwcu_b10_6,6,Water protection,8,2026-W36
-mwcu_b10,mwcu_b10,mwcu_b10_2,2,Sequence,1,2026-W40
-mwcu_b10,mwcu_b10,mwcu_b10_2a,2a,Life,3,2026-W41
-mwcu_b10,mwcu_b10,mwcu_b10_2b,2b,VDA,2,2026-W41
-mwcu_b10,mwcu_b10,mwcu_b10_3,3,Sequence,6,2026-W44
-mwcu_b10,mwcu_b10,mwcu_b10_4,4,Sequence,5,2026-W48
-mwcu_b10,mwcu_b10,mwcu_b10_3a,3a,Sequence,6,2026-W44
-mwcu_b10,mwcu_b10,mwcu_b10_4a,4a,Sequence,5,2026-W48
-mwcu_b10,mwcu_b10,mwcu_b10_3b,3b,Sequence,6,2026-W44
-mwcu_b10,mwcu_b10,mwcu_b10_4b,4b,Sequence,5,2026-W48
-mwcu_b10,mwcu_b10,mwcu_b10_5,5,Sequence,7,2027-W02
-mwcu_b10,mwcu_b10,mwcu_b10_5a,5a,Sequence,7,2027-W02
-mwcu_b10,mwcu_b10,mwcu_b10_5b,5b,Sequence,7,2027-W02
-mwcu_a7,mwcu_a7,mwcu_a7_6,6,Water protection,8,2026-W36
-mwcu_a7,mwcu_a7,mwcu_a7_2,2,Sequence,1,2026-W40
-mwcu_a7,mwcu_a7,mwcu_a7_2a,2a,Life,3,2026-W41
-mwcu_a7,mwcu_a7,mwcu_a7_2b,2b,VDA,2,2026-W41
-mwcu_a7,mwcu_a7,mwcu_a7_3,3,Sequence,6,2026-W44
-mwcu_a7,mwcu_a7,mwcu_a7_4,4,Sequence,5,2026-W48
-mwcu_a7,mwcu_a7,mwcu_a7_3a,3a,Sequence,6,2026-W44
-mwcu_a7,mwcu_a7,mwcu_a7_4a,4a,Sequence,5,2026-W48
-mwcu_a7,mwcu_a7,mwcu_a7_3b,3b,Sequence,6,2026-W44
-mwcu_a7,mwcu_a7,mwcu_a7_4b,4b,Sequence,5,2026-W48
-mwcu_a7,mwcu_a7,mwcu_a7_5,5,Sequence,7,2027-W02
-mwcu_a7,mwcu_a7,mwcu_a7_5a,5a,Sequence,7,2027-W02
-mwcu_a7,mwcu_a7,mwcu_a7_5b,5b,Sequence,7,2027-W02
+mwcu_b10,mwcu_b10,mwcu_b10_6,6,Water protection,8,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_2.1,2.1,Life,3,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_2.2,2.2,VDA,2,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_3,3,Sequence,6,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_4,4,Sequence,5,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_3a,3a,Sequence,6,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_4a,4a,Sequence,5,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_3b,3b,Sequence,6,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_4b,4b,Sequence,5,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_5,5,Sequence,7,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_5a,5a,Sequence,7,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_5b,5b,Sequence,7,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_7,7,Sequence,8,2026-W46
+mwcu_a7,mwcu_a7,mwcu_a7_6,6,Water protection,8,2026-W46
+mwcu_a7,mwcu_a7,mwcu_a7_2.1,2.1,Life,3,2026-W46
+mwcu_a7,mwcu_a7,mwcu_a7_2.2,2.2,VDA,2,2026-W46
+mwcu_a7,mwcu_a7,mwcu_a7_3,3,Sequence,6,2026-W46
+mwcu_a7,mwcu_a7,mwcu_a7_4,4,Sequence,5,2026-W46
+mwcu_a7,mwcu_a7,mwcu_a7_3a,3a,Sequence,6,2026-W46
+mwcu_a7,mwcu_a7,mwcu_a7_4a,4a,Sequence,5,2026-W46
+mwcu_a7,mwcu_a7,mwcu_a7_3b,3b,Sequence,6,2026-W46
+mwcu_a7,mwcu_a7,mwcu_a7_4b,4b,Sequence,5,2026-W46
+mwcu_a7,mwcu_a7,mwcu_a7_5,5,Sequence,7,2026-W46
+mwcu_a7,mwcu_a7,mwcu_a7_5a,5a,Sequence,7,2026-W46
+mwcu_a7,mwcu_a7,mwcu_a7_5b,5b,Sequence,7,2026-W46
+mwcu_a7,mwcu_a7,mwcu_a7_7,7,Sequence,8,2026-W46
