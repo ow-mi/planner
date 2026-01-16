@@ -3,13 +3,11 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
 build/
 develop-eggs/
 dist/
 downloads/
 eggs/
-.eggs/
 lib/
 lib64/
 parts/
@@ -17,7 +15,6 @@ sdist/
 var/
 wheels/
 *.egg-info/
-.installed.cfg
 *.egg
 MANIFEST
 
@@ -31,19 +28,16 @@ pip-delete-this-directory.txt
 
 # Unit test / coverage reports
 htmlcov/
-.tox/
 .coverage
 .coverage.*
 .cache
 nosetests.xml
 coverage.xml
 *.cover
-.hypothesis/
 .pytest_cache/
 
 # Virtual environments
 .env
-.venv
 env/
 venv/
 ENV/
@@ -78,8 +72,6 @@ pids
 lib-cov
 coverage/
 *.lcov
-.nyc_output
-.grunt
 bower_components
 .lock-wscript
 build/Release
@@ -87,7 +79,6 @@ build/Release
 .env.development.local
 .env.test.local
 .env.production.local
-.parcel-cache
 
 # Logs
 logs
@@ -110,12 +101,6 @@ lib-cov
 coverage/
 *.lcov
 
-# nyc test coverage
-.nyc_output
-
-# Grunt intermediate storage
-.grunt
-
 # Bower dependency directory
 bower_components
 
@@ -137,12 +122,6 @@ jspm_packages/
 # Optional eslint cache
 .eslintcache
 
-# Microbundle cache
-.rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
-
 # Optional REPL history
 .node_repl_history
 
@@ -157,7 +136,6 @@ jspm_packages/
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
-.parcel-cache
 
 # Next.js build output
 .next
@@ -194,17 +172,9 @@ gen3_pv_results_2/
 .Rhistory
 .RData
 *.Rproj.user/
-.Rproj.user
 
 # Jupyter Notebook
 .ipynb_checkpoints
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
 
 # mkdocs documentation
 /site
@@ -213,12 +183,6 @@ gen3_pv_results_2/
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
 
 # Cython debug symbols
 cython_debug/
