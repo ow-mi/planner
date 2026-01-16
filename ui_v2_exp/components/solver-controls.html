@@ -1,0 +1,121 @@
+<div x-data="solverControlsComponent()" x-init="init()">
+    <!-- Solver Execution Section -->
+    <div class="section">
+        <p>Run the solver using the loaded input data and configuration.</p>
+
+        <!-- Solver Parameters -->
+        <div class="form-group">
+            <label for="time-limit">Time Limit (seconds)</label>
+            <input type="number" id="time-limit" x-model.number="solverConfig.timeLimit" min="1" step="1" class="form-control">
+        </div>
+        <div class="form-group">
+            <label for="debug-level">Debug Level</label>
+            <select id="debug-level" x-model="solverConfig.debugLevel" class="form-control">
+                <option value="DEBUG">DEBUG</option>
+                <option value="INFO">INFO</option>
+                <option value="WARNING">WARNING</option>
+                <option value="ERROR">ERROR</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="output-folder">Output Folder (Optional)</label>
+            <input type="text" id="output-folder" x-model="solverConfig.outputFolder" placeholder="Leave empty for auto-generated folder" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <button @click="runSolver()" class="btn" :disabled="isRunning">Run Solver</button>
+            <button @click="resetSolver()" class="btn btn-danger" style="margin-left: 0.5rem;" :disabled="!canReset">Reset</button>
+        </div>
+
+        <!-- Progress & Status -->
+        <div x-show="isRunning" style="margin-top: 20px;">
+            <p>Status: <span x-text="statusMessage"></span> (<span x-text="progress"></span>%)</p>
+            <p>Elapsed Time: <span x-text="elapsedTime"></span>s</p>
+            <div style="background: #bdc3c7; height: 20px; border-radius: 10px; overflow: hidden;">
+                <div :style="`width: ${progress}%; background: var(--primary-color); height: 100%; transition: width 0.5s;`"></div>
+            </div>
+        </div>
+
+        <!-- Success/Results Link -->
+        <div x-show="isCompleted" class="validation-error" style="color: var(--success-color); margin-top: 20px; border-color: var(--success-color);">
+            <h3>Execution Completed</h3>
+            <p>Solver finished successfully!</p>
+            <button @click="showOutputTab()" class="btn">View Results</button>
+        </div>
+
+        <!-- Error Display -->
+        <div x-show="isFailed" class="validation-error" style="margin-top: 20px;">
+            <h3>Execution Failed</h3>
+            <p x-text="errorMessage"></p>
+            <p x-show="errorGuidance" x-text="errorGuidance" style="font-style: italic;"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+function solverControlsComponent() {
+    return {
+        init() {
+            console.log('Solver controls component initialized');
+        },
+
+        // Access store properties
+        get solverConfig() {
+            return this.$store.solver.config;
+        },
+
+        get isRunning() {
+            return this.$store.solver.isRunning();
+        },
+
+        get isCompleted() {
+            return this.$store.solver.isCompleted();
+        },
+
+        get isFailed() {
+            return this.$store.solver.isFailed();
+        },
+
+        get statusMessage() {
+            return this.$store.solver.message;
+        },
+
+        get progress() {
+            return this.$store.solver.progress;
+        },
+
+        get elapsedTime() {
+            return this.$store.solver.elapsedTime;
+        },
+
+        get errorMessage() {
+            return this.$store.solver.error?.message || 'Unknown error';
+        },
+
+        get errorGuidance() {
+            return this.$store.solver.error?.guidance || '';
+        },
+
+        get canReset() {
+            return this.isCompleted || this.isFailed;
+        },
+
+        runSolver() {
+            this.$store.solver.executeSolver();
+        },
+
+        resetSolver() {
+            if (confirm('Are you sure you want to reset the solver state?')) {
+                this.$store.solver.reset();
+            }
+        },
+
+        showOutputTab() {
+            // Dispatch event to switch to output tab
+            document.dispatchEvent(new CustomEvent('switchTab', {
+                detail: { tab: 'output_data' }
+            }));
+        }
+    };
+}
+</script>

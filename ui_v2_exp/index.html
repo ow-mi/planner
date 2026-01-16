@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en" x-data="app()" x-init="initApp()">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Priority Configuration Editor v2</title>
+
+    <!-- Import Maps for ES Modules -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@codemirror/view": "https://esm.sh/@codemirror/view@6.26.0?external=*",
+            "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.0?external=*",
+            "@codemirror/language": "https://esm.sh/@codemirror/language@6.10.0?external=*",
+            "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.5.0?external=*",
+            "@codemirror/search": "https://esm.sh/@codemirror/search@6.5.5?external=*",
+            "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.11.0?external=*",
+            "@codemirror/lint": "https://esm.sh/@codemirror/lint@6.4.0?external=*",
+            "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6.2.2?external=*",
+            "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.1.2?external=*",
+            "@lezer/common": "https://esm.sh/@lezer/common@1.2.1?external=*",
+            "@lezer/highlight": "https://esm.sh/@lezer/highlight@1.2.0?external=*",
+            "@lezer/lr": "https://esm.sh/@lezer/lr@1.4.0?external=*",
+            "@lezer/javascript": "https://esm.sh/@lezer/javascript@1.4.13?external=*",
+            "style-mod": "https://esm.sh/style-mod@4.1.2?external=*",
+            "w3c-keyname": "https://esm.sh/w3c-keyname@2.2.8?external=*",
+            "crelt": "https://esm.sh/crelt@1.0.6?external=*"
+        }
+    }
+    </script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <script>
+        // Configure HTMX to use relative paths
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set HTMX to use relative URLs
+            htmx.config.useTemplateFragments = true;
+
+            // Configure HTMX to work with Alpine.js
+            htmx.onLoad(function(content) {
+                // Re-initialize Alpine.js components in dynamically loaded content
+                if (window.Alpine) {
+                    window.Alpine.initTree(content);
+                }
+            });
+        });
+    </script>
+
+    <!-- Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="assets/css/base.css">
+    <link rel="stylesheet" href="assets/css/utilities.css">
+
+    <style>
+        /* Base styles for the application */
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --info-color: #3498db;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --border-color: #bdc3c7;
+            --text-color: #2c3e50;
+            --text-light: #7f8c8d;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        .app-container {
+            width: 95%;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2, h3 {
+            color: var(--dark-color);
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 1rem;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-light);
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            white-space: nowrap;
+        }
+
+        .tab.active, .tab:hover {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            background-color: var(--light-color);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--dark-color);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.9rem;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .validation-error {
+            color: var(--danger-color);
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .flex-container {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .flex-item {
+            flex-grow: 1;
+            min-width: 200px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        input[type="checkbox"] {
+            width: auto;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 6px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s, border-color 0.3s;
+            margin-bottom: 1rem;
+        }
+
+        .drop-zone.drag-over {
+            border-color: var(--primary-color);
+            background-color: var(--light-color);
+        }
+
+        .file-list {
+            margin-top: 1rem;
+            list-style: none;
+            padding: 0;
+        }
+
+        .file-list li {
+            background: var(--light-color);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--light-color);
+            font-weight: 600;
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 0.5rem;
+            }
+
+            .tabs {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+            }
+
+            .tab {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <h1>Priority Configuration Editor v2</h1>
+
+    <!-- Main Application UI - Directly include the component for now -->
+    <div id="main-content">
+        <div class="loading-spinner"></div> Loading application...
+    </div>
+
+    <!-- Load the main app component directly -->
+    <script>
+        // Load the main app component directly using fetch
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('components/main-app.html')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    document.getElementById('main-content').innerHTML = html;
+
+                    // Initialize Alpine.js components after loading
+                    if (window.Alpine) {
+                        window.Alpine.initTree(document.getElementById('main-content'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading main app component:', error);
+                    document.getElementById('main-content').innerHTML = `
+                        <div class="validation-error" style="padding: 1rem; background-color: #fee; border-radius: 4px;">
+                            <strong>Error loading application:</strong> ${error.message}
+                            <p>Please check the console for details.</p>
+                        </div>
+                    `;
+                });
+        });
+    </script>
+    </div>
+
+    <!-- Load Alpine.js stores -->
+    <script src="assets/js/stores/fileStore.js"></script>
+    <script src="assets/js/stores/configStore.js"></script>
+    <script src="assets/js/stores/solverStore.js"></script>
+    <script src="assets/js/stores/visualizationStore.js"></script>
+
+    <!-- Load services -->
+    <script src="assets/js/services/apiService.js"></script>
+    <script src="assets/js/services/notificationService.js"></script>
+
+    <!-- Load utilities -->
+    <script src="assets/js/utils/helpers.js"></script>
+    <script src="assets/js/utils/validation.js"></script>
+
+    <!-- Main App Component Function - Must be defined before component loads -->
+    <script>
+        function mainAppComponent() {
+            return {
+                activeTab: 'input_data',
+                isLoading: false,
+                error: null,
+                exportedConfig: '',
+
+                initComponent() {
+                    console.log('Main application component initialized');
+
+                    // Sync with parent app state if available
+                    if (window.appState) {
+                        this.activeTab = window.appState.activeTab || 'input_data';
+                    }
+
+                    // Set up event listeners for tab changes
+                    this.$watch('activeTab', (newTab) => {
+                        console.log('Tab changed to:', newTab);
+                        // Broadcast tab change event
+                        document.dispatchEvent(new CustomEvent('tabChanged', {
+                            detail: { tab: newTab }
+                        }));
+                        
+                        // Trigger HTMX requests for the active tab
+                        this.$nextTick(() => {
+                            this.loadTabContent(newTab);
+                        });
+                    });
+                    
+                    // Load initial tab content
+                    this.$nextTick(() => {
+                        this.loadTabContent(this.activeTab);
+                    });
+                },
+                
+                loadTabContent(tabName) {
+                    // Map tab names to their HTMX element selectors and URLs
+                    const tabConfig = {
+                        'input_data': { url: 'components/file-upload.html', target: '#file-upload-container' },
+                        'edit_data': { url: 'components/data-editor.html', target: '#data-editor-container' },
+                        'configuration': { url: 'components/config-editor.html', target: '#config-editor-container' },
+                        'solver': { url: 'components/solver-controls.html', target: '#solver-controls-container' },
+                        'visualizer': { url: 'components/visualizer.html', target: '#visualizer-container' },
+                        'output_data': { url: 'components/output-viewer.html', target: '#output-viewer-container' }
+                    };
+                    
+                    const config = tabConfig[tabName];
+                    if (config && window.htmx) {
+                        const targetElement = document.querySelector(config.target);
+                        if (targetElement && !targetElement.hasAttribute('data-loaded')) {
+                            // Use HTMX to load the content
+                            htmx.ajax('GET', config.url, {
+                                target: config.target,
+                                swap: 'innerHTML'
+                            });
+                            targetElement.setAttribute('data-loaded', 'true');
+                        }
+                    }
+                },
+
+                setActiveTab(tabName) {
+                    this.activeTab = tabName;
+                },
+
+                showError(message) {
+                    this.error = message;
+                    console.error('Main app error:', message);
+                },
+
+                clearError() {
+                    this.error = null;
+                },
+
+                exportConfiguration() {
+                    try {
+                        const config = this.$store.config.getCurrentConfig();
+                        this.exportedConfig = JSON.stringify(config, null, 2);
+                        return this.exportedConfig;
+                    } catch (error) {
+                        this.showError('Failed to export configuration: ' + error.message);
+                        return null;
+                    }
+                },
+
+                copyToClipboard() {
+                    const config = this.exportConfiguration();
+                    if (config) {
+                        navigator.clipboard.writeText(config).then(() => {
+                            // Show success notification
+                            this.showTemporaryNotification('Configuration copied to clipboard!');
+                        }).catch(err => {
+                            this.showError('Failed to copy to clipboard: ' + err.message);
+                        });
+                    }
+                },
+
+                showTemporaryNotification(message) {
+                    // Create temporary notification
+                    const notification = document.createElement('div');
+                    notification.textContent = message;
+                    notification.style.position = 'fixed';
+                    notification.style.bottom = '20px';
+                    notification.style.right = '20px';
+                    notification.style.padding = '0.75rem 1.5rem';
+                    notification.style.backgroundColor = 'var(--success-color)';
+                    notification.style.color = 'white';
+                    notification.style.borderRadius = '4px';
+                    notification.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+                    notification.style.zIndex = '1000';
+
+                    document.body.appendChild(notification);
+
+                    // Remove after 3 seconds
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 3000);
+                }
+            };
+        }
+    </script>
+
+    <!-- Main application logic -->
+    <script>
+        function app() {
+            return {
+                activeTab: 'input_data',
+                isLoading: false,
+                error: null,
+
+                initApp() {
+                    console.log('Initializing Priority Configuration Editor v2');
+
+                    // Initialize stores
+                    this.$store.files.init();
+                    this.$store.config.init();
+                    this.$store.solver.init();
+                    this.$store.visualization.init();
+
+                    // Set up event listeners
+                    this.setupEventListeners();
+                },
+
+                setupEventListeners() {
+                    // Global error handling
+                    window.addEventListener('error', (event) => {
+                        console.error('Global error:', event.error);
+                        this.showError('An unexpected error occurred. Please check console for details.');
+                    });
+
+                    // HTMX event listeners
+                    document.body.addEventListener('htmx:beforeRequest', (event) => {
+                        this.isLoading = true;
+                    });
+
+                    document.body.addEventListener('htmx:afterRequest', (event) => {
+                        this.isLoading = false;
+                    });
+
+                    document.body.addEventListener('htmx:responseError', (event) => {
+                        try {
+                            const failedRequest = event.detail.failedRequest;
+                            if (failedRequest && failedRequest.response) {
+                                const errorData = JSON.parse(failedRequest.response);
+                                this.showError(errorData.message || 'Request failed');
+                            } else {
+                                // Handle 404 and other errors where response might not be available
+                                const xhr = event.detail.failedRequest;
+                                if (xhr && xhr.status) {
+                                    if (xhr.status === 404) {
+                                        this.showError('Component not found. Please check the path.');
+                                    } else {
+                                        this.showError(`HTTP Error ${xhr.status}: ${xhr.statusText || 'Unknown error'}`);
+                                    }
+                                } else {
+                                    this.showError('Request failed: Component loading error');
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Error handling HTMX response:', e);
+                            this.showError('Request failed: ' + e.message);
+                        }
+                    });
+                },
+
+                showError(message) {
+                    this.error = message;
+                    console.error('Application error:', message);
+
+                    // Clear error after 10 seconds
+                    setTimeout(() => {
+                        this.error = null;
+                    }, 10000);
+                },
+
+                clearError() {
+                    this.error = null;
+                },
+
+                setActiveTab(tabName) {
+                    this.activeTab = tabName;
+                }
+            }
+        }
+
+        // Initialize HTMX extensions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configure HTMX to work with Alpine.js
+            htmx.onLoad(function(content) {
+                // Re-initialize Alpine.js components in dynamically loaded content
+                if (window.Alpine) {
+                    window.Alpine.initTree(content);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

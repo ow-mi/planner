@@ -1,0 +1,12 @@
+{
+  "mode": "end_date_priority",
+  "description": "Minimize total project duration. No special handling for individual legs. Pure makespan minimization."
+}
+
+
+
+
+
+
+
+

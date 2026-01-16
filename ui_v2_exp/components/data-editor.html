@@ -1,0 +1,131 @@
+<div x-data="dataEditorComponent()" x-init="init()">
+    <!-- Data Editor Section -->
+    <div class="section">
+        <div x-show="uploadedFiles.length === 0">
+            <p>Please upload one or more CSV files in the "Input Data" tab to edit them here.</p>
+        </div>
+
+        <div x-show="uploadedFiles.length > 0">
+            <div class="form-group">
+                <label for="csv-select">Select a CSV to edit:</label>
+                <select id="csv-select" x-model="selectedCsv" @change="displayCsvData()" class="form-control">
+                    <option value="">-- Select a file --</option>
+                    <template x-for="file in uploadedFiles" :key="file.name">
+                        <option :value="file.name" x-text="file.name"></option>
+                    </template>
+                </select>
+            </div>
+
+            <div x-show="activeCsvData.headers.length > 0">
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <template x-for="header in activeCsvData.headers" :key="header">
+                                    <th x-text="header"></th>
+                                </template>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(row, rowIndex) in activeCsvData.rows" :key="rowIndex">
+                                <tr>
+                                    <template x-for="(cell, cellIndex) in row" :key="cellIndex">
+                                        <td>
+                                            <input type="text" x-model="activeCsvData.rows[rowIndex][cellIndex]"
+                                                   style="width: 100%; padding: 0.25rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                                        </td>
+                                    </template>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <button @click="saveChanges()" class="btn" :disabled="!hasChanges">Save Changes</button>
+                    <button @click="addNewRow()" class="btn" style="margin-left: 0.5rem;">Add Row</button>
+                    <button @click="removeSelectedRow()" class="btn btn-danger" style="margin-left: 0.5rem;" :disabled="activeCsvData.rows.length === 0">Remove Selected Row</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function dataEditorComponent() {
+    return {
+        selectedCsv: '',
+        activeCsvData: { headers: [], rows: [] },
+        originalData: null,
+        selectedRowIndex: -1,
+
+        init() {
+            console.log('Data editor component initialized');
+
+            // Watch for file changes
+            this.$watch('$store.files.selectedCsv', (newVal) => {
+                if (newVal) {
+                    this.selectedCsv = newVal;
+                    this.displayCsvData();
+                }
+            });
+        },
+
+        displayCsvData() {
+            if (this.selectedCsv && this.$store.files.parsedCsvData[this.selectedCsv]) {
+                this.activeCsvData = this.$store.files.parsedCsvData[this.selectedCsv];
+                this.originalData = JSON.stringify(this.activeCsvData);
+                this.selectedRowIndex = -1;
+                return true;
+            } else {
+                this.activeCsvData = { headers: [], rows: [] };
+                this.originalData = null;
+                this.selectedRowIndex = -1;
+                return false;
+            }
+        },
+
+        hasChanges() {
+            if (!this.originalData) return false;
+            return this.originalData !== JSON.stringify(this.activeCsvData);
+        },
+
+        saveChanges() {
+            if (!this.hasChanges()) {
+                alert('No changes to save');
+                return;
+            }
+
+            // Update the store with modified data
+            this.$store.files.parsedCsvData[this.selectedCsv] = this.activeCsvData;
+            this.$store.files.saveToLocalStorage();
+            this.originalData = JSON.stringify(this.activeCsvData);
+
+            alert('Changes saved successfully!');
+        },
+
+        addNewRow() {
+            if (this.activeCsvData.headers.length === 0) return;
+
+            // Create new row with empty values
+            const newRow = Array(this.activeCsvData.headers.length).fill('');
+            this.activeCsvData.rows.push(newRow);
+        },
+
+        removeSelectedRow() {
+            if (this.selectedRowIndex >= 0 && this.selectedRowIndex < this.activeCsvData.rows.length) {
+                if (confirm('Are you sure you want to remove this row?')) {
+                    this.activeCsvData.rows.splice(this.selectedRowIndex, 1);
+                    this.selectedRowIndex = -1;
+                }
+            } else {
+                alert('Please select a row to remove');
+            }
+        },
+
+        selectRow(index) {
+            this.selectedRowIndex = index;
+        }
+    };
+}
+</script>

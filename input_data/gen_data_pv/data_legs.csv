@@ -1,0 +1,15 @@
+project_id,project_name,project_leg_id,leg_number,leg_name,priority,start_iso_week
+mwcu_b10,mwcu_b10,mwcu_b10_6,6,Water protection,8,2026-W46
+mwcu_b11,mwcu_b10,mwcu_b10_2,2,Sequence,1,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_2.1,2.1,Life,3,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_2.2,2.2,VDA,2,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_3,3,Sequence,6,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_4,4,Sequence,5,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_3a,3a,Sequence,6,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_4a,4a,Sequence,5,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_3b,3b,Sequence,6,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_4b,4b,Sequence,5,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_5,5,Sequence,7,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_5a,5a,Sequence,7,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_5b,5b,Sequence,7,2026-W46
+mwcu_b10,mwcu_b10,mwcu_b10_7,7,Sequence,8,2026-W46

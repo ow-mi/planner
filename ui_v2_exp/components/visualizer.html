@@ -1,0 +1,150 @@
+<div x-data="visualizerComponent()" x-init="init()">
+    <!-- Visualizer Controls -->
+    <div class="section">
+        <!-- Controls Row -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
+            <!-- Template Selection Dropdown -->
+            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+                <label for="template-select">Visualization Template:</label>
+                <select id="template-select" x-model="currentTemplateId" @change="loadTemplate(currentTemplateId)"
+                        class="form-control" aria-label="Select visualization template">
+                    <option value="gantt-tests">Tests by Leg (Gantt)</option>
+                    <option value="equipment">Equipment Utilization</option>
+                    <option value="fte">FTE Utilization</option>
+                    <option value="concurrency">Concurrency Chart</option>
+                </select>
+            </div>
+
+            <!-- Data Source Toggle -->
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Data Source:</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button @click="switchDataSource('solver')"
+                            :style="activeDataSource === 'solver' ? 'background-color: var(--secondary-color); color: white;' : 'background-color: var(--light-color); color: var(--text-light);'"
+                            style="padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid var(--border-color); cursor: pointer; font-size: 0.9rem;"
+                            :aria-pressed="activeDataSource === 'solver'"
+                            aria-label="Use Solver Data">
+                        Solver
+                    </button>
+                    <button @click="switchDataSource('csv')"
+                            :style="activeDataSource === 'csv' ? 'background-color: var(--secondary-color); color: white;' : 'background-color: var(--light-color); color: var(--text-light);'"
+                            style="padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid var(--border-color); cursor: pointer; font-size: 0.9rem;"
+                            :aria-pressed="activeDataSource === 'csv'"
+                            aria-label="Use CSV Data">
+                        CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Render Button -->
+            <div class="form-group" style="margin-bottom: 0; margin-top: 1.5rem;">
+                <button @click="runCode()"
+                        :disabled="!hasData"
+                        class="btn"
+                        style="padding: 0.5rem 1.5rem; font-weight: 600;">
+                    Render Plot
+                </button>
+            </div>
+        </div>
+
+        <!-- CSV File Upload Section (only shown when CSV source is selected) -->
+        <div class="form-group" style="margin-bottom: 1rem;" x-show="activeDataSource === 'csv'">
+            <label for="csv-upload">Upload CSV File:</label>
+            <input type="file" id="csv-upload" accept=".csv" @change="processCSVFile($event.target.files[0])"
+                   class="form-control" aria-describedby="csv-upload-help">
+            <small id="csv-upload-help" style="display: block; margin-top: 0.25rem; color: var(--text-light);">
+                Upload a CSV file with test schedule data (test_id, project_leg_id, start_date, end_date columns required)
+            </small>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div x-show="isLoading" style="margin-bottom: 1rem; padding: 0.5rem; background-color: #e8f4f8; border-radius: 4px;" role="status" aria-live="polite" aria-label="Loading CSV file">
+            <div class="loading-spinner"></div> Loading CSV file...
+        </div>
+
+        <!-- Success Message -->
+        <div x-show="csvData && !error" style="margin-bottom: 1rem; padding: 0.5rem; background-color: #d4edda; border-radius: 4px; color: #155724;" role="status" aria-live="polite">
+            <p style="margin: 0; font-size: 0.9rem;">CSV data loaded successfully!</p>
+        </div>
+
+        <!-- Error Display Section -->
+        <div x-show="error" class="validation-error" style="margin-bottom: 1rem;" role="alert" aria-live="assertive">
+            <p><strong>Error:</strong> <span x-text="error?.message"></span></p>
+            <p x-show="error?.line" style="font-size: 0.9rem; margin-top: 0.5rem;">Line: <span x-text="error?.line"></span></p>
+        </div>
+
+        <!-- Visualization Container -->
+        <div style="margin-bottom: 1rem;">
+            <div x-ref="chartContainer" style="width: 100%; min-height: 500px; padding: 1rem; overflow: auto; border: 1px solid var(--border-color); border-radius: 4px;"></div>
+        </div>
+
+        <!-- Empty State Message -->
+        <div x-show="!hasData" style="padding: 2rem; text-align: center; color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;" role="status">
+            <p>No data available. Run the solver or upload a CSV file to visualize.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function visualizerComponent() {
+    return {
+        init() {
+            console.log('Visualizer component initialized');
+
+            // Watch for solver data changes
+            this.$watch('$store.solver.results', (newResults) => {
+                if (newResults) {
+                    this.$store.visualization.solverData = newResults;
+                    this.$store.visualization.activeDataSource = 'solver';
+
+                    // Auto-render if we have code
+                    if (this.$store.visualization.code && this.$store.visualization.code.trim() !== '') {
+                        this.runCode();
+                    }
+                }
+            });
+        },
+
+        // Access store properties
+        get currentTemplateId() {
+            return this.$store.visualization.currentTemplateId;
+        },
+
+        set currentTemplateId(value) {
+            this.$store.visualization.currentTemplateId = value;
+        },
+
+        get activeDataSource() {
+            return this.$store.visualization.activeDataSource;
+        },
+
+        get isLoading() {
+            return this.$store.visualization.isLoading;
+        },
+
+        get error() {
+            return this.$store.visualization.error;
+        },
+
+        get hasData() {
+            return this.$store.visualization.hasData();
+        },
+
+        loadTemplate(templateId) {
+            this.$store.visualization.loadTemplate(templateId);
+        },
+
+        switchDataSource(source) {
+            this.$store.visualization.switchDataSource(source);
+        },
+
+        async processCSVFile(file) {
+            await this.$store.visualization.processCSVFile(file);
+        },
+
+        runCode() {
+            this.$store.visualization.runCode(this.$refs.chartContainer);
+        }
+    };
+}
+</script>

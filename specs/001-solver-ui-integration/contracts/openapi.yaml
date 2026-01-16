@@ -1,0 +1,302 @@
+openapi: 3.0.3
+info:
+  title: Solver UI Integration API
+  description: Backend API for executing planning solver from Alpine.js UI
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
+
+paths:
+  /api/solver/execute:
+    post:
+      summary: Execute planning solver
+      description: Submit CSV data and configuration to execute the planning solver
+      operationId: executeSolver
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolverRequest'
+      responses:
+        '202':
+          description: Execution accepted and queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResponse'
+        '400':
+          description: Invalid request (validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Queue full (too many pending executions)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/solver/status/{execution_id}:
+    get:
+      summary: Get execution status
+      description: Poll execution status and progress
+      operationId: getExecutionStatus
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Execution status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionStatus'
+        '404':
+          description: Execution not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/solver/results/{execution_id}:
+    get:
+      summary: Get execution results
+      description: Retrieve solver results for completed execution
+      operationId: getExecutionResults
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Execution results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SolverResults'
+        '202':
+          description: Execution still running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionStatus'
+        '404':
+          description: Execution not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/health:
+    get:
+      summary: Health check
+      description: Check API health and queue status
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  schemas:
+    SolverRequest:
+      type: object
+      required:
+        - csv_files
+        - priority_config
+      properties:
+        csv_files:
+          type: object
+          description: Map of CSV file names to file contents
+          additionalProperties:
+            type: string
+          example:
+            data_legs.csv: "project_id,project_name,project_leg_id..."
+            data_test.csv: "test_id,project_leg_id,sequence_index..."
+            data_fte.csv: "fte_id,available_start_week_iso..."
+            data_equipment.csv: "equipment_id,available_start_week_iso..."
+            data_test_duts.csv: "test_id,dut_id..."
+        priority_config:
+          type: object
+          description: Priority configuration JSON matching planner_v4 schema
+          properties:
+            mode:
+              type: string
+              enum: [leg_end_dates, leg_priority, end_date_priority, end_date_sticky, resource_bottleneck]
+            weights:
+              type: object
+              properties:
+                makespan_weight:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                priority_weight:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+            leg_deadlines:
+              type: object
+              additionalProperties:
+                type: string
+                format: date
+          example:
+            mode: "leg_end_dates"
+            weights:
+              makespan_weight: 0.2
+              priority_weight: 0.8
+        time_limit:
+          type: number
+          description: Solver time limit in seconds
+          default: 500
+          minimum: 1
+        debug_level:
+          type: string
+          enum: [DEBUG, INFO, WARNING, ERROR, CRITICAL]
+          default: INFO
+        output_folder:
+          type: string
+          description: Output folder path (optional, auto-generated if not provided)
+
+    ExecutionResponse:
+      type: object
+      properties:
+        execution_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING, RUNNING]
+        queue_position:
+          type: integer
+          description: Position in queue (0 if running immediately)
+        message:
+          type: string
+
+    ExecutionStatus:
+      type: object
+      properties:
+        execution_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING, RUNNING, COMPLETED, FAILED, TIMEOUT]
+        progress_percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+        elapsed_time_seconds:
+          type: number
+        current_phase:
+          type: string
+          nullable: true
+        queue_position:
+          type: integer
+          nullable: true
+        error:
+          $ref: '#/components/schemas/ErrorDetails'
+          nullable: true
+
+    SolverResults:
+      type: object
+      properties:
+        execution_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [OPTIMAL, FEASIBLE, INFEASIBLE, NO_SOLUTION]
+        makespan:
+          type: number
+          nullable: true
+        test_schedule:
+          type: array
+          items:
+            type: object
+            properties:
+              test_id:
+                type: string
+              start_date:
+                type: string
+                format: date
+              end_date:
+                type: string
+                format: date
+              leg_id:
+                type: string
+        resource_utilization:
+          type: object
+          nullable: true
+        output_files:
+          type: object
+          description: Map of output file names to file contents (Base64 encoded for binary)
+          additionalProperties:
+            type: string
+        solver_stats:
+          type: object
+          nullable: true
+          properties:
+            solve_time:
+              type: number
+            objective_value:
+              type: number
+            num_variables:
+              type: integer
+            num_constraints:
+              type: integer
+
+    ErrorDetails:
+      type: object
+      properties:
+        category:
+          type: string
+          enum: [ValidationError, SolverError, TimeoutError, SystemError]
+        message:
+          type: string
+        guidance:
+          type: string
+        error_code:
+          type: string
+        details:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorDetails'
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded]
+        queue_size:
+          type: integer
+        active_executions:
+          type: integer
+        version:
+          type: string
+
+
+
+
+

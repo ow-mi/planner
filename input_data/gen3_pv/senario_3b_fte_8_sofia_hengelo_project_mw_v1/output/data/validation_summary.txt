@@ -1,0 +1,36 @@
+Test Planner V2 - Solution Summary
+========================================
+
+Solver Status: FEASIBLE
+Solve Time: 600.38 seconds
+Makespan: 681 days
+Objective Value: 681.0
+
+Total Tests Scheduled: 236
+Total Project Legs: 28
+
+Leg Summary:
+  mwcu_b10_2a (Life): 31 tests
+  mwcu_b10_4 (Sequence): 7 tests
+  mwcu_b10_5 (Sequence): 10 tests
+  mwcu_a7_2a (Life): 31 tests
+  mwcu_a7_3 (Sequence): 17 tests
+  mwcu_a7_7 (Sequence): 16 tests
+  mwcu_b10_3 (Sequence): 17 tests
+  mwcu_b10_7 (Sequence): 16 tests
+  mwcu_a7_4 (Sequence): 7 tests
+  mwcu_b10_2b (VDA): 21 tests
+  mwcu_a7_5 (Sequence): 10 tests
+  mwcu_a7_6 (Water protection): 10 tests
+  mwcu_a7_2b (VDA): 21 tests
+  mwcu_b10_6 (Water protection): 10 tests
+  mwcu_b10_5a (Sequence): 4 tests
+  mwcu_b10_5b (Sequence): 2 tests
+  mwcu_a7_5b (Sequence): 2 tests
+  mwcu_a7_5a (Sequence): 4 tests
+
+Resource Utilization:
+  Average FTE Utilization: 21.00%
+  FTE Range: 19.29% - 22.60%
+  Average Equipment Utilization: 17.61%
+  Equipment Range: 8.28% - 21.39%

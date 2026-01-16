@@ -1,0 +1,159 @@
+<div x-data="configEditorComponent()" x-init="init()">
+    <!-- JSON File Upload Section -->
+    <div class="section">
+        <h3>Load Configuration from JSON</h3>
+        <div
+            class="drop-zone"
+            @dragover.prevent="jsonDragOver = true"
+            @dragleave.prevent="jsonDragOver = false"
+            @drop.prevent="handleJsonFileDrop($event)"
+            @click="$refs.jsonFileInput.click()"
+            :class="{ 'drag-over': jsonDragOver }"
+        >
+            <p>Drag & drop JSON configuration file here, or click to select file.</p>
+            <input type="file" @change="handleJsonFileUpload($event)" x-ref="jsonFileInput" class="hidden" accept=".json">
+        </div>
+        <div x-show="jsonUploadFiles.length > 0" class="form-group">
+            <label>Uploaded JSON Files:</label>
+            <ul class="file-list">
+                <template x-for="file in jsonUploadFiles" :key="file.name">
+                    <li>
+                        <span x-text="file.name"></span>
+                        <button @click="removeJsonFile(file.name)" class="btn btn-danger" style="margin-left: 10px; padding: 0.25rem 0.5rem; font-size: 0.8rem;">Remove</button>
+                    </li>
+                </template>
+            </ul>
+        </div>
+        <div x-show="error" class="validation-error">
+            <span x-text="error"></span>
+        </div>
+    </div>
+
+    <!-- Configuration Mode -->
+    <div class="section" :class="{ 'disabled-section': !sectionStates.basic }">
+        <div class="flex-container" style="margin-bottom: 1rem;">
+            <h3 style="margin: 0;">Configuration Mode</h3>
+            <label class="checkbox-label">
+                <input type="checkbox" x-model="sectionStates.basic">
+                Enable
+            </label>
+        </div>
+        <div class="form-group">
+            <label for="mode">Scheduling Mode</label>
+            <select id="mode" x-model="config.mode" :disabled="!sectionStates.basic" class="form-control">
+                <option value="leg_end_dates">Leg End Dates</option>
+                <option value="leg_priority">Leg Priority</option>
+                <option value="end_date_priority">End Date Priority</option>
+                <option value="end_date_sticky">End Date Sticky</option>
+                <option value="resource_bottleneck">Resource Bottleneck</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" x-model="config.description" :disabled="!sectionStates.basic"
+                      placeholder="A human-readable description of what this configuration does."
+                      class="form-control" rows="3"></textarea>
+        </div>
+    </div>
+
+    <!-- Objective Function Weights -->
+    <div class="section" :class="{ 'disabled-section': !sectionStates.weights }">
+        <div class="flex-container" style="margin-bottom: 1rem;">
+            <h3 style="margin: 0;">Objective Function Weights</h3>
+            <label class="checkbox-label">
+                <input type="checkbox" x-model="sectionStates.weights">
+                Enable
+            </label>
+        </div>
+        <div class="flex-container">
+            <div class="form-group flex-item">
+                <label for="makespan_weight">Makespan Weight</label>
+                <input type="number" id="makespan_weight" x-model.number="config.weights.makespan_weight"
+                       :disabled="!sectionStates.weights" min="0" max="1" step="0.05" class="form-control">
+            </div>
+            <div class="form-group flex-item">
+                <label for="priority_weight">Priority Weight</label>
+                <input type="number" id="priority_weight" x-model.number="config.weights.priority_weight"
+                       :disabled="!sectionStates.weights" min="0" max="1" step="0.05" class="form-control">
+            </div>
+        </div>
+        <template x-if="Math.abs(config.weights.makespan_weight + config.weights.priority_weight - 1.0) > 1e-9 && sectionStates.weights">
+            <div class="validation-error">
+                Weights must add up to 1.0. Current sum: <span x-text="(config.weights.makespan_weight + config.weights.priority_weight).toFixed(2)"></span>
+            </div>
+        </template>
+    </div>
+
+    <!-- Priority Config Settings Output -->
+    <div class="section">
+        <h3>Priority Configuration Settings (Output)</h3>
+        <div class="form-group">
+            <label>Generated JSON Configuration:</label>
+            <textarea readonly rows="10" x-text="JSON.stringify(priority_config_settings, null, 2)"
+                      class="form-control" style="font-family: monospace; font-size: 0.8rem;"></textarea>
+        </div>
+        <div class="form-group">
+            <button @click="copyToClipboard()" class="btn">Copy to Clipboard</button>
+            <button @click="resetToDefaults()" class="btn btn-danger" style="margin-left: 0.5rem;">Reset to Defaults</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function configEditorComponent() {
+    return {
+        jsonDragOver: false,
+
+        init() {
+            console.log('Configuration editor component initialized');
+        },
+
+        // Access store properties directly
+        get config() {
+            return this.$store.config.config;
+        },
+
+        get sectionStates() {
+            return this.$store.config.sectionStates;
+        },
+
+        get priority_config_settings() {
+            return this.$store.config.priority_config_settings;
+        },
+
+        get jsonUploadFiles() {
+            return this.$store.config.jsonUploadFiles;
+        },
+
+        get error() {
+            return this.$store.config.error;
+        },
+
+        set error(value) {
+            this.$store.config.error = value;
+        },
+
+        handleJsonFileUpload(event) {
+            this.$store.config.handleJsonFileUpload(event);
+        },
+
+        handleJsonFileDrop(event) {
+            this.$store.config.handleJsonFileDrop(event);
+        },
+
+        removeJsonFile(fileName) {
+            this.$store.config.removeJsonFile(fileName);
+        },
+
+        copyToClipboard() {
+            this.$store.config.copyToClipboard();
+        },
+
+        resetToDefaults() {
+            if (confirm('Are you sure you want to reset all configuration settings to defaults?')) {
+                this.$store.config.resetToDefaults();
+            }
+        }
+    };
+}
+</script>

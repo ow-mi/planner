@@ -1,0 +1,25 @@
+{
+  "mode": "resource_bottleneck",
+  "description": "Identify bottleneck resources (high utilization). Prioritize legs that use under-utilized resources.",
+  "weights": {
+    "makespan_weight": 0.4,
+    "priority_weight": 0.3
+  },
+  "bottleneck_threshold": 0.8,
+  "resource_balance_weight": 0.3,
+  "utilization_target": 0.7
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

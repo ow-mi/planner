@@ -1,0 +1,30 @@
+{
+  "mode": "leg_priority",
+  "description": "Higher priority legs get scheduled first. Lower priority legs can only start after higher priority legs complete.",
+  "weights": {
+    "makespan_weight": 0.3,
+    "priority_weight": 0.7
+  },
+  "leg_weights": {
+    "leg_1": 1.0,
+    "leg_2": 0.8,
+    "leg_3": 0.6,
+    "leg_4": 0.4,
+    "leg_5": 0.2
+  },
+  "priority_sequence": [
+    "leg_1",
+    "leg_2",
+    "leg_3",
+    "leg_4",
+    "leg_5"
+  ]
+}
+
+
+
+
+
+
+
+
