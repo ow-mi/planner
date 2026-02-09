@@ -407,6 +407,10 @@
                     <input type="number" id="deadline_penalty_per_day" x-model.number="config.deadline_penalty_per_day" :disabled="!sectionStates.penalty_settings" min="0">
                 </div>
                 <div class="form-group">
+                    <label for="leg_compactness_penalty_per_day">Leg Compactness Penalty per Day</label>
+                    <input type="number" id="leg_compactness_penalty_per_day" x-model.number="config.leg_compactness_penalty_per_day" :disabled="!sectionStates.penalty_settings" min="0">
+                </div>
+                <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" x-model="config.allow_parallel_within_deadlines" :disabled="!sectionStates.penalty_settings">
                         Allow Parallel Execution within Deadlines
@@ -856,6 +860,7 @@
                         { id: 'mwcu_a7_7', date: '2028-12-15' },
                     ],
                     deadline_penalty_per_day: 1000.0,
+                    leg_compactness_penalty_per_day: 0.0,
                     allow_parallel_within_deadlines: true,
                     test_proximity_rules: {
                         patterns: [
@@ -1119,6 +1124,12 @@
                         }
                     }
 
+                    if (jsonData.leg_compactness_penalty_per_day !== undefined) {
+                        if (typeof jsonData.leg_compactness_penalty_per_day !== 'number' || jsonData.leg_compactness_penalty_per_day < 0) {
+                            throw new Error('leg_compactness_penalty_per_day must be a non-negative number');
+                        }
+                    }
+
                     if (jsonData.allow_parallel_within_deadlines !== undefined) {
                         if (typeof jsonData.allow_parallel_within_deadlines !== 'boolean') {
                             throw new Error('allow_parallel_within_deadlines must be a boolean');
@@ -1180,6 +1191,9 @@
                         if (jsonData.deadline_penalty_per_day !== undefined) {
                             this.config.deadline_penalty_per_day = jsonData.deadline_penalty_per_day;
                         }
+                        if (jsonData.leg_compactness_penalty_per_day !== undefined) {
+                            this.config.leg_compactness_penalty_per_day = jsonData.leg_compactness_penalty_per_day;
+                        }
                         if (jsonData.allow_parallel_within_deadlines !== undefined) {
                             this.config.allow_parallel_within_deadlines = jsonData.allow_parallel_within_deadlines;
                         }
@@ -1195,7 +1209,7 @@
 
                         // Update section states based on what's present in JSON
                         this.sectionStates.leg_deadlines = !!jsonData.leg_deadlines;
-                        this.sectionStates.penalty_settings = jsonData.deadline_penalty_per_day !== undefined || jsonData.allow_parallel_within_deadlines !== undefined;
+                        this.sectionStates.penalty_settings = jsonData.deadline_penalty_per_day !== undefined || jsonData.leg_compactness_penalty_per_day !== undefined || jsonData.allow_parallel_within_deadlines !== undefined;
                         this.sectionStates.proximity_rules = !!jsonData.test_proximity_rules;
 
                         // Update output settings
@@ -1226,6 +1240,7 @@
 
                     if (this.sectionStates.penalty_settings) {
                         this.priority_config_settings.deadline_penalty_per_day = this.config.deadline_penalty_per_day;
+                        this.priority_config_settings.leg_compactness_penalty_per_day = this.config.leg_compactness_penalty_per_day;
                         this.priority_config_settings.allow_parallel_within_deadlines = this.config.allow_parallel_within_deadlines;
                     }
 

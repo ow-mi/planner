@@ -119,6 +119,7 @@ class LegEndDatesConfig(BasePriorityConfig):
 
     leg_deadlines: Dict[str, date] = field(default_factory=dict)  # leg_id -> deadline
     deadline_penalty_per_day: float = 200.0  # Penalty for missing deadline
+    leg_compactness_penalty_per_day: float = 0.0  # Penalty for stretching leg duration
     allow_parallel_within_deadlines: bool = True
 
     def validate(self) -> List[str]:
@@ -130,6 +131,8 @@ class LegEndDatesConfig(BasePriorityConfig):
 
         if self.deadline_penalty_per_day < 0:
             errors.append("deadline_penalty_per_day must be non-negative")
+        if self.leg_compactness_penalty_per_day < 0:
+            errors.append("leg_compactness_penalty_per_day must be non-negative")
 
         return errors
 

@@ -13,6 +13,7 @@
     "leg_5": "2024-12-15"
   },
   "deadline_penalty_per_day": 200.0,
+  "leg_compactness_penalty_per_day": 0.0,
   "allow_parallel_within_deadlines": true
 }
 

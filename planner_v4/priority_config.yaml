@@ -215,6 +215,28 @@ leg_deadlines:
 
 deadline_penalty_per_day: 1000.0
 
+# ============================================================================
+# LEG COMPACTNESS SETTINGS
+# ============================================================================
+#
+# Penalty cost per day of leg duration (leg end - leg start).
+# This encourages tests within a leg to be scheduled as tightly as possible,
+# reducing idle gaps when resources are available.
+#
+# HOW IT WORKS:
+# - For each leg: penalty = (leg_completion - leg_start) × leg_compactness_penalty_per_day
+# - Higher penalty = tighter, more contiguous legs
+# - Set to 0 to disable compactness pressure
+#
+# TYPICAL VALUES:
+# - 0: No compactness objective (default behavior)
+# - 50-200: Light pressure to reduce gaps
+# - 200-1000: Strong pressure to keep legs compact
+#
+# CURRENT VALUE: 0.0 (disabled)
+
+leg_compactness_penalty_per_day: 0.0
+
 # Whether legs can run in parallel (at the same time) if they don't exceed deadlines.
 # This is a key feature of "leg_end_dates" mode.
 #

@@ -753,6 +753,7 @@ def setup_leg_end_dates_objective(model: ScheduleModel, data: PlanningData,
     # Create leg completion time variables and deadline constraints
     leg_completion_vars = {}
     deadline_penalties = []
+    compactness_penalties = []
 
     for leg_id, deadline in config.leg_deadlines.items():
         if leg_id not in data.legs:
@@ -765,13 +766,21 @@ def setup_leg_end_dates_objective(model: ScheduleModel, data: PlanningData,
 
         # Leg completion is the max end time of any test in the leg
         leg_test_end_vars = []
+        leg_test_start_vars = []
         for test in data.tests:
             if test.project_leg_id == leg_id:
-                _, end_var, _ = model.test_vars[test.test_id]
+                start_var, end_var, _ = model.test_vars[test.test_id]
                 leg_test_end_vars.append(end_var)
+                leg_test_start_vars.append(start_var)
 
-        if leg_test_end_vars:
+        if leg_test_end_vars and leg_test_start_vars:
             model.model.AddMaxEquality(leg_completion_vars[leg_id], leg_test_end_vars)
+            leg_start_var = model.model.NewIntVar(0, model.horizon, f"leg_start_{leg_id}")
+            model.model.AddMinEquality(leg_start_var, leg_test_start_vars)
+
+            leg_span = model.model.NewIntVar(0, model.horizon, f"leg_span_{leg_id}")
+            model.model.Add(leg_span == leg_completion_vars[leg_id] - leg_start_var)
+            compactness_penalties.append(config.leg_compactness_penalty_per_day * leg_span)
 
         # HARD CONSTRAINT: Leg must finish by deadline (only for critical legs)
         # For now, make all constraints soft to allow the solver to find a solution
@@ -786,7 +795,7 @@ def setup_leg_end_dates_objective(model: ScheduleModel, data: PlanningData,
 
     # Objective: makespan weight + deadline penalties
     makespan_term = config.weights["makespan_weight"] * model.makespan_var
-    penalty_term = config.weights["priority_weight"] * sum(deadline_penalties)
+    penalty_term = config.weights["priority_weight"] * (sum(deadline_penalties) + sum(compactness_penalties))
 
     return [makespan_term, penalty_term]
 

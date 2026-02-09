@@ -228,6 +228,8 @@ def main(input_folder: str = None, debug_level: str = None,
                 logger.info(f"Leg end dates config:")
                 logger.info(f"  - Leg deadlines: {len(priority_config.leg_deadlines)} legs")
                 logger.info(f"  - Deadline penalty per day: {priority_config.deadline_penalty_per_day}")
+                if hasattr(priority_config, "leg_compactness_penalty_per_day"):
+                    logger.info(f"  - Leg compactness penalty per day: {priority_config.leg_compactness_penalty_per_day}")
             
             logger.info(f"  - Weights: {priority_config.weights}")
         else:

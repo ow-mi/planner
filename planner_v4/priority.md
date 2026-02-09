@@ -20,6 +20,7 @@ Pure makespan minimization
 - Each leg has a target completion date
 - Legs can be scheduled in parallel if they don't exceed their deadlines
 - Hard constraints on leg deadlines with penalties
+- Optional compactness penalty to reduce leg span and idle gaps
 
 ## E. Resource Bottleneck Priority
 - Identify bottleneck resources (high utilization)

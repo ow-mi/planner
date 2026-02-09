@@ -153,6 +153,7 @@ The Test Planner supports 5 distinct priority modes, each designed for different
     "leg_5": "2024-12-15"
   },
   "deadline_penalty_per_day": 200.0,
+  "leg_compactness_penalty_per_day": 0.0,
   "allow_parallel_within_deadlines": true
 }
 ```
@@ -163,6 +164,7 @@ The Test Planner supports 5 distinct priority modes, each designed for different
 |-----------|------|----------|---------|-------------|
 | `leg_deadlines` | Object | Yes | `{}` | Map of leg_id to deadline date (YYYY-MM-DD format) |
 | `deadline_penalty_per_day` | Number | No | 200.0 | Penalty weight for each day a leg misses its deadline |
+| `leg_compactness_penalty_per_day` | Number | No | 0.0 | Penalty weight per day of leg duration to reduce idle gaps |
 | `allow_parallel_within_deadlines` | Boolean | No | true | Whether to allow parallel execution when deadlines permit |
 
 **Notes:**

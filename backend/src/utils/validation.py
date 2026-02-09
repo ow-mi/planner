@@ -66,6 +66,11 @@ class ValidationUtils:
                 w = weights["priority_weight"]
                 if not (0 <= w <= 1):
                      errors.append("priority_weight must be between 0 and 1")
+
+        if "leg_compactness_penalty_per_day" in config:
+            value = config["leg_compactness_penalty_per_day"]
+            if not isinstance(value, (int, float)) or value < 0:
+                errors.append("leg_compactness_penalty_per_day must be a non-negative number")
         
         return errors
 
