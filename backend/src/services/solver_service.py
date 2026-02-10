@@ -340,25 +340,39 @@ class SolverService:
             self._handle_error(execution, "SystemError", "Request data not found")
             return
 
-        workspace_path = None
+        artifact_paths = None
         try:
             # 1. Setup Workspace
             execution.current_phase = "Setting up workspace"
-            workspace_path = FileHandler.create_temp_workspace(execution.execution_id)
-            input_path = f"{workspace_path}/input"
-            output_path = f"{workspace_path}/output"
+            run_name = self._derive_run_name(request.output_folder)
+            artifact_paths = FileHandler.create_run_artifact_workspace(
+                run_id=execution.execution_id,
+                run_name=run_name,
+                created_at=execution.created_at,
+            )
+            input_original_path = artifact_paths["input_original"]
+            input_effective_path = artifact_paths["input_effective"]
+            output_path = artifact_paths["output"]
 
             # 2. Save Input Files
             execution.current_phase = "Saving input files"
-            FileHandler.save_input_files(input_path, request.csv_files)
+            FileHandler.save_input_files(input_original_path, request.csv_files)
+            FileHandler.save_input_files(input_effective_path, request.csv_files)
 
             # 3. Parse and Save Priority Config
             # We need to save it to disk because data_loader expects it to exist
-            import json
-
-            priority_config_path = f"{input_path}/priority_config.json"
-            with open(priority_config_path, "w", encoding="utf-8") as f:
-                json.dump(request.priority_config, f, indent=2)
+            priority_config_original_path = (
+                f"{input_original_path}/priority_config.json"
+            )
+            priority_config_effective_path = (
+                f"{input_effective_path}/priority_config.json"
+            )
+            FileHandler.write_json(
+                priority_config_original_path, request.priority_config
+            )
+            FileHandler.write_json(
+                priority_config_effective_path, request.priority_config
+            )
 
             priority_config = load_priority_config_from_dict(request.priority_config)
 
@@ -372,7 +386,7 @@ class SolverService:
             # or parsing logs. For now we update status before and after.
 
             solution = planner_main(
-                input_folder=input_path,
+                input_folder=input_effective_path,
                 output_folder=output_path,
                 debug_level=request.debug_level.value
                 if request.debug_level
@@ -442,6 +456,9 @@ class SolverService:
             # Add logs
             log_contents = FileHandler.read_output_files(output_path, log_files)
             output_files.update(log_contents)
+
+            # Mirror generated plots in the contract-level plots folder.
+            FileHandler.copy_directory(f"{output_path}/plots", artifact_paths["plots"])
 
             # Solution is a SolutionResult object, not a dict
             solution_status = (
@@ -520,12 +537,41 @@ class SolverService:
                     handler.close()
                     root_logger.removeHandler(handler)
 
-            # 6. Cleanup
-            if workspace_path:
+            if artifact_paths:
+                run_metadata = {
+                    "run_id": execution.execution_id,
+                    "run_name": self._derive_run_name(request.output_folder),
+                    "status": execution.status.value,
+                    "created_at": execution.created_at.isoformat()
+                    if execution.created_at
+                    else None,
+                    "started_at": execution.started_at.isoformat()
+                    if execution.started_at
+                    else None,
+                    "completed_at": execution.completed_at.isoformat()
+                    if execution.completed_at
+                    else None,
+                    "time_limit": request.time_limit,
+                    "debug_level": request.debug_level.value
+                    if request.debug_level
+                    else None,
+                    "requested_output_folder": request.output_folder,
+                    "artifact_paths": {
+                        "input_original": artifact_paths["input_original"],
+                        "input_effective": artifact_paths["input_effective"],
+                        "output": artifact_paths["output"],
+                        "plots": artifact_paths["plots"],
+                    },
+                }
                 try:
-                    FileHandler.cleanup_workspace(workspace_path)
+                    FileHandler.write_json(
+                        artifact_paths["settings_used"],
+                        run_metadata,
+                    )
                 except Exception as e:
-                    print(f"Warning: Failed to cleanup workspace {workspace_path}: {e}")
+                    print(
+                        f"Warning: Failed to write run metadata for {execution.execution_id}: {e}"
+                    )
 
             # Mark completion in queue service
             queue_service.complete_execution(execution.execution_id)
@@ -575,6 +621,12 @@ class SolverService:
                 "priority_weight": 0.8,
             },
         }
+
+    def _derive_run_name(self, output_folder: Optional[str]) -> str:
+        if not output_folder:
+            return "run"
+        normalized = os.path.basename(output_folder.rstrip("/"))
+        return normalized or "run"
 
     def _refresh_batch_job_status(self, batch_job: "BatchJobRecord"):
         has_running = False
