@@ -110,3 +110,61 @@ class HealthResponse(BaseModel):
     queue_size: int
     active_executions: int
     version: str
+
+
+class BatchJobStatusEnum(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+class RunSessionResponse(BaseModel):
+    session_id: str
+    status: RunSessionStatusEnum
+    name: Optional[str] = None
+    source: Optional[str] = None
+
+
+class RunSessionInputsResponse(BaseModel):
+    session_id: str
+    status: RunSessionStatusEnum
+    has_inputs: bool
+    file_count: int
+
+
+class BatchScenarioStatus(BaseModel):
+    scenario_id: str
+    scenario_name: str
+    status: ExecutionStatusEnum
+    execution_id: Optional[str] = None
+    error: Optional[str] = None
+
+
+class BatchJobSubmissionResponse(BaseModel):
+    batch_id: str
+    status: BatchJobStatusEnum
+    message: str
+    scenario_statuses: List[BatchScenarioStatus]
+
+
+class BatchJobStatusResponse(BaseModel):
+    batch_id: str
+    status: BatchJobStatusEnum
+    progress: int
+    message: str
+    scenario_statuses: List[BatchScenarioStatus]
+
+
+class BatchScenarioResultItem(BaseModel):
+    scenario_id: str
+    scenario_name: str
+    status: ExecutionStatusEnum
+    execution_id: Optional[str] = None
+    results: Optional[SolverResults] = None
+
+
+class BatchJobResultsResponse(BaseModel):
+    batch_id: str
+    status: BatchJobStatusEnum
+    items: List[BatchScenarioResultItem]

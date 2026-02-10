@@ -11,6 +11,9 @@ from backend.src.api.models.requests import (
     SolverRequest,
     RunUploadRequest,
     RunSolveRequest,
+    RunSessionCreateRequest,
+    RunSessionInputsRequest,
+    BatchJobCreateRequest,
 )
 from backend.src.api.models.responses import (
     SolverExecution,
@@ -21,6 +24,14 @@ from backend.src.api.models.responses import (
     SolverStatusEnum,
     RunSessionState,
     RunSessionStatusEnum,
+    RunSessionResponse,
+    RunSessionInputsResponse,
+    BatchJobSubmissionResponse,
+    BatchJobStatusResponse,
+    BatchJobResultsResponse,
+    BatchScenarioStatus,
+    BatchScenarioResultItem,
+    BatchJobStatusEnum,
 )
 from backend.src.services.queue_service import queue_service
 from backend.src.utils.file_handler import FileHandler
@@ -33,6 +44,8 @@ class SolverService:
     def __init__(self):
         self._requests: Dict[str, SolverRequest] = {}
         self._run_sessions: Dict[str, "RunSessionRecord"] = {}
+        self._input_sessions: Dict[str, "InputSessionRecord"] = {}
+        self._batch_jobs: Dict[str, "BatchJobRecord"] = {}
         self._stop_event = threading.Event()
         self._worker_thread = threading.Thread(target=self._process_queue, daemon=True)
         self._worker_thread.start()
@@ -135,6 +148,129 @@ class SolverService:
         if not run_session or not run_session.execution_id:
             return None
         return self.get_execution_results(run_session.execution_id)
+
+    def create_inputs_session(
+        self, request: Optional[RunSessionCreateRequest] = None
+    ) -> RunSessionResponse:
+        request = request or RunSessionCreateRequest()
+        session_id = str(uuid.uuid4())
+        self._input_sessions[session_id] = InputSessionRecord(
+            session_id=session_id,
+            name=request.name,
+            source=request.source,
+            files={},
+        )
+        return RunSessionResponse(
+            session_id=session_id,
+            status=RunSessionStatusEnum.CREATED,
+            name=request.name,
+            source=request.source,
+        )
+
+    def upload_session_inputs(
+        self, session_id: str, request: RunSessionInputsRequest
+    ) -> RunSessionInputsResponse:
+        input_session = self._input_sessions.get(session_id)
+        if not input_session:
+            raise KeyError("Run session not found")
+
+        files = {input_file.name: input_file.content for input_file in request.files}
+        input_session.files = files
+
+        return RunSessionInputsResponse(
+            session_id=session_id,
+            status=RunSessionStatusEnum.READY,
+            has_inputs=len(files) > 0,
+            file_count=len(files),
+        )
+
+    def create_batch_job(
+        self, request: BatchJobCreateRequest
+    ) -> BatchJobSubmissionResponse:
+        input_session = self._input_sessions.get(request.session_id)
+        if not input_session:
+            raise KeyError("Run session not found")
+        if not input_session.files:
+            raise ValueError(
+                "Run session inputs are missing. Upload inputs before batch run"
+            )
+
+        scenario_records = []
+        for scenario in request.scenarios:
+            execution = self.create_execution(
+                SolverRequest(
+                    csv_files=input_session.files,
+                    priority_config=self._default_batch_priority_config(),
+                    time_limit=scenario.time_limit,
+                    debug_level=scenario.debug_level,
+                    output_folder=scenario.output_folder,
+                )
+            )
+            scenario_records.append(
+                BatchScenarioRecord(
+                    scenario_id=str(uuid.uuid4()),
+                    scenario_name=scenario.name,
+                    execution_id=execution.execution_id,
+                    status=execution.status,
+                )
+            )
+
+        batch_id = str(uuid.uuid4())
+        self._batch_jobs[batch_id] = BatchJobRecord(
+            batch_id=batch_id,
+            session_id=request.session_id,
+            status=BatchJobStatusEnum.PENDING,
+            scenarios=scenario_records,
+        )
+
+        return self._build_batch_submission_response(self._batch_jobs[batch_id])
+
+    def get_batch_job_status(self, batch_id: str) -> Optional[BatchJobStatusResponse]:
+        batch_job = self._batch_jobs.get(batch_id)
+        if not batch_job:
+            return None
+
+        self._refresh_batch_job_status(batch_job)
+        return BatchJobStatusResponse(
+            batch_id=batch_job.batch_id,
+            status=batch_job.status,
+            progress=self._batch_progress(batch_job),
+            message=self._batch_status_message(batch_job.status),
+            scenario_statuses=[
+                BatchScenarioStatus(
+                    scenario_id=scenario.scenario_id,
+                    scenario_name=scenario.scenario_name,
+                    status=scenario.status,
+                    execution_id=scenario.execution_id,
+                    error=scenario.error,
+                )
+                for scenario in batch_job.scenarios
+            ],
+        )
+
+    def get_batch_job_results(self, batch_id: str) -> Optional[BatchJobResultsResponse]:
+        batch_job = self._batch_jobs.get(batch_id)
+        if not batch_job:
+            return None
+
+        self._refresh_batch_job_status(batch_job)
+        items = []
+        for scenario in batch_job.scenarios:
+            items.append(
+                BatchScenarioResultItem(
+                    scenario_id=scenario.scenario_id,
+                    scenario_name=scenario.scenario_name,
+                    status=scenario.status,
+                    execution_id=scenario.execution_id,
+                    results=self.get_execution_results(scenario.execution_id),
+                )
+            )
+
+        return BatchJobResultsResponse(
+            batch_id=batch_job.batch_id,
+            status=batch_job.status,
+            items=items,
+        )
 
     def create_execution(self, request: SolverRequest) -> SolverExecution:
         # validation
@@ -430,6 +566,95 @@ class SolverService:
             return RunSessionStatusEnum.READY
         return RunSessionStatusEnum.CREATED
 
+    def _default_batch_priority_config(self) -> Dict:
+        return {
+            "mode": "leg_end_dates",
+            "description": "batch-default",
+            "weights": {
+                "makespan_weight": 0.2,
+                "priority_weight": 0.8,
+            },
+        }
+
+    def _refresh_batch_job_status(self, batch_job: "BatchJobRecord"):
+        has_running = False
+        has_failure = False
+        all_completed = True
+
+        for scenario in batch_job.scenarios:
+            execution = self.get_execution_status(scenario.execution_id)
+            if execution:
+                scenario.status = execution.status
+                scenario.error = execution.error.message if execution.error else None
+            else:
+                # Execution not found, mark as PENDING (or keep original if already completed/failed)
+                # The default status when creating is PENDING, so if it's not completed/failed, use PENDING
+                if scenario.status not in (
+                    ExecutionStatusEnum.COMPLETED,
+                    ExecutionStatusEnum.FAILED,
+                    ExecutionStatusEnum.TIMEOUT,
+                ):
+                    scenario.status = ExecutionStatusEnum.PENDING
+                    scenario.error = None
+
+            if scenario.status == ExecutionStatusEnum.RUNNING:
+                has_running = True
+            elif scenario.status in (
+                ExecutionStatusEnum.FAILED,
+                ExecutionStatusEnum.TIMEOUT,
+            ):
+                has_failure = True
+
+            if scenario.status != ExecutionStatusEnum.COMPLETED:
+                all_completed = False
+
+        if has_failure:
+            batch_job.status = BatchJobStatusEnum.FAILED
+        elif all_completed and batch_job.scenarios:
+            batch_job.status = BatchJobStatusEnum.COMPLETED
+        elif has_running:
+            batch_job.status = BatchJobStatusEnum.RUNNING
+        else:
+            batch_job.status = BatchJobStatusEnum.PENDING
+
+    def _build_batch_submission_response(
+        self, batch_job: "BatchJobRecord"
+    ) -> BatchJobSubmissionResponse:
+        return BatchJobSubmissionResponse(
+            batch_id=batch_job.batch_id,
+            status=batch_job.status,
+            message=self._batch_status_message(batch_job.status),
+            scenario_statuses=[
+                BatchScenarioStatus(
+                    scenario_id=scenario.scenario_id,
+                    scenario_name=scenario.scenario_name,
+                    status=scenario.status,
+                    execution_id=scenario.execution_id,
+                    error=scenario.error,
+                )
+                for scenario in batch_job.scenarios
+            ],
+        )
+
+    def _batch_progress(self, batch_job: "BatchJobRecord") -> int:
+        if not batch_job.scenarios:
+            return 0
+        completed = sum(
+            1
+            for scenario in batch_job.scenarios
+            if scenario.status == ExecutionStatusEnum.COMPLETED
+        )
+        return int((completed / len(batch_job.scenarios)) * 100)
+
+    def _batch_status_message(self, status: BatchJobStatusEnum) -> str:
+        if status == BatchJobStatusEnum.COMPLETED:
+            return "Batch completed"
+        if status == BatchJobStatusEnum.RUNNING:
+            return "Batch running"
+        if status == BatchJobStatusEnum.FAILED:
+            return "Batch failed"
+        return "Batch queued"
+
 
 @dataclass
 class RunSessionRecord:
@@ -437,6 +662,31 @@ class RunSessionRecord:
     csv_files: Optional[Dict[str, str]] = None
     priority_config: Optional[Dict] = None
     execution_id: Optional[str] = None
+
+
+@dataclass
+class InputSessionRecord:
+    session_id: str
+    name: Optional[str] = None
+    source: Optional[str] = None
+    files: Optional[Dict[str, str]] = None
+
+
+@dataclass
+class BatchScenarioRecord:
+    scenario_id: str
+    scenario_name: str
+    execution_id: str
+    status: ExecutionStatusEnum
+    error: Optional[str] = None
+
+
+@dataclass
+class BatchJobRecord:
+    batch_id: str
+    session_id: str
+    status: BatchJobStatusEnum
+    scenarios: list[BatchScenarioRecord]
 
 
 # Global instance
