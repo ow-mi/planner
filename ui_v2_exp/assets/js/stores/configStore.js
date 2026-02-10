@@ -67,12 +67,25 @@ document.addEventListener('alpine:init', () => {
          jsonUploadFiles: [],
          jsonDragOver: false,
 
-        // Initialization
-        init() {
-            console.log('Configuration store initialized');
-            this.loadFromLocalStorage();
-            this.updateOutputSettings();
-        },
+         // Initialization
+         init() {
+             console.log('Configuration store initialized');
+             this.loadFromLocalStorage();
+             this.updateOutputSettings();
+ 
+             // Watch for sectionEnabled changes and trigger output settings update
+             // This is a workaround since Alpine.js stores don't have built-in reactivity for nested properties
+             const originalSectionEnabled = this.sectionEnabled;
+             this.sectionEnabled = {
+                 modeEnabled: originalSectionEnabled.modeEnabled,
+                 deadlinesEnabled: originalSectionEnabled.deadlinesEnabled,
+                 penaltyEnabled: originalSectionEnabled.penaltyEnabled,
+                 proximityEnabled: originalSectionEnabled.proximityEnabled
+             };
+ 
+             // Mark as initialized for reactive updates
+             this.sectionEnabledInitialized = true;
+         },
 
          // Load from localStorage
          loadFromLocalStorage() {
@@ -439,24 +452,34 @@ document.addEventListener('alpine:init', () => {
             this.updateOutputSettings();
          },
 
-         // Copy configuration to clipboard
-         copyToClipboard() {
-             const jsonText = JSON.stringify(this.priority_config_settings, null, 2);
-             navigator.clipboard.writeText(jsonText).then(() => {
-                 console.log('Configuration copied to clipboard');
-                 this.successMessage = '✓ JSON copied to clipboard';
-                 this.error = null;
-                 // Clear success message after 3 seconds
-                 setTimeout(() => {
-                     this.successMessage = '';
-                 }, 3000);
-                 return true;
-             }).catch(err => {
-                 console.error('Failed to copy to clipboard:', err);
-                 this.error = 'Failed to copy to clipboard: ' + err.message;
-                 this.successMessage = '';
-                 return false;
-             });
-         }
-    });
-});
+           clearSuccessMessage() {
+               this.successMessage = '';
+           },
+
+          // Set section enabled state and trigger output settings update
+          setSectionEnabled(section, enabled) {
+              this.sectionEnabled[section] = enabled;
+              this.updateOutputSettings();
+          },
+
+          // Copy configuration to clipboard
+          copyToClipboard() {
+              const jsonText = JSON.stringify(this.priority_config_settings, null, 2);
+              navigator.clipboard.writeText(jsonText).then(() => {
+                  console.log('Configuration copied to clipboard');
+                  this.successMessage = '✓ JSON copied to clipboard';
+                  this.error = null;
+                  // Clear success message after 3 seconds
+                  setTimeout(() => {
+                      this.successMessage = '';
+                  }, 3000);
+                  return true;
+              }).catch(err => {
+                  console.error('Failed to copy to clipboard:', err);
+                  this.error = 'Failed to copy to clipboard: ' + err.message;
+                  this.successMessage = '';
+                  return false;
+              });
+          }
+     });
+ });

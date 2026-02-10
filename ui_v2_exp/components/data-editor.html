@@ -114,24 +114,26 @@ function dataEditorComponent() {
             alert('Changes saved successfully!');
         },
 
-        addNewRow() {
-            if (this.activeCsvData.headers.length === 0) return;
+         addNewRow() {
+             if (this.activeCsvData.headers.length === 0) return;
 
-            // Create new row with empty values
-            const newRow = Array(this.activeCsvData.headers.length).fill('');
-            this.activeCsvData.rows.push(newRow);
-        },
+             // Create new row with empty values
+             const newRow = Array(this.activeCsvData.headers.length).fill('');
+             this.activeCsvData.rows.push(newRow);
+             this.$store.files.saveToLocalStorage();
+         },
 
-        removeSelectedRow() {
-            if (this.selectedRowIndex >= 0 && this.selectedRowIndex < this.activeCsvData.rows.length) {
-                if (confirm('Are you sure you want to remove this row?')) {
-                    this.activeCsvData.rows.splice(this.selectedRowIndex, 1);
-                    this.selectedRowIndex = -1;
-                }
-            } else {
-                alert('Please select a row to remove');
-            }
-        },
+         removeSelectedRow() {
+             if (this.selectedRowIndex >= 0 && this.selectedRowIndex < this.activeCsvData.rows.length) {
+                 if (confirm('Are you sure you want to remove this row?')) {
+                     this.activeCsvData.rows.splice(this.selectedRowIndex, 1);
+                     this.selectedRowIndex = -1;
+                     this.$store.files.saveToLocalStorage();
+                 }
+             } else {
+                 alert('Please select a row to remove');
+             }
+         },
 
         selectRow(index) {
             this.selectedRowIndex = index;

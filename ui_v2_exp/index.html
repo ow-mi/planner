@@ -39,7 +39,7 @@
 
               // Re-initialize Alpine.js components in dynamically loaded content (HTMX 2.x pattern)
               document.body.addEventListener('htmx:afterSwap', function(event) {
-                  if (window.Alpine) {
+                  if (window.Alpine && event && event.detail && event.detail.target) {
                       window.Alpine.initTree(event.detail.target);
                   }
               });
@@ -647,7 +647,7 @@
                     window.addEventListener('error', (event) => {
                         console.error('Global error:', event.error);
                         const errorMessage = event?.error?.message || event?.message || 'An unexpected error occurred.';
-                        if (errorMessage === 'Script error.') {
+                        if (!errorMessage || errorMessage === 'Script error.') {
                             return;
                         }
                         this.showError(`Unexpected error: ${errorMessage}`);
@@ -702,17 +702,43 @@
                     this.error = null;
                 },
 
-                setActiveTab(tabName) {
-                    this.activeTab = tabName;
-                    this.updateTabVisibility(tabName);
-                }
-            }
-        }
+                 setActiveTab(tabName) {
+                     this.activeTab = tabName;
+                     this.updateTabVisibility(tabName);
+                 },
+ 
+                 handleTabNavigation(direction) {
+                     const tabs = ['input_data', 'edit_data', 'configuration', 'solver', 'visualizer', 'output_data'];
+                     const currentIndex = tabs.indexOf(this.activeTab);
+                     
+                     if (currentIndex === -1) return;
+                     
+                     let newIndex = currentIndex;
+                     
+                     switch (direction) {
+                         case 'left':
+                             newIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
+                             break;
+                         case 'right':
+                             newIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+                             break;
+                         case 'home':
+                             newIndex = 0;
+                             break;
+                         case 'end':
+                             newIndex = tabs.length - 1;
+                             break;
+                     }
+                     
+                     this.setActiveTab(tabs[newIndex]);
+                 }
+             }
+         }
 
          // Initialize HTMX extensions (HTMX 2.x pattern)
          document.body.addEventListener('htmx:afterSwap', function(event) {
              // Re-initialize Alpine.js components in dynamically loaded content
-             if (window.Alpine) {
+             if (window.Alpine && event && event.detail && event.detail.target) {
                  window.Alpine.initTree(event.detail.target);
              }
          });

@@ -1,4 +1,4 @@
-<div x-data="configEditorComponent()" x-init="init()" x-cloak>
+<div x-data="configEditorComponent()" x-cloak>
      <!-- Loading indicator for request operations -->
      <div class="htmx-indicator" style="display:none;" id="config-loader">
          <div class="spinner"></div>
@@ -38,11 +38,11 @@
       <!-- Mode & Objective Weights Section -->
       <div class="section" :class="{ 'disabled-section': !sectionEnabled.modeEnabled }">
           <div class="flex-container" style="margin-bottom: 1rem;">
-              <h3 style="margin: 0;">Configuration Mode</h3>
-              <label class="checkbox-label">
-                  <input type="checkbox" x-model="sectionEnabled.modeEnabled">
-                  Enable
-              </label>
+               <h3 style="margin: 0;">Configuration Mode</h3>
+               <label class="checkbox-label">
+                   <input type="checkbox" x-model="sectionEnabled.modeEnabled" x-on:change="$store.config.updateOutputSettings()">
+                   Enable
+               </label>
           </div>
           <div class="form-group">
               <label for="mode">Scheduling Mode</label>
@@ -65,11 +65,11 @@
       <!-- Leg Deadlines Section -->
       <div class="section" :class="{ 'disabled-section': !sectionEnabled.deadlinesEnabled }">
           <div class="flex-container" style="margin-bottom: 1rem;">
-              <h3 style="margin: 0;">Leg Deadlines</h3>
-              <label class="checkbox-label">
-                  <input type="checkbox" x-model="sectionEnabled.deadlinesEnabled">
-                  Enable
-              </label>
+               <h3 style="margin: 0;">Leg Deadlines</h3>
+               <label class="checkbox-label">
+                   <input type="checkbox" x-model="sectionEnabled.deadlinesEnabled" x-on:change="$store.config.updateOutputSettings()">
+                   Enable
+               </label>
               <button @click="addDeadlineRow()" class="btn" :disabled="!sectionEnabled.deadlinesEnabled" style="margin-left: auto;">Add Leg</button>
           </div>
           <div x-show="config.deadlines.length > 0" style="overflow-x: auto;">
@@ -110,11 +110,11 @@
       <!-- Penalty Settings Section -->
       <div class="section" :class="{ 'disabled-section': !sectionEnabled.penaltyEnabled }">
           <div class="flex-container" style="margin-bottom: 1rem;">
-              <h3 style="margin: 0;">Deadline Penalty Settings</h3>
-              <label class="checkbox-label">
-                  <input type="checkbox" x-model="sectionEnabled.penaltyEnabled">
-                  Enable
-              </label>
+               <h3 style="margin: 0;">Deadline Penalty Settings</h3>
+               <label class="checkbox-label">
+                   <input type="checkbox" x-model="sectionEnabled.penaltyEnabled" x-on:change="$store.config.updateOutputSettings()">
+                   Enable
+               </label>
           </div>
           <div class="flex-container">
               <div class="form-group flex-item">
@@ -138,11 +138,11 @@
       <!-- Proximity Rules Section -->
       <div class="section" :class="{ 'disabled-section': !sectionEnabled.proximityEnabled }">
           <div class="flex-container" style="margin-bottom: 1rem;">
-              <h3 style="margin: 0;">Test Proximity Rules</h3>
-              <label class="checkbox-label">
-                  <input type="checkbox" x-model="sectionEnabled.proximityEnabled">
-                  Enable
-              </label>
+               <h3 style="margin: 0;">Test Proximity Rules</h3>
+               <label class="checkbox-label">
+                   <input type="checkbox" x-model="sectionEnabled.proximityEnabled" x-on:change="$store.config.updateOutputSettings()">
+                   Enable
+               </label>
               <button @click="addProximityRule()" class="btn" :disabled="!sectionEnabled.proximityEnabled" style="margin-left: auto;">Add Rule</button>
           </div>
           <div x-show="config.proximityRules.length > 0" style="overflow-x: auto;">
@@ -187,14 +187,14 @@
       </div>
 
      <!-- Objective Function Weights -->
-     <div class="section" :class="{ 'disabled-section': !sectionEnabled.modeEnabled }">
-         <div class="flex-container" style="margin-bottom: 1rem;">
-             <h3 style="margin: 0;">Objective Function Weights</h3>
-             <label class="checkbox-label">
-                 <input type="checkbox" x-model="sectionEnabled.modeEnabled">
-                 Enable
-             </label>
-         </div>
+      <div class="section" :class="{ 'disabled-section': !sectionEnabled.modeEnabled }">
+          <div class="flex-container" style="margin-bottom: 1rem;">
+              <h3 style="margin: 0;">Objective Function Weights</h3>
+              <label class="checkbox-label">
+                  <input type="checkbox" x-model="sectionEnabled.modeEnabled" x-on:change="$store.config.updateOutputSettings()">
+                  Enable
+              </label>
+          </div>
          <div class="flex-container">
              <div class="form-group flex-item">
                  <label for="makespan_weight">Makespan Weight</label>
@@ -214,8 +214,8 @@
          </template>
      </div>
 
-     <!-- Priority Config Settings Output -->
-     <div class="section" x-data="{ showSuccess: false }" x-init="clearSuccessMessage()">
+      <!-- Priority Config Settings Output -->
+      <div class="section" x-data="{ showSuccess: false }">
          <h3>Priority Configuration Settings (Output)</h3>
          <div class="form-group">
              <label>Generated JSON Configuration:</label>
