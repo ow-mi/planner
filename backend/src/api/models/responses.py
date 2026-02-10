@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from enum import Enum
 from datetime import datetime
 
+
 class ExecutionStatusEnum(str, Enum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
@@ -10,17 +11,30 @@ class ExecutionStatusEnum(str, Enum):
     FAILED = "FAILED"
     TIMEOUT = "TIMEOUT"
 
+
+class RunSessionStatusEnum(str, Enum):
+    CREATED = "CREATED"
+    READY = "READY"
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    TIMEOUT = "TIMEOUT"
+
+
 class SolverStatusEnum(str, Enum):
     OPTIMAL = "OPTIMAL"
     FEASIBLE = "FEASIBLE"
     INFEASIBLE = "INFEASIBLE"
     NO_SOLUTION = "NO_SOLUTION"
 
+
 class ErrorCategory(str, Enum):
     ValidationError = "ValidationError"
     SolverError = "SolverError"
     TimeoutError = "TimeoutError"
     SystemError = "SystemError"
+
 
 class ErrorDetails(BaseModel):
     category: ErrorCategory
@@ -29,8 +43,10 @@ class ErrorDetails(BaseModel):
     error_code: str
     details: Optional[Dict[str, Any]] = None
 
+
 class ErrorResponse(BaseModel):
     error: ErrorDetails
+
 
 class SolverResults(BaseModel):
     execution_id: str
@@ -41,6 +57,7 @@ class SolverResults(BaseModel):
     output_files: Dict[str, str]
     solver_stats: Optional[Dict[str, Any]] = None
 
+
 class ExecutionStatus(BaseModel):
     execution_id: str
     status: ExecutionStatusEnum
@@ -49,6 +66,7 @@ class ExecutionStatus(BaseModel):
     current_phase: Optional[str] = None
     queue_position: Optional[int] = None
     error: Optional[ErrorDetails] = None
+
 
 class SolverExecution(BaseModel):
     execution_id: str
@@ -63,11 +81,29 @@ class SolverExecution(BaseModel):
     results: Optional[SolverResults] = None
     queue_position: Optional[int] = None
 
+
 class ExecutionResponse(BaseModel):
     execution_id: str
     status: ExecutionStatusEnum
     queue_position: int
     message: str
+
+
+class RunSessionState(BaseModel):
+    run_id: str
+    status: RunSessionStatusEnum
+    has_inputs: bool
+    execution_id: Optional[str] = None
+    execution_status: Optional[ExecutionStatusEnum] = None
+
+
+class RunSolveResponse(BaseModel):
+    run_id: str
+    execution_id: str
+    status: ExecutionStatusEnum
+    queue_position: int
+    message: str
+
 
 class HealthResponse(BaseModel):
     status: str
