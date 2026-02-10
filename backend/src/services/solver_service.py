@@ -3,6 +3,7 @@ import time
 import uuid
 import traceback
 import os
+import csv
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, Optional
@@ -31,6 +32,7 @@ from backend.src.api.models.responses import (
     BatchJobResultsResponse,
     BatchScenarioStatus,
     BatchScenarioResultItem,
+    BatchSummaryArtifact,
     BatchJobStatusEnum,
 )
 from backend.src.services.queue_service import queue_service
@@ -282,11 +284,68 @@ class SolverService:
                 )
             )
 
+        summary_artifacts = self._write_batch_summary_artifacts(
+            batch_job.batch_id, items
+        )
+
         return BatchJobResultsResponse(
             batch_id=batch_job.batch_id,
             status=batch_job.status,
             items=items,
+            summary_artifacts=summary_artifacts,
         )
+
+    def _write_batch_summary_artifacts(
+        self, batch_id: str, items: list[BatchScenarioResultItem]
+    ) -> list[BatchSummaryArtifact]:
+        output_dir = os.path.join(os.getcwd(), "runs", "batch_summaries", batch_id)
+        os.makedirs(output_dir, exist_ok=True)
+
+        summary_csv_path = os.path.join(output_dir, "batch_summary.csv")
+        csv_columns = [
+            "scenario_id",
+            "scenario_name",
+            "status",
+            "makespan",
+            "objective_value",
+            "solve_time_seconds",
+            "scenario_results_endpoint",
+            "scenario_status_endpoint",
+            "output_files_keys",
+        ]
+
+        with open(summary_csv_path, "w", newline="", encoding="utf-8") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=csv_columns)
+            writer.writeheader()
+
+            for item in items:
+                solver_stats = item.results.solver_stats if item.results else {}
+                output_files = item.results.output_files if item.results else {}
+                writer.writerow(
+                    {
+                        "scenario_id": item.scenario_id,
+                        "scenario_name": item.scenario_name,
+                        "status": item.status.value,
+                        "makespan": item.results.makespan if item.results else "",
+                        "objective_value": solver_stats.get("objective_value", ""),
+                        "solve_time_seconds": solver_stats.get("solve_time", ""),
+                        "scenario_results_endpoint": f"/api/results/{item.execution_id}"
+                        if item.execution_id
+                        else "",
+                        "scenario_status_endpoint": f"/api/status/{item.execution_id}"
+                        if item.execution_id
+                        else "",
+                        "output_files_keys": ";".join(sorted(output_files.keys())),
+                    }
+                )
+
+        return [
+            BatchSummaryArtifact(
+                artifact_name="batch_summary.csv",
+                artifact_path=summary_csv_path,
+                content_type="text/csv",
+            )
+        ]
 
     def create_execution(self, request: SolverRequest) -> SolverExecution:
         # validation

@@ -164,7 +164,14 @@ class BatchScenarioResultItem(BaseModel):
     results: Optional[SolverResults] = None
 
 
+class BatchSummaryArtifact(BaseModel):
+    artifact_name: str
+    artifact_path: str
+    content_type: str
+
+
 class BatchJobResultsResponse(BaseModel):
     batch_id: str
     status: BatchJobStatusEnum
     items: List[BatchScenarioResultItem]
+    summary_artifacts: List[BatchSummaryArtifact] = Field(default_factory=list)

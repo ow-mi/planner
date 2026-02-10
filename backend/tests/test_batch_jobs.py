@@ -1,4 +1,6 @@
+import csv
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -27,7 +29,8 @@ def _result_for_execution(execution_id: str, makespan: float) -> SolverResults:
     )
 
 
-def test_batch_job_lifecycle_exposes_per_scenario_statuses(monkeypatch):
+def test_batch_job_lifecycle_exposes_per_scenario_statuses(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
     executions_by_id = {}
     results_by_execution_id = {}
 
@@ -141,6 +144,30 @@ def test_batch_job_lifecycle_exposes_per_scenario_statuses(monkeypatch):
     assert results_payload["items"][0]["results"]["execution_id"] == first_execution_id
     assert results_payload["items"][1]["scenario_name"] == "Scenario B"
     assert results_payload["items"][1]["status"] == "COMPLETED"
+    assert len(results_payload["summary_artifacts"]) == 1
+    summary_artifact = results_payload["summary_artifacts"][0]
+    assert summary_artifact["artifact_name"] == "batch_summary.csv"
+    assert summary_artifact["content_type"] == "text/csv"
+
+    summary_path = Path(summary_artifact["artifact_path"])
+    assert summary_path.exists()
+
+    with summary_path.open("r", encoding="utf-8", newline="") as summary_file:
+        rows = list(csv.DictReader(summary_file))
+
+    assert len(rows) == 2
+    assert rows[0]["scenario_id"] == results_payload["items"][0]["scenario_id"]
+    assert rows[0]["scenario_name"] == "Scenario A"
+    assert rows[0]["status"] == "COMPLETED"
+    assert rows[0]["makespan"] == "10.0"
+    assert rows[0]["objective_value"] == "42.0"
+    assert rows[0]["solve_time_seconds"] == "1.5"
+    assert rows[0]["scenario_results_endpoint"] == f"/api/results/{first_execution_id}"
+
+    assert rows[1]["scenario_id"] == results_payload["items"][1]["scenario_id"]
+    assert rows[1]["scenario_name"] == "Scenario B"
+    assert rows[1]["status"] == "COMPLETED"
+    assert rows[1]["scenario_results_endpoint"] == f"/api/results/{second_execution_id}"
 
 
 def test_batch_status_and_results_return_404_for_unknown_batch():
