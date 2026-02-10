@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" x-data="app()" x-init="initApp()">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -29,26 +29,25 @@
     }
     </script>
 
-    <!-- HTMX -->
-    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
-    <script>
-        // Configure HTMX to use relative paths
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set HTMX to use relative URLs
-            htmx.config.useTemplateFragments = true;
+    <!-- HTMX - Upgraded to 2.x for improved fragment loading and Alpine.js integration -->
+    <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+     <script>
+         // Configure HTMX to work with Alpine.js
+         document.addEventListener('DOMContentLoaded', function() {
+             // Configure HTMX to use relative URLs
+             htmx.config.useTemplateFragments = true;
 
-            // Configure HTMX to work with Alpine.js
-            htmx.onLoad(function(content) {
-                // Re-initialize Alpine.js components in dynamically loaded content
-                if (window.Alpine) {
-                    window.Alpine.initTree(content);
-                }
-            });
-        });
-    </script>
+             // Re-initialize Alpine.js components in dynamically loaded content (HTMX 2.x pattern)
+             document.body.addEventListener('htmx:afterSwap', function(event) {
+                 if (window.Alpine) {
+                     window.Alpine.initTree(event.detail.target);
+                 }
+             });
+         });
+     </script>
 
-    <!-- Alpine.js -->
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+     <!-- Alpine.js -->
+     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js" defer></script>
 
     <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -56,6 +55,7 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
 
     <!-- CSS -->
+    <link rel="icon" href="favicon.ico" sizes="any">
     <link rel="stylesheet" href="assets/css/base.css">
     <link rel="stylesheet" href="assets/css/utilities.css">
 
@@ -304,48 +304,32 @@
     <div class="app-container">
         <h1>Priority Configuration Editor v2</h1>
 
-    <!-- Main Application UI - Directly include the component for now -->
-    <div id="main-content">
-        <div class="loading-spinner"></div> Loading application...
+     <!-- MTMX fragment loading configuration -->
+     <div x-data="app()" x-init="initApp()" x-cloak>
+         <!-- Tabs container - loaded via HTMX -->
+         <div id="tabs-container" hx-get="components/tabs.html" hx-trigger="load" hx-swap="innerHTML"></div>
+         
+         <!-- Tab content containers -->
+         <div id="file-upload-container" class="tab-content" data-loaded="false"></div>
+         <div id="data-editor-container" class="tab-content" data-loaded="false"></div>
+         <div id="config-editor-container" class="tab-content" data-loaded="false"></div>
+         <div id="solver-controls-container" class="tab-content" data-loaded="false"></div>
+         <div id="visualizer-container" class="tab-content" data-loaded="false"></div>
+         <div id="output-viewer-container" class="tab-content" data-loaded="false"></div>
+     </div>
     </div>
 
-    <!-- Load the main app component directly -->
-    <script>
-        // Load the main app component directly using fetch
-        document.addEventListener('DOMContentLoaded', function() {
-            fetch('components/main-app.html')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.text();
-                })
-                .then(html => {
-                    document.getElementById('main-content').innerHTML = html;
+     <!-- Load editor setup (CodeMirror) -->
+     <script type="module" src="assets/js/editor-setup.js"></script>
 
-                    // Initialize Alpine.js components after loading
-                    if (window.Alpine) {
-                        window.Alpine.initTree(document.getElementById('main-content'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading main app component:', error);
-                    document.getElementById('main-content').innerHTML = `
-                        <div class="validation-error" style="padding: 1rem; background-color: #fee; border-radius: 4px;">
-                            <strong>Error loading application:</strong> ${error.message}
-                            <p>Please check the console for details.</p>
-                        </div>
-                    `;
-                });
-        });
-    </script>
-    </div>
-
-    <!-- Load Alpine.js stores -->
-    <script src="assets/js/stores/fileStore.js"></script>
-    <script src="assets/js/stores/configStore.js"></script>
-    <script src="assets/js/stores/solverStore.js"></script>
-    <script src="assets/js/stores/visualizationStore.js"></script>
+      <!-- Load Alpine.js stores -->
+      <script src="assets/js/stores/fileStore.js"></script>
+      <script src="assets/js/stores/configStore.js"></script>
+      <script src="assets/js/stores/solverStore.js"></script>
+      <script src="assets/js/stores/visualizationStore.js"></script>
+      
+      <!-- Load legacy templates (d3-based visualizations) -->
+      <script src="assets/js/legacy-templates.js"></script>
 
     <!-- Load services -->
     <script src="assets/js/services/apiService.js"></script>
@@ -488,22 +472,156 @@
 
                 initApp() {
                     console.log('Initializing Priority Configuration Editor v2');
-
-                    // Initialize stores
-                    this.$store.files.init();
-                    this.$store.config.init();
-                    this.$store.solver.init();
-                    this.$store.visualization.init();
-
-                    // Set up event listeners
+                    
+                    // Set up event listeners (these don't depend on stores)
                     this.setupEventListeners();
+                    
+                    // Start polling for store availability
+                    this.waitForStores();
+                },
+
+                waitForStores() {
+                    const maxAttempts = 50; // 5 seconds max wait
+                    let attempts = 0;
+                    
+                    const checkStores = () => {
+                        attempts++;
+                        
+                        // Check each store individually
+                        const filesReady = this.$store && this.$store.files;
+                        const configReady = this.$store && this.$store.config;
+                        const solverReady = this.$store && this.$store.solver;
+                        const vizReady = this.$store && this.$store.visualization;
+                        
+                        if (filesReady && configReady && solverReady && vizReady) {
+                            console.log('All stores detected, initializing...');
+                            this.initializeStores();
+                        } else if (attempts < maxAttempts) {
+                            // Log which stores are missing (for debugging)
+                            if (attempts % 10 === 0) {
+                                console.log(`Waiting for stores... (attempt ${attempts})`);
+                                if (!filesReady) console.log('  - files store not ready');
+                                if (!configReady) console.log('  - config store not ready');
+                                if (!solverReady) console.log('  - solver store not ready');
+                                if (!vizReady) console.log('  - visualization store not ready');
+                            }
+                            // Try again in 100ms
+                            setTimeout(checkStores, 100);
+                        } else {
+                            // Timeout - show error
+                            const missing = [];
+                            if (!filesReady) missing.push('files');
+                            if (!configReady) missing.push('config');
+                            if (!solverReady) missing.push('solver');
+                            if (!vizReady) missing.push('visualization');
+                            
+                            console.error(`Timeout waiting for stores: ${missing.join(', ')} not available`);
+                            this.error = `Failed to initialize: ${missing.join(', ')} stores not loaded. Please refresh the page.`;
+                        }
+                    };
+                    
+                    // Also listen for alpine:init as a backup
+                    document.addEventListener('alpine:init', () => {
+                        this.$nextTick(() => {
+                            checkStores();
+                        });
+                    }, { once: true });
+                    
+                    // Start polling immediately
+                    checkStores();
+                },
+
+                initializeStores() {
+                    try {
+                        this.$store.files.init();
+                        this.$store.config.init();
+                        this.$store.solver.init();
+                        this.$store.visualization.init();
+                        console.log('All stores initialized successfully');
+
+                        // Load initial tab
+                        this.$nextTick(() => {
+                            this.updateTabVisibility(this.activeTab);
+                            this.loadTabContent(this.activeTab);
+                        });
+
+                        // Load tab content on tab switches (only set up once stores are ready)
+                        this.$watch('activeTab', (newTab) => {
+                            this.updateTabVisibility(newTab);
+                            this.loadTabContent(newTab);
+                        });
+                    } catch (error) {
+                        console.error('Failed to initialize stores:', error);
+                        this.error = 'Failed to initialize application stores: ' + error.message;
+                    }
+                },
+
+                updateTabVisibility(tabName) {
+                    const tabTargets = {
+                        'input_data': '#file-upload-container',
+                        'edit_data': '#data-editor-container',
+                        'configuration': '#config-editor-container',
+                        'solver': '#solver-controls-container',
+                        'visualizer': '#visualizer-container',
+                        'output_data': '#output-viewer-container'
+                    };
+
+                    document.querySelectorAll('.tab-content').forEach((element) => {
+                        element.classList.remove('active');
+                    });
+
+                    const activeTarget = tabTargets[tabName];
+                    if (!activeTarget) {
+                        return;
+                    }
+
+                    const activeElement = document.querySelector(activeTarget);
+                    if (activeElement) {
+                        activeElement.classList.add('active');
+                    }
+                },
+
+                loadTabContent(tabName) {
+                    const tabConfig = {
+                        'input_data': { url: 'components/file-upload.html', target: '#file-upload-container' },
+                        'edit_data': { url: 'components/data-editor.html', target: '#data-editor-container' },
+                        'configuration': { url: 'components/config-editor.html', target: '#config-editor-container' },
+                        'solver': { url: 'components/solver-controls.html', target: '#solver-controls-container' },
+                        'visualizer': { url: 'components/visualizer.html', target: '#visualizer-container' },
+                        'output_data': { url: 'components/output-viewer.html', target: '#output-viewer-container' }
+                    };
+
+                    const config = tabConfig[tabName];
+                    if (!config || !window.htmx) {
+                        return;
+                    }
+
+                    const targetElement = document.querySelector(config.target);
+                    if (!targetElement) {
+                        return;
+                    }
+
+                    if (targetElement.getAttribute('data-loaded') === 'true') {
+                        return;
+                    }
+
+                    htmx.ajax('GET', config.url, {
+                        target: config.target,
+                        swap: 'innerHTML'
+                    });
+
+                    targetElement.setAttribute('data-loaded', 'true');
                 },
 
                 setupEventListeners() {
                     // Global error handling
                     window.addEventListener('error', (event) => {
                         console.error('Global error:', event.error);
-                        this.showError('An unexpected error occurred. Please check console for details.');
+                        const errorMessage = event?.error?.message || event?.message || 'An unexpected error occurred.';
+                        if (errorMessage === 'Script error.') {
+                            return;
+                        }
+                        this.showError(`Unexpected error: ${errorMessage}`);
                     });
 
                     // HTMX event listeners
@@ -557,20 +675,18 @@
 
                 setActiveTab(tabName) {
                     this.activeTab = tabName;
+                    this.updateTabVisibility(tabName);
                 }
             }
         }
 
-        // Initialize HTMX extensions
-        document.addEventListener('DOMContentLoaded', function() {
-            // Configure HTMX to work with Alpine.js
-            htmx.onLoad(function(content) {
-                // Re-initialize Alpine.js components in dynamically loaded content
-                if (window.Alpine) {
-                    window.Alpine.initTree(content);
-                }
-            });
-        });
+         // Initialize HTMX extensions (HTMX 2.x pattern)
+         document.body.addEventListener('htmx:afterSwap', function(event) {
+             // Re-initialize Alpine.js components in dynamically loaded content
+             if (window.Alpine) {
+                 window.Alpine.initTree(event.detail.target);
+             }
+         });
     </script>
 </body>
 </html>

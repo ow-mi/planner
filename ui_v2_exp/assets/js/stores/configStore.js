@@ -5,62 +5,67 @@
  */
 document.addEventListener('alpine:init', () => {
     Alpine.store('config', {
-        // State
-        config: {
-            mode: 'leg_end_dates',
-            description: 'Each leg has a target completion date. Legs can be scheduled in parallel if they don\'t exceed their deadlines.',
-            weights: {
-                makespan_weight: 0.2,
-                priority_weight: 0.8,
-            },
-            leg_deadlines: [
-                { id: 'mwcu_b10_6', date: '2027-05-01' },
-                { id: 'mwcu_a7_6', date: '2027-05-01' },
-                { id: 'mwcu_b10_2.1', date: '2028-12-15' },
-                { id: 'mwcu_a7_2.1', date: '2028-12-15' },
-                { id: 'mwcu_b10_2.2', date: '2028-07-01' },
-                { id: 'mwcu_a7_2.2', date: '2028-07-01' },
-                { id: 'mwcu_b10_3', date: '2028-06-01' },
-                { id: 'mwcu_a7_3', date: '2028-06-01' },
-                { id: 'mwcu_b10_4', date: '2027-07-01' },
-                { id: 'mwcu_a7_4', date: '2027-07-01' },
-                { id: 'mwcu_b10_5', date: '2027-07-01' },
-                { id: 'mwcu_a7_5', date: '2027-07-01' },
-                { id: 'mwcu_b10_5a', date: '2027-07-01' },
-                { id: 'mwcu_a7_5a', date: '2027-07-01' },
-                { id: 'mwcu_b10_5b', date: '2027-07-01' },
-                { id: 'mwcu_a7_5b', date: '2027-07-01' },
-                { id: 'mwcu_b10_7', date: '2028-12-15' },
-                { id: 'mwcu_a7_7', date: '2028-12-15' },
-            ],
-            deadline_penalty_per_day: 1000.0,
-            allow_parallel_within_deadlines: true,
-            test_proximity_rules: {
-                patterns: [
-                    'P-02',
-                    'P-03',
-                    'P-04',
-                    'P-03-E',
-                    'P-02-L',
-                    'Leak'
-                ],
-                max_gap_days: 10,
-                proximity_penalty_per_day: 50.0,
-                enforce_sequence_order: true,
-            }
-        },
-        sectionStates: {
-            basic: true,
-            weights: true,
-            leg_deadlines: true,
-            penalty_settings: true,
-            proximity_rules: true
-        },
-        priority_config_settings: {},
-        isLoading: false,
-        error: null,
-        jsonUploadFiles: [],
-        jsonDragOver: false,
+         // State
+         config: {
+             mode: 'leg_end_dates',
+             description: 'Each leg has a target completion date. Legs can be scheduled in parallel if they don\'t exceed their deadlines.',
+             weights: {
+                 makespan_weight: 0.2,
+                 priority_weight: 0.8,
+             },
+             deadlines: [
+                 { legId: 'mwcu_b10_6', deadlineDate: '2027-05-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_a7_6', deadlineDate: '2027-05-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_b10_2.1', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
+                 { legId: 'mwcu_a7_2.1', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
+                 { legId: 'mwcu_b10_2.2', deadlineDate: '2028-07-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_a7_2.2', deadlineDate: '2028-07-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_b10_3', deadlineDate: '2028-06-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_a7_3', deadlineDate: '2028-06-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_b10_4', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_a7_4', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_b10_5', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_a7_5', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_b10_5a', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_a7_5a', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_b10_5b', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_a7_5b', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                 { legId: 'mwcu_b10_7', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
+                 { legId: 'mwcu_a7_7', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
+             ],
+             penaltySettings: {
+                 deadline_penalty: 1000.0,
+                 compactness_penalty: 500.0,
+                 parallel_within_deadlines: 100.0
+             },
+             proximityRules: [
+                 { pattern: 'P-02', maxgapdays: 10, proximitypenaltyperday: 50.0, enforce_sequence_order: false },
+                 { pattern: 'P-03', maxgapdays: 10, proximitypenaltyperday: 50.0, enforce_sequence_order: false },
+                 { pattern: 'P-04', maxgapdays: 10, proximitypenaltyperday: 50.0, enforce_sequence_order: false },
+                 { pattern: 'P-03-E', maxgapdays: 10, proximitypenaltyperday: 50.0, enforce_sequence_order: true },
+                 { pattern: 'P-02-L', maxgapdays: 10, proximitypenaltyperday: 50.0, enforce_sequence_order: false },
+                 { pattern: 'Leak', maxgapdays: 10, proximitypenaltyperday: 50.0, enforce_sequence_order: false }
+             ]
+         },
+          sectionEnabled: {
+              modeEnabled: true,
+              deadlinesEnabled: true,
+              penaltyEnabled: true,
+              proximityEnabled: true
+          },
+          sectionStates: {
+              basic: true,
+              weights: true,
+              deadlines: true,
+              penalties: true,
+              proximity: true
+          },
+         priority_config_settings: {},
+         isLoading: false,
+         error: null,
+         successMessage: '',
+         jsonUploadFiles: [],
+         jsonDragOver: false,
 
         // Initialization
         init() {
@@ -69,66 +74,82 @@ document.addEventListener('alpine:init', () => {
             this.updateOutputSettings();
         },
 
-        // Load from localStorage
-        loadFromLocalStorage() {
-            try {
+         // Load from localStorage
+         loadFromLocalStorage() {
+             try {
                 const savedConfig = localStorage.getItem('solverConfig');
                 if (savedConfig) {
-                    this.config = JSON.parse(savedConfig);
-                    this.updateOutputSettings();
+                   this.config = JSON.parse(savedConfig);
+                   this.updateOutputSettings();
                 }
 
                 const savedSectionStates = localStorage.getItem('configSectionStates');
                 if (savedSectionStates) {
-                    this.sectionStates = JSON.parse(savedSectionStates);
+                   this.sectionStates = JSON.parse(savedSectionStates);
                 }
-            } catch (error) {
+
+                const savedSectionEnabled = localStorage.getItem('configSectionEnabled');
+                if (savedSectionEnabled) {
+                   this.sectionEnabled = JSON.parse(savedSectionEnabled);
+                }
+             } catch (error) {
                 console.error('Failed to load configuration from localStorage:', error);
                 this.error = 'Failed to load saved configuration';
-            }
-        },
+             }
+         },
 
-        // Save to localStorage
-        saveToLocalStorage() {
-            try {
+         // Save to localStorage
+         saveToLocalStorage() {
+             try {
                 localStorage.setItem('solverConfig', JSON.stringify(this.config));
                 localStorage.setItem('configSectionStates', JSON.stringify(this.sectionStates));
-            } catch (error) {
+                localStorage.setItem('configSectionEnabled', JSON.stringify(this.sectionEnabled));
+             } catch (error) {
                 console.error('Failed to save configuration to localStorage:', error);
                 this.error = 'Failed to save configuration';
-            }
-        },
+             }
+         },
 
-        // Update output settings based on current configuration
-        updateOutputSettings() {
-            // Create output object with only enabled sections
-            this.priority_config_settings = {
-                mode: this.config.mode,
-                description: this.config.description,
-                weights: { ...this.config.weights }
-            };
+         // Update output settings based on current configuration
+         updateOutputSettings() {
+             // Create output object with only enabled sections
+             this.priority_config_settings = {
+                 mode: this.config.mode,
+                 description: this.config.description,
+                 weights: { ...this.config.weights }
+             };
 
-            // Add sections only if they are enabled
-            if (this.sectionStates.leg_deadlines) {
-                this.priority_config_settings.leg_deadlines = {};
-                this.config.leg_deadlines.forEach(deadline => {
-                    if (deadline.id && deadline.date) {
-                        this.priority_config_settings.leg_deadlines[deadline.id] = deadline.date;
+             // Add sections only if they are enabled
+             if (this.sectionEnabled.deadlinesEnabled && this.config.deadlines.length > 0) {
+                 this.priority_config_settings.leg_deadlines = {};
+                 this.config.deadlines.forEach(deadline => {
+                    if (deadline.legId && deadline.deadlineDate) {
+                       const date = deadline.deadlineDate ? new Date(deadline.deadlineDate) : null;
+                       const deadlineDate = date ? date.toISOString().split('T')[0] : null;
+                       if (deadlineDate) {
+                           this.priority_config_settings.leg_deadlines[deadline.legId] = deadlineDate;
+                       }
                     }
-                });
-            }
+                 });
+             }
 
-            if (this.sectionStates.penalty_settings) {
-                this.priority_config_settings.deadline_penalty_per_day = this.config.deadline_penalty_per_day;
-                this.priority_config_settings.allow_parallel_within_deadlines = this.config.allow_parallel_within_deadlines;
-            }
+             if (this.sectionEnabled.penaltyEnabled) {
+                 this.priority_config_settings.deadline_penalty_per_day = this.config.penaltySettings?.deadline_penalty || 1000.0;
+                 this.priority_config_settings.leg_compactness_penalty_per_day = this.config.penaltySettings?.compactness_penalty || 500.0;
+                 this.priority_config_settings.allow_parallel_within_deadlines = this.config.penaltySettings?.parallel_within_deadlines || 100.0;
+             }
 
-            if (this.sectionStates.proximity_rules) {
-                this.priority_config_settings.test_proximity_rules = { ...this.config.test_proximity_rules };
-            }
+             if (this.sectionEnabled.proximityEnabled && this.config.proximityRules?.length > 0) {
+                 this.priority_config_settings.test_proximity_rules = {
+                     patterns: this.config.proximityRules.map(rule => rule.pattern),
+                     max_gap_days: this.config.proximityRules[0]?.maxgapdays || 10,
+                     proximity_penalty_per_day: this.config.proximityRules[0]?.proximitypenaltyperday || 50.0,
+                     enforce_sequence_order: this.config.proximityRules.some(rule => rule.enforce_sequence_order)
+                 };
+             }
 
-            this.saveToLocalStorage();
-        },
+             this.saveToLocalStorage();
+         },
 
         // Configuration management methods
         setMode(mode) {
@@ -316,48 +337,78 @@ document.addEventListener('alpine:init', () => {
             return this.priority_config_settings;
         },
 
-        // Reset to default configuration
-        resetToDefaults() {
+         // Reset to default configuration
+         resetToDefaults() {
             this.config = {
-                mode: 'leg_end_dates',
-                description: 'Each leg has a target completion date. Legs can be scheduled in parallel if they don\'t exceed their deadlines.',
-                weights: {
-                    makespan_weight: 0.2,
-                    priority_weight: 0.8,
-                },
-                leg_deadlines: [],
-                deadline_penalty_per_day: 1000.0,
-                allow_parallel_within_deadlines: true,
-                test_proximity_rules: {
-                    patterns: [],
-                    max_gap_days: 10,
-                    proximity_penalty_per_day: 50.0,
-                    enforce_sequence_order: true,
-                }
+               mode: 'leg_end_dates',
+               description: 'Each leg has a target completion date. Legs can be scheduled in parallel if they don\'t exceed their deadlines.',
+               weights: {
+                  makespan_weight: 0.2,
+                  priority_weight: 0.8,
+               },
+               deadlines: [
+                  { legId: 'mwcu_b10_6', deadlineDate: '2027-05-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_a7_6', deadlineDate: '2027-05-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_b10_2.1', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
+                  { legId: 'mwcu_a7_2.1', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
+                  { legId: 'mwcu_b10_2.2', deadlineDate: '2028-07-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_a7_2.2', deadlineDate: '2028-07-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_b10_3', deadlineDate: '2028-06-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_a7_3', deadlineDate: '2028-06-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_b10_4', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_a7_4', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_b10_5', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_a7_5', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_b10_5a', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_a7_5a', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_b10_5b', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_a7_5b', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
+                  { legId: 'mwcu_b10_7', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
+                  { legId: 'mwcu_a7_7', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
+               ],
+               penaltySettings: {
+                  deadline_penalty: 1000.0,
+                  compactness_penalty: 500.0,
+                  parallel_within_deadlines: 100.0
+               },
+               proximityRules: [
+                  { pattern: 'P-02', maxgapdays: 10, proximitypenaltyperday: 50.0, enforce_sequence_order: false },
+                  { pattern: 'P-03', maxgapdays: 10, proximitypenaltyperday: 50.0, enforce_sequence_order: false },
+                  { pattern: 'P-04', maxgapdays: 10, proximitypenaltyperday: 50.0, enforce_sequence_order: false },
+                  { pattern: 'P-03-E', maxgapdays: 10, proximitypenaltyperday: 50.0, enforce_sequence_order: true },
+                  { pattern: 'P-02-L', maxgapdays: 10, proximitypenaltyperday: 50.0, enforce_sequence_order: false },
+                  { pattern: 'Leak', maxgapdays: 10, proximitypenaltyperday: 50.0, enforce_sequence_order: false }
+               ]
             };
 
-            this.sectionStates = {
-                basic: true,
-                weights: true,
-                leg_deadlines: true,
-                penalty_settings: true,
-                proximity_rules: true
+            this.sectionEnabled = {
+               modeEnabled: true,
+               deadlinesEnabled: true,
+               penaltyEnabled: true,
+               proximityEnabled: true
             };
 
             this.updateOutputSettings();
-        },
+         },
 
-        // Copy configuration to clipboard
-        copyToClipboard() {
-            const jsonText = JSON.stringify(this.priority_config_settings, null, 2);
-            navigator.clipboard.writeText(jsonText).then(() => {
-                console.log('Configuration copied to clipboard');
-                return true;
-            }).catch(err => {
-                console.error('Failed to copy to clipboard:', err);
-                this.error = 'Failed to copy to clipboard: ' + err.message;
-                return false;
-            });
-        }
+         // Copy configuration to clipboard
+         copyToClipboard() {
+             const jsonText = JSON.stringify(this.priority_config_settings, null, 2);
+             navigator.clipboard.writeText(jsonText).then(() => {
+                 console.log('Configuration copied to clipboard');
+                 this.successMessage = '✓ JSON copied to clipboard';
+                 this.error = null;
+                 // Clear success message after 3 seconds
+                 setTimeout(() => {
+                     this.successMessage = '';
+                 }, 3000);
+                 return true;
+             }).catch(err => {
+                 console.error('Failed to copy to clipboard:', err);
+                 this.error = 'Failed to copy to clipboard: ' + err.message;
+                 this.successMessage = '';
+                 return false;
+             });
+         }
     });
 });
