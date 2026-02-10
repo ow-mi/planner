@@ -184,21 +184,52 @@ document.addEventListener('alpine:init', () => {
             this.updateOutputSettings();
         },
 
-        // Proximity rules management
-        addPattern() {
-            this.config.test_proximity_rules.patterns.push('');
-            this.updateOutputSettings();
-        },
+         // Proximity rules management
+         addPattern() {
+             this.config.test_proximity_rules.patterns.push('');
+             this.updateOutputSettings();
+         },
 
-        removePattern(index) {
-            this.config.test_proximity_rules.patterns.splice(index, 1);
-            this.updateOutputSettings();
-        },
+         removePattern(index) {
+             this.config.test_proximity_rules.patterns.splice(index, 1);
+             this.updateOutputSettings();
+         },
 
-        updatePattern(index, pattern) {
-            this.config.test_proximity_rules.patterns[index] = pattern;
-            this.updateOutputSettings();
-        },
+         updatePattern(index, pattern) {
+             this.config.test_proximity_rules.patterns[index] = pattern;
+             this.updateOutputSettings();
+         },
+
+         // Deadline management (UI wrapper methods)
+         addDeadlineRow() {
+             this.config.deadlines.push({ 
+                 legId: '', 
+                 deadlineDate: '', 
+                 deadlineTime: '00:00' 
+             });
+             this.updateOutputSettings();
+         },
+
+         removeDeadlineRow(index) {
+             this.config.deadlines.splice(index, 1);
+             this.updateOutputSettings();
+         },
+
+         // Proximity rules UI wrapper methods
+         addProximityRule() {
+             this.config.proximityRules.push({
+                 pattern: '',
+                 maxgapdays: 10,
+                 proximitypenaltyperday: 50.0,
+                 enforce_sequence_order: false
+             });
+             this.updateOutputSettings();
+         },
+
+         removeProximityRule(index) {
+             this.config.proximityRules.splice(index, 1);
+             this.updateOutputSettings();
+         },
 
         // JSON configuration handling
         handleJsonFileUpload(event) {

@@ -1,92 +1,116 @@
-<div class="tabs" role="tablist" aria-label="Application tabs">
-    <button
-        type="button"
-        class="tab"
-        :class="{ 'active': activeTab === 'input_data' }"
-        role="tab"
-        id="tab-input_data"
-        aria-controls="file-upload-container"
-        :aria-selected="activeTab === 'input_data' ? 'true' : 'false'"
-        tabindex="0"
-        @click="setActiveTab('input_data')"
-        @keydown.enter.prevent="setActiveTab('input_data')"
-        @keydown.space.prevent="setActiveTab('input_data')"
-    >
-        Input Data
-    </button>
-    <button
-        type="button"
-        class="tab"
-        :class="{ 'active': activeTab === 'edit_data' }"
-        role="tab"
-        id="tab-edit_data"
-        aria-controls="data-editor-container"
-        :aria-selected="activeTab === 'edit_data' ? 'true' : 'false'"
-        :tabindex="activeTab === 'edit_data' ? '0' : '-1'"
-        @click="setActiveTab('edit_data')"
-        @keydown.enter.prevent="setActiveTab('edit_data')"
-        @keydown.space.prevent="setActiveTab('edit_data')"
-    >
-        Edit Data
-    </button>
-    <button
-        type="button"
-        class="tab"
-        :class="{ 'active': activeTab === 'configuration' }"
-        role="tab"
-        id="tab-configuration"
-        aria-controls="config-editor-container"
-        :aria-selected="activeTab === 'configuration' ? 'true' : 'false'"
-        :tabindex="activeTab === 'configuration' ? '0' : '-1'"
-        @click="setActiveTab('configuration')"
-        @keydown.enter.prevent="setActiveTab('configuration')"
-        @keydown.space.prevent="setActiveTab('configuration')"
-    >
-        Configuration
-    </button>
-    <button
-        type="button"
-        class="tab"
-        :class="{ 'active': activeTab === 'solver' }"
-        role="tab"
-        id="tab-solver"
-        aria-controls="solver-controls-container"
-        :aria-selected="activeTab === 'solver' ? 'true' : 'false'"
-        :tabindex="activeTab === 'solver' ? '0' : '-1'"
-        @click="setActiveTab('solver')"
-        @keydown.enter.prevent="setActiveTab('solver')"
-        @keydown.space.prevent="setActiveTab('solver')"
-    >
-        Solver
-    </button>
-    <button
-        type="button"
-        class="tab"
-        :class="{ 'active': activeTab === 'visualizer' }"
-        role="tab"
-        id="tab-visualizer"
-        aria-controls="visualizer-container"
-        :aria-selected="activeTab === 'visualizer' ? 'true' : 'false'"
-        :tabindex="activeTab === 'visualizer' ? '0' : '-1'"
-        @click="setActiveTab('visualizer')"
-        @keydown.enter.prevent="setActiveTab('visualizer')"
-        @keydown.space.prevent="setActiveTab('visualizer')"
-    >
-        Visualizer
-    </button>
-    <button
-        type="button"
-        class="tab"
-        :class="{ 'active': activeTab === 'output_data' }"
-        role="tab"
-        id="tab-output_data"
-        aria-controls="output-viewer-container"
-        :aria-selected="activeTab === 'output_data' ? 'true' : 'false'"
-        :tabindex="activeTab === 'output_data' ? '0' : '-1'"
-        @click="setActiveTab('output_data')"
-        @keydown.enter.prevent="setActiveTab('output_data')"
-        @keydown.space.prevent="setActiveTab('output_data')"
-    >
-        Output Data
-    </button>
-</div>
+ <div class="tabs" role="tablist" aria-label="Application tabs">
+     <button
+         type="button"
+         class="tab"
+         :class="{ 'active': activeTab === 'input_data' }"
+         role="tab"
+         id="tab-input_data"
+         aria-controls="file-upload-container"
+         :aria-selected="activeTab === 'input_data' ? 'true' : 'false'"
+         tabindex="0"
+         @click="setActiveTab('input_data')"
+         @keydown.enter.prevent="setActiveTab('input_data')"
+         @keydown.space.prevent="setActiveTab('input_data')"
+         @keydown.arrow-left.prevent="handleTabNavigation('left')"
+         @keydown.arrow-right.prevent="handleTabNavigation('right')"
+         @keydown.home.prevent="handleTabNavigation('home')"
+         @keydown.end.prevent="handleTabNavigation('end')"
+     >
+         Input Data
+     </button>
+     <button
+         type="button"
+         class="tab"
+         :class="{ 'active': activeTab === 'edit_data' }"
+         role="tab"
+         id="tab-edit_data"
+         aria-controls="data-editor-container"
+         :aria-selected="activeTab === 'edit_data' ? 'true' : 'false'"
+         :tabindex="activeTab === 'edit_data' ? '0' : '-1'"
+         @click="setActiveTab('edit_data')"
+         @keydown.enter.prevent="setActiveTab('edit_data')"
+         @keydown.space.prevent="setActiveTab('edit_data')"
+         @keydown.arrow-left.prevent="handleTabNavigation('left')"
+         @keydown.arrow-right.prevent="handleTabNavigation('right')"
+         @keydown.home.prevent="handleTabNavigation('home')"
+         @keydown.end.prevent="handleTabNavigation('end')"
+     >
+         Edit Data
+     </button>
+     <button
+         type="button"
+         class="tab"
+         :class="{ 'active': activeTab === 'configuration' }"
+         role="tab"
+         id="tab-configuration"
+         aria-controls="config-editor-container"
+         :aria-selected="activeTab === 'configuration' ? 'true' : 'false'"
+         :tabindex="activeTab === 'configuration' ? '0' : '-1'"
+         @click="setActiveTab('configuration')"
+         @keydown.enter.prevent="setActiveTab('configuration')"
+         @keydown.space.prevent="setActiveTab('configuration')"
+         @keydown.arrow-left.prevent="handleTabNavigation('left')"
+         @keydown.arrow-right.prevent="handleTabNavigation('right')"
+         @keydown.home.prevent="handleTabNavigation('home')"
+         @keydown.end.prevent="handleTabNavigation('end')"
+     >
+         Configuration
+     </button>
+     <button
+         type="button"
+         class="tab"
+         :class="{ 'active': activeTab === 'solver' }"
+         role="tab"
+         id="tab-solver"
+         aria-controls="solver-controls-container"
+         :aria-selected="activeTab === 'solver' ? 'true' : 'false'"
+         :tabindex="activeTab === 'solver' ? '0' : '-1'"
+         @click="setActiveTab('solver')"
+         @keydown.enter.prevent="setActiveTab('solver')"
+         @keydown.space.prevent="setActiveTab('solver')"
+         @keydown.arrow-left.prevent="handleTabNavigation('left')"
+         @keydown.arrow-right.prevent="handleTabNavigation('right')"
+         @keydown.home.prevent="handleTabNavigation('home')"
+         @keydown.end.prevent="handleTabNavigation('end')"
+     >
+         Solver
+     </button>
+     <button
+         type="button"
+         class="tab"
+         :class="{ 'active': activeTab === 'visualizer' }"
+         role="tab"
+         id="tab-visualizer"
+         aria-controls="visualizer-container"
+         :aria-selected="activeTab === 'visualizer' ? 'true' : 'false'"
+         :tabindex="activeTab === 'visualizer' ? '0' : '-1'"
+         @click="setActiveTab('visualizer')"
+         @keydown.enter.prevent="setActiveTab('visualizer')"
+         @keydown.space.prevent="setActiveTab('visualizer')"
+         @keydown.arrow-left.prevent="handleTabNavigation('left')"
+         @keydown.arrow-right.prevent="handleTabNavigation('right')"
+         @keydown.home.prevent="handleTabNavigation('home')"
+         @keydown.end.prevent="handleTabNavigation('end')"
+     >
+         Visualizer
+     </button>
+     <button
+         type="button"
+         class="tab"
+         :class="{ 'active': activeTab === 'output_data' }"
+         role="tab"
+         id="tab-output_data"
+         aria-controls="output-viewer-container"
+         :aria-selected="activeTab === 'output_data' ? 'true' : 'false'"
+         :tabindex="activeTab === 'output_data' ? '0' : '-1'"
+         @click="setActiveTab('output_data')"
+         @keydown.enter.prevent="setActiveTab('output_data')"
+         @keydown.space.prevent="setActiveTab('output_data')"
+         @keydown.arrow-left.prevent="handleTabNavigation('left')"
+         @keydown.arrow-right.prevent="handleTabNavigation('right')"
+         @keydown.home.prevent="handleTabNavigation('home')"
+         @keydown.end.prevent="handleTabNavigation('end')"
+     >
+         Output Data
+     </button>
+ </div>

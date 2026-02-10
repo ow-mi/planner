@@ -1,112 +1,140 @@
 <div x-data="mainAppComponent()" x-init="initComponent()" x-cloak>
-    <!-- Tab Navigation -->
-    <div class="tabs" role="tablist" aria-label="Main application tabs">
-        <button
-            type="button"
-            class="tab"
-            :class="{ 'active': activeTab === 'input_data' }"
-            role="tab"
-            id="tab-main-input_data"
-            aria-controls="panel-main-input_data"
-            :aria-selected="activeTab === 'input_data' ? 'true' : 'false'"
-            tabindex="0"
-            @click="setActiveTab('input_data')"
-            @keydown.enter.prevent="setActiveTab('input_data')"
-            @keydown.space.prevent="setActiveTab('input_data')"
-        >
-            Input Data
-        </button>
-        <button
-            type="button"
-            class="tab"
-            :class="{ 'active': activeTab === 'edit_data' }"
-            role="tab"
-            id="tab-main-edit_data"
-            aria-controls="panel-main-edit_data"
-            :aria-selected="activeTab === 'edit_data' ? 'true' : 'false'"
-            :tabindex="activeTab === 'edit_data' ? '0' : '-1'"
-            @click="setActiveTab('edit_data')"
-            @keydown.enter.prevent="setActiveTab('edit_data')"
-            @keydown.space.prevent="setActiveTab('edit_data')"
-        >
-            Edit Data
-        </button>
-        <button
-            type="button"
-            class="tab"
-            :class="{ 'active': activeTab === 'configuration' }"
-            role="tab"
-            id="tab-main-configuration"
-            aria-controls="panel-main-configuration"
-            :aria-selected="activeTab === 'configuration' ? 'true' : 'false'"
-            :tabindex="activeTab === 'configuration' ? '0' : '-1'"
-            @click="setActiveTab('configuration')"
-            @keydown.enter.prevent="setActiveTab('configuration')"
-            @keydown.space.prevent="setActiveTab('configuration')"
-        >
-            Configuration
-        </button>
-        <button
-            type="button"
-            class="tab"
-            :class="{ 'active': activeTab === 'solver' }"
-            role="tab"
-            id="tab-main-solver"
-            aria-controls="panel-main-solver"
-            :aria-selected="activeTab === 'solver' ? 'true' : 'false'"
-            :tabindex="activeTab === 'solver' ? '0' : '-1'"
-            @click="setActiveTab('solver')"
-            @keydown.enter.prevent="setActiveTab('solver')"
-            @keydown.space.prevent="setActiveTab('solver')"
-        >
-            Solver
-        </button>
-        <button
-            type="button"
-            class="tab"
-            :class="{ 'active': activeTab === 'visualizer' }"
-            role="tab"
-            id="tab-main-visualizer"
-            aria-controls="panel-main-visualizer"
-            :aria-selected="activeTab === 'visualizer' ? 'true' : 'false'"
-            :tabindex="activeTab === 'visualizer' ? '0' : '-1'"
-            @click="setActiveTab('visualizer')"
-            @keydown.enter.prevent="setActiveTab('visualizer')"
-            @keydown.space.prevent="setActiveTab('visualizer')"
-        >
-            Visualizer
-        </button>
-        <button
-            type="button"
-            class="tab"
-            :class="{ 'active': activeTab === 'output_data' }"
-            role="tab"
-            id="tab-main-output_data"
-            aria-controls="panel-main-output_data"
-            :aria-selected="activeTab === 'output_data' ? 'true' : 'false'"
-            :tabindex="activeTab === 'output_data' ? '0' : '-1'"
-            @click="setActiveTab('output_data')"
-            @keydown.enter.prevent="setActiveTab('output_data')"
-            @keydown.space.prevent="setActiveTab('output_data')"
-        >
-            Output Data
-        </button>
-        <button
-            type="button"
-            class="tab"
-            :class="{ 'active': activeTab === 'save' }"
-            role="tab"
-            id="tab-main-save"
-            aria-controls="panel-main-save"
-            :aria-selected="activeTab === 'save' ? 'true' : 'false'"
-            :tabindex="activeTab === 'save' ? '0' : '-1'"
-            @click="setActiveTab('save')"
-            @keydown.enter.prevent="setActiveTab('save')"
-            @keydown.space.prevent="setActiveTab('save')"
-        >
-            Save
-        </button>
-    </div>
+     <!-- Tab Navigation -->
+     <div class="tabs" role="tablist" aria-label="Main application tabs">
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'input_data' }"
+             role="tab"
+             id="tab-main-input_data"
+             aria-controls="panel-main-input_data"
+             :aria-selected="activeTab === 'input_data' ? 'true' : 'false'"
+             tabindex="0"
+             @click="setActiveTab('input_data')"
+             @keydown.enter.prevent="setActiveTab('input_data')"
+             @keydown.space.prevent="setActiveTab('input_data')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Input Data
+         </button>
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'edit_data' }"
+             role="tab"
+             id="tab-main-edit_data"
+             aria-controls="panel-main-edit_data"
+             :aria-selected="activeTab === 'edit_data' ? 'true' : 'false'"
+             :tabindex="activeTab === 'edit_data' ? '0' : '-1'"
+             @click="setActiveTab('edit_data')"
+             @keydown.enter.prevent="setActiveTab('edit_data')"
+             @keydown.space.prevent="setActiveTab('edit_data')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Edit Data
+         </button>
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'configuration' }"
+             role="tab"
+             id="tab-main-configuration"
+             aria-controls="panel-main-configuration"
+             :aria-selected="activeTab === 'configuration' ? 'true' : 'false'"
+             :tabindex="activeTab === 'configuration' ? '0' : '-1'"
+             @click="setActiveTab('configuration')"
+             @keydown.enter.prevent="setActiveTab('configuration')"
+             @keydown.space.prevent="setActiveTab('configuration')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Configuration
+         </button>
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'solver' }"
+             role="tab"
+             id="tab-main-solver"
+             aria-controls="panel-main-solver"
+             :aria-selected="activeTab === 'solver' ? 'true' : 'false'"
+             :tabindex="activeTab === 'solver' ? '0' : '-1'"
+             @click="setActiveTab('solver')"
+             @keydown.enter.prevent="setActiveTab('solver')"
+             @keydown.space.prevent="setActiveTab('solver')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Solver
+         </button>
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'visualizer' }"
+             role="tab"
+             id="tab-main-visualizer"
+             aria-controls="panel-main-visualizer"
+             :aria-selected="activeTab === 'visualizer' ? 'true' : 'false'"
+             :tabindex="activeTab === 'visualizer' ? '0' : '-1'"
+             @click="setActiveTab('visualizer')"
+             @keydown.enter.prevent="setActiveTab('visualizer')"
+             @keydown.space.prevent="setActiveTab('visualizer')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Visualizer
+         </button>
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'output_data' }"
+             role="tab"
+             id="tab-main-output_data"
+             aria-controls="panel-main-output_data"
+             :aria-selected="activeTab === 'output_data' ? 'true' : 'false'"
+             :tabindex="activeTab === 'output_data' ? '0' : '-1'"
+             @click="setActiveTab('output_data')"
+             @keydown.enter.prevent="setActiveTab('output_data')"
+             @keydown.space.prevent="setActiveTab('output_data')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Output Data
+         </button>
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'save' }"
+             role="tab"
+             id="tab-main-save"
+             aria-controls="panel-main-save"
+             :aria-selected="activeTab === 'save' ? 'true' : 'false'"
+             :tabindex="activeTab === 'save' ? '0' : '-1'"
+             @click="setActiveTab('save')"
+             @keydown.enter.prevent="setActiveTab('save')"
+             @keydown.space.prevent="setActiveTab('save')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Save
+         </button>
+     </div>
 
     <!-- Error Display -->
     <div x-show="error" class="validation-error" style="margin-bottom: 1rem; padding: 0.75rem; background-color: #fee; border-radius: 4px;">
