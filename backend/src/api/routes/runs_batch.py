@@ -36,6 +36,8 @@ async def upload_session_inputs(session_id: str, request: RunSessionInputsReques
         return solver_service.upload_session_inputs(session_id, request)
     except KeyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e.args[0])
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.post(

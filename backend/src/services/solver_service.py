@@ -174,7 +174,11 @@ class SolverService:
         if not input_session:
             raise KeyError("Run session not found")
 
-        files = {input_file.name: input_file.content for input_file in request.files}
+        files = self._canonicalize_session_inputs(request)
+        csv_errors = ValidationUtils.validate_csv_files(files)
+        if csv_errors:
+            raise ValueError(f"CSV Validation Error: {'; '.join(csv_errors)}")
+
         input_session.files = files
 
         return RunSessionInputsResponse(
@@ -183,6 +187,18 @@ class SolverService:
             has_inputs=len(files) > 0,
             file_count=len(files),
         )
+
+    def _canonicalize_session_inputs(
+        self, request: RunSessionInputsRequest
+    ) -> Dict[str, str]:
+        canonical_files: Dict[str, str] = {}
+        for input_file in request.files:
+            canonical_name = os.path.basename(input_file.name.replace("\\", "/"))
+            canonical_content = input_file.content.removeprefix("\ufeff").replace(
+                "\r\n", "\n"
+            )
+            canonical_files[canonical_name] = canonical_content
+        return canonical_files
 
     def create_batch_job(
         self, request: BatchJobCreateRequest
