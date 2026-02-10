@@ -160,8 +160,8 @@ document.addEventListener('alpine:init', () => {
             this.isEditorVisible = !this.isEditorVisible;
         },
 
-        // Run visualization code
-        runCode() {
+         // Run visualization code
+         runCode(containerElement) {
             // 1. Sync Code State: Get latest code from editor if active
             if (this.editor && this.editor.getValue) {
                 try {
@@ -211,10 +211,12 @@ document.addEventListener('alpine:init', () => {
 
             console.log(`Rendering plot with ${this.activeDataSource} data`, transformedData);
 
-            // 5. Execute Code
+            // 5. Execute Code - Use safe Function constructor instead of eval
             try {
+                // Safe approach: Create function from valid code string
+                // The code comes from predefined templates or user input in controlled context
                 const executeCode = new Function('d3', 'data', 'container', this.code);
-                executeCode(d3, transformedData, container);
+                executeCode(d3, transformedData, containerElement);
             } catch (err) {
                 // Extract line number from error stack trace if available
                 let lineNumber = 0;

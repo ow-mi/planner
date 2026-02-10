@@ -1,4 +1,7 @@
-<div x-data="solverControlsComponent()" x-init="init()">
+<div x-data="solverControlsComponent()" x-init="init()" x-cloak>
+    <!-- Loading Indicator -->
+    <div id="solver-loading-indicator" class="loading-spinner" style="margin-bottom: 1rem;"></div>
+
     <!-- Solver Execution Section -->
     <div class="section">
         <p>Run the solver using the loaded input data and configuration.</p>
@@ -23,8 +26,8 @@
         </div>
 
         <div class="form-group">
-            <button @click="runSolver()" class="btn" :disabled="isRunning">Run Solver</button>
-            <button @click="resetSolver()" class="btn btn-danger" style="margin-left: 0.5rem;" :disabled="!canReset">Reset</button>
+            <button @click="runSolver()" class="btn" :disabled="isRunning" hx-indicator="#solver-loading-indicator">Run Solver</button>
+            <button @click="resetSolver()" class="btn btn-danger" style="margin-left: 0.5rem;" :disabled="!canReset" hx-indicator="#solver-loading-indicator">Reset</button>
         </div>
 
         <!-- Progress & Status -->

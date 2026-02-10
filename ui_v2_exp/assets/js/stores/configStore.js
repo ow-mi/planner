@@ -295,37 +295,54 @@ document.addEventListener('alpine:init', () => {
                 this.config.weights.priority_weight = jsonData.weights.priority_weight;
 
                 // Load leg deadlines if present
-                if (jsonData.leg_deadlines) {
-                    this.config.leg_deadlines = Object.entries(jsonData.leg_deadlines).map(([id, date]) => ({
-                        id,
-                        date
+                if (jsonData.leg_deadlines && Object.keys(jsonData.leg_deadlines).length > 0) {
+                    this.config.deadlines = Object.entries(jsonData.leg_deadlines).map(([legId, deadlineDate]) => ({
+                        legId,
+                        deadlineDate,
+                        deadlineTime: '00:00'
                     }));
+                    this.sectionEnabled.deadlinesEnabled = true;
+                } else {
+                    this.config.deadlines = [];
+                    this.sectionEnabled.deadlinesEnabled = false;
                 }
 
                 // Load penalty settings if present
                 if (jsonData.deadline_penalty_per_day !== undefined) {
-                    this.config.deadline_penalty_per_day = jsonData.deadline_penalty_per_day;
+                    this.config.penaltySettings.deadline_penalty = jsonData.deadline_penalty_per_day;
+                }
+                if (jsonData.leg_compactness_penalty_per_day !== undefined) {
+                    this.config.penaltySettings.compactness_penalty = jsonData.leg_compactness_penalty_per_day;
                 }
                 if (jsonData.allow_parallel_within_deadlines !== undefined) {
-                    this.config.allow_parallel_within_deadlines = jsonData.allow_parallel_within_deadlines;
+                    // allow_parallel_within_deadlines is a number (penalty value), not boolean
+                    this.config.penaltySettings.parallel_within_deadlines = jsonData.allow_parallel_within_deadlines;
                 }
+                // Enable penalty section if any penalty fields are present
+                this.sectionEnabled.penaltyEnabled = jsonData.deadline_penalty_per_day !== undefined ||
+                                                     jsonData.leg_compactness_penalty_per_day !== undefined ||
+                                                     jsonData.allow_parallel_within_deadlines !== undefined;
 
                 // Load proximity rules if present
                 if (jsonData.test_proximity_rules) {
                     const rules = jsonData.test_proximity_rules;
-                    this.config.test_proximity_rules.patterns = rules.patterns || [];
-                    this.config.test_proximity_rules.max_gap_days = rules.max_gap_days || 10;
-                    this.config.test_proximity_rules.proximity_penalty_per_day = rules.proximity_penalty_per_day || 50.0;
-                    this.config.test_proximity_rules.enforce_sequence_order = rules.enforce_sequence_order !== undefined ? rules.enforce_sequence_order : true;
+                    if (rules.patterns && rules.patterns.length > 0) {
+                        this.config.proximityRules = rules.patterns.map(pattern => ({
+                            pattern,
+                            maxgapdays: rules.max_gap_days || 10,
+                            proximitypenaltyperday: rules.proximity_penalty_per_day || 50.0,
+                            enforce_sequence_order: rules.enforce_sequence_order !== undefined ? rules.enforce_sequence_order : false
+                        }));
+                    }
+                    this.sectionEnabled.proximityEnabled = true;
+                } else {
+                    this.config.proximityRules = [];
+                    this.sectionEnabled.proximityEnabled = false;
                 }
-
-                // Update section states based on what's present in JSON
-                this.sectionStates.leg_deadlines = !!jsonData.leg_deadlines;
-                this.sectionStates.penalty_settings = jsonData.deadline_penalty_per_day !== undefined || jsonData.allow_parallel_within_deadlines !== undefined;
-                this.sectionStates.proximity_rules = !!jsonData.test_proximity_rules;
 
                 // Update output settings
                 this.updateOutputSettings();
+                this.saveToLocalStorage();
 
             } catch (error) {
                 this.error = 'Error loading configuration: ' + error.message;

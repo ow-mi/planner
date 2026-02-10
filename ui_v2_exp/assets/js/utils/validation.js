@@ -90,13 +90,13 @@ function validateForm(formElement) {
                     }
                     break;
                 case 'minLength':
-                    if (!validateMinLength(input.value, parseInt(ruleValue))) {
+                     if (!validateMinLength(input.value, parseInt(ruleValue, 10))) {
                         inputValid = false;
                         showValidationError(input, `Minimum length: ${ruleValue} characters`);
                     }
                     break;
                 case 'maxLength':
-                    if (!validateMaxLength(input.value, parseInt(ruleValue))) {
+                     if (!validateMaxLength(input.value, parseInt(ruleValue, 10))) {
                         inputValid = false;
                         showValidationError(input, `Maximum length: ${ruleValue} characters`);
                     }

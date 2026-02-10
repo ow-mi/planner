@@ -29,27 +29,30 @@
     }
     </script>
 
-    <!-- HTMX - Upgraded to 2.x for improved fragment loading and Alpine.js integration -->
-    <script src="https://unpkg.com/htmx.org@2.0.0"></script>
-     <script>
-         // Configure HTMX to work with Alpine.js
-         document.addEventListener('DOMContentLoaded', function() {
-             // Configure HTMX to use relative URLs
-             htmx.config.useTemplateFragments = true;
+     <!-- HTMX - Upgraded to 2.x for improved fragment loading and Alpine.js integration -->
+     <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+      <script>
+          // Configure HTMX to work with Alpine.js
+          document.addEventListener('DOMContentLoaded', function() {
+              // Configure HTMX to use relative URLs
+              htmx.config.useTemplateFragments = true;
 
-             // Re-initialize Alpine.js components in dynamically loaded content (HTMX 2.x pattern)
-             document.body.addEventListener('htmx:afterSwap', function(event) {
-                 if (window.Alpine) {
-                     window.Alpine.initTree(event.detail.target);
-                 }
-             });
-         });
-     </script>
+              // Re-initialize Alpine.js components in dynamically loaded content (HTMX 2.x pattern)
+              document.body.addEventListener('htmx:afterSwap', function(event) {
+                  if (window.Alpine) {
+                      window.Alpine.initTree(event.detail.target);
+                  }
+              });
+          });
+      </script>
 
-     <!-- Alpine.js -->
-     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js" defer></script>
+     <!-- Component definitions - MUST be loaded BEFORE Alpine.js initializes -->
+     <script src="assets/js/components/configEditorComponent.js"></script>
 
-    <!-- External Libraries -->
+      <!-- Alpine.js -->
+      <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js" defer></script>
+
+     <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
@@ -322,14 +325,14 @@
      <!-- Load editor setup (CodeMirror) -->
      <script type="module" src="assets/js/editor-setup.js"></script>
 
-      <!-- Load Alpine.js stores -->
-      <script src="assets/js/stores/fileStore.js"></script>
-      <script src="assets/js/stores/configStore.js"></script>
-      <script src="assets/js/stores/solverStore.js"></script>
-      <script src="assets/js/stores/visualizationStore.js"></script>
-      
-      <!-- Load legacy templates (d3-based visualizations) -->
-      <script src="assets/js/legacy-templates.js"></script>
+       <!-- Load Alpine.js stores -->
+       <script src="assets/js/stores/fileStore.js"></script>
+       <script src="assets/js/stores/configStore.js"></script>
+       <script src="assets/js/stores/solverStore.js"></script>
+       <script src="assets/js/stores/visualizationStore.js"></script>
+       
+       <!-- Load legacy templates (d3-based visualizations) -->
+       <script src="assets/js/legacy-templates.js"></script>
 
     <!-- Load services -->
     <script src="assets/js/services/apiService.js"></script>

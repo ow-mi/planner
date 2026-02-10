@@ -1,55 +1,65 @@
-<div x-data="dataEditorComponent()" x-init="init()">
-    <!-- Data Editor Section -->
-    <div class="section">
-        <div x-show="uploadedFiles.length === 0">
-            <p>Please upload one or more CSV files in the "Input Data" tab to edit them here.</p>
-        </div>
+ <style>
+     .data-editor-row { cursor: pointer; transition: background-color 0.2s; }
+     .data-editor-row:hover { background-color: rgba(0, 0, 0, 0.05); }
+     .data-editor-row.selected-row { background-color: rgba(66, 133, 244, 0.15); border-left: 3px solid var(--primary-color); }
+ </style>
+ 
+ <div x-data="dataEditorComponent()" x-init="init()" x-cloak>
+     <!-- Data Editor Section -->
+     <div class="section">
+         <div x-show="uploadedFiles.length === 0">
+             <p>Please upload one or more CSV files in the "Input Data" tab to edit them here.</p>
+         </div>
 
-        <div x-show="uploadedFiles.length > 0">
-            <div class="form-group">
-                <label for="csv-select">Select a CSV to edit:</label>
-                <select id="csv-select" x-model="selectedCsv" @change="displayCsvData()" class="form-control">
-                    <option value="">-- Select a file --</option>
-                    <template x-for="file in uploadedFiles" :key="file.name">
-                        <option :value="file.name" x-text="file.name"></option>
-                    </template>
-                </select>
-            </div>
+         <div x-show="uploadedFiles.length > 0">
+             <div class="form-group">
+                 <label for="csv-select">Select a CSV to edit:</label>
+                 <select id="csv-select" x-model="selectedCsv" @change="displayCsvData()" class="form-control">
+                     <option value="">-- Select a file --</option>
+                     <template x-for="file in uploadedFiles" :key="file.name">
+                         <option :value="file.name" x-text="file.name"></option>
+                     </template>
+                 </select>
+             </div>
 
-            <div x-show="activeCsvData.headers.length > 0">
-                <div style="overflow-x: auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <template x-for="header in activeCsvData.headers" :key="header">
-                                    <th x-text="header"></th>
-                                </template>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <template x-for="(row, rowIndex) in activeCsvData.rows" :key="rowIndex">
-                                <tr>
-                                    <template x-for="(cell, cellIndex) in row" :key="cellIndex">
-                                        <td>
-                                            <input type="text" x-model="activeCsvData.rows[rowIndex][cellIndex]"
-                                                   style="width: 100%; padding: 0.25rem; border: 1px solid var(--border-color); border-radius: 4px;">
-                                        </td>
-                                    </template>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                </div>
+             <div x-show="activeCsvData.headers.length > 0">
+                 <div style="overflow-x: auto;">
+                     <table>
+                         <thead>
+                             <tr>
+                                 <template x-for="header in activeCsvData.headers" :key="header">
+                                     <th x-text="header"></th>
+                                 </template>
+                             </tr>
+                         </thead>
+                         <tbody>
+                             <template x-for="(row, rowIndex) in activeCsvData.rows" :key="rowIndex">
+                                 <tr @click="selectRow(rowIndex)" :class="{ 'selected-row': selectedRowIndex === rowIndex }">
+                                     <template x-for="(cell, cellIndex) in row" :key="cellIndex">
+                                         <td>
+                                             <input type="text" x-model="activeCsvData.rows[rowIndex][cellIndex]"
+                                                    style="width: 100%; padding: 0.25rem; border: 1px solid var(--border-color); border-radius: 4px;" @click.stop>
+                                         </td>
+                                     </template>
+                                 </tr>
+                             </template>
+                         </tbody>
+                     </table>
+                 </div>
 
-                <div class="form-group" style="margin-top: 1rem;">
-                    <button @click="saveChanges()" class="btn" :disabled="!hasChanges">Save Changes</button>
-                    <button @click="addNewRow()" class="btn" style="margin-left: 0.5rem;">Add Row</button>
-                    <button @click="removeSelectedRow()" class="btn btn-danger" style="margin-left: 0.5rem;" :disabled="activeCsvData.rows.length === 0">Remove Selected Row</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+                 <div class="form-group" style="margin-top: 1rem;">
+                     <button @click="saveChanges()" class="btn" :disabled="!hasChanges()">Save Changes</button>
+                     <button @click="addNewRow()" class="btn" style="margin-left: 0.5rem;">Add Row</button>
+                     <button @click="removeSelectedRow()" class="btn btn-danger" style="margin-left: 0.5rem;" :disabled="selectedRowIndex === -1">Remove Selected Row</button>
+                 </div>
+                 
+                 <div x-show="hasChanges()" style="margin-top: 0.5rem; color: #e67e22;">
+                     ⚠️ Unsaved changes detected
+                 </div>
+             </div>
+         </div>
+     </div>
+ </div>
 
 <script>
 function dataEditorComponent() {

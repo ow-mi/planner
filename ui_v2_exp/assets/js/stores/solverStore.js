@@ -97,30 +97,15 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        // Execute solver via API
-        async executeSolverApi(solverRequest) {
-            const API_BASE_URL = "http://localhost:8000/api";
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/solver/execute`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(solverRequest)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || errorData.error?.message || "Solver execution failed");
-                }
-
-                return await response.json();
-            } catch (error) {
-                console.error("Error executing solver:", error);
-                throw error;
-            }
-        },
+         // Execute solver via API (uses apiService)
+         async executeSolverApi(solverRequest) {
+             try {
+                 return await window.apiService.executeSolver(solverRequest);
+             } catch (error) {
+                 console.error("Error executing solver:", error);
+                 throw error;
+             }
+         },
 
         // Poll solver status
         async pollStatus() {
@@ -149,45 +134,27 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        // Get execution status
-        async getExecutionStatus() {
-            const API_BASE_URL = "http://localhost:8000/api";
+         // Get execution status (uses apiService)
+         async getExecutionStatus() {
+             try {
+                 return await window.apiService.getExecutionStatus(this.executionId);
+             } catch (error) {
+                 console.error("Error getting execution status:", error);
+                 throw error;
+             }
+         },
 
-            try {
-                const response = await fetch(`${API_BASE_URL}/solver/status/${this.executionId}`);
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || "Failed to get status");
-                }
-
-                return await response.json();
-            } catch (error) {
-                console.error("Error getting execution status:", error);
-                throw error;
-            }
-        },
-
-        // Fetch solver results
-        async fetchResults() {
-            const API_BASE_URL = "http://localhost:8000/api";
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/solver/results/${this.executionId}`);
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || "Failed to get results");
-                }
-
-                this.results = await response.json();
-                return this.results;
-            } catch (error) {
-                console.error("Error getting execution results:", error);
-                this.error = { message: "Failed to fetch results: " + error.message };
-                throw error;
-            }
-        },
+         // Fetch solver results (uses apiService)
+         async fetchResults() {
+             try {
+                 this.results = await window.apiService.getExecutionResults(this.executionId);
+                 return this.results;
+             } catch (error) {
+                 console.error("Error getting execution results:", error);
+                 this.error = { message: "Failed to fetch results: " + error.message };
+                 throw error;
+             }
+         },
 
         // Reset solver state
         reset() {

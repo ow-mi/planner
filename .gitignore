@@ -186,3 +186,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# bv (beads viewer) local config and caches
+.bv/
