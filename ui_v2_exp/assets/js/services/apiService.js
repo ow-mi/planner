@@ -6,10 +6,120 @@
 class ApiService {
     constructor(baseUrl = 'http://localhost:8000/api') {
         this.baseUrl = baseUrl;
+        this.lastCanonicalPriorityConfig = null;
         this.defaultHeaders = {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         };
+    }
+
+    toCanonicalPriorityConfig(priorityConfig = {}) {
+        const source = priorityConfig || {};
+        const normalizeNumber = (value, fallback) => {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : fallback;
+        };
+        const normalizeDate = (value) => {
+            if (!value) {
+                return null;
+            }
+            const asDate = new Date(value);
+            if (!Number.isNaN(asDate.getTime())) {
+                return asDate.toISOString().split('T')[0];
+            }
+            return String(value);
+        };
+
+        const canonical = {
+            mode: source.mode || 'leg_end_dates',
+            description: source.description || '',
+            weights: {
+                makespan_weight: normalizeNumber(source.weights?.makespan_weight, 0.2),
+                priority_weight: normalizeNumber(source.weights?.priority_weight, 0.8)
+            }
+        };
+
+        const isUiShape = Array.isArray(source.deadlines) ||
+            Array.isArray(source.proximityRules) ||
+            !!source.penaltySettings;
+
+        if (isUiShape) {
+            const legDeadlines = {};
+            (source.deadlines || []).forEach((deadline) => {
+                if (!deadline || !deadline.legId || !deadline.deadlineDate) {
+                    return;
+                }
+                const normalized = normalizeDate(deadline.deadlineDate);
+                if (normalized) {
+                    legDeadlines[deadline.legId] = normalized;
+                }
+            });
+            if (Object.keys(legDeadlines).length > 0) {
+                canonical.leg_deadlines = legDeadlines;
+            }
+
+            const penalty = source.penaltySettings || {};
+            canonical.deadline_penalty_per_day = normalizeNumber(penalty.deadline_penalty, 1000.0);
+            canonical.leg_compactness_penalty_per_day = normalizeNumber(penalty.compactness_penalty, 500.0);
+            canonical.allow_parallel_within_deadlines = normalizeNumber(penalty.parallel_within_deadlines, 100.0);
+
+            if (Array.isArray(source.proximityRules) && source.proximityRules.length > 0) {
+                const firstRule = source.proximityRules[0] || {};
+                canonical.test_proximity_rules = {
+                    patterns: source.proximityRules
+                        .map((rule) => rule?.pattern)
+                        .filter((pattern) => typeof pattern === 'string' && pattern.trim().length > 0),
+                    max_gap_days: normalizeNumber(firstRule.maxgapdays, 10),
+                    proximity_penalty_per_day: normalizeNumber(firstRule.proximitypenaltyperday, 50.0),
+                    enforce_sequence_order: source.proximityRules.some((rule) => !!rule?.enforce_sequence_order)
+                };
+            }
+
+            return canonical;
+        }
+
+        if (source.leg_deadlines && typeof source.leg_deadlines === 'object') {
+            canonical.leg_deadlines = {};
+            Object.entries(source.leg_deadlines).forEach(([legId, dateValue]) => {
+                const normalized = normalizeDate(dateValue);
+                if (normalized) {
+                    canonical.leg_deadlines[legId] = normalized;
+                }
+            });
+            if (Object.keys(canonical.leg_deadlines).length === 0) {
+                delete canonical.leg_deadlines;
+            }
+        }
+
+        if (source.deadline_penalty_per_day !== undefined || source.leg_compactness_penalty_per_day !== undefined || source.allow_parallel_within_deadlines !== undefined) {
+            canonical.deadline_penalty_per_day = normalizeNumber(source.deadline_penalty_per_day, 1000.0);
+            canonical.leg_compactness_penalty_per_day = normalizeNumber(source.leg_compactness_penalty_per_day, 500.0);
+            canonical.allow_parallel_within_deadlines = normalizeNumber(source.allow_parallel_within_deadlines, 100.0);
+        }
+
+        if (source.test_proximity_rules && typeof source.test_proximity_rules === 'object') {
+            const rules = source.test_proximity_rules;
+            const patterns = Array.isArray(rules.patterns)
+                ? rules.patterns.filter((pattern) => typeof pattern === 'string' && pattern.trim().length > 0)
+                : [];
+            if (patterns.length > 0) {
+                canonical.test_proximity_rules = {
+                    patterns,
+                    max_gap_days: normalizeNumber(rules.max_gap_days, 10),
+                    proximity_penalty_per_day: normalizeNumber(rules.proximity_penalty_per_day, 50.0),
+                    enforce_sequence_order: !!rules.enforce_sequence_order
+                };
+            }
+        }
+
+        return canonical;
+    }
+
+    getLastCanonicalPriorityConfig() {
+        if (!this.lastCanonicalPriorityConfig) {
+            return null;
+        }
+        return JSON.parse(JSON.stringify(this.lastCanonicalPriorityConfig));
     }
 
     /**
@@ -155,7 +265,16 @@ class ApiService {
      * Execute solver
      */
     async executeSolver(solverRequest) {
-        return await this.post('/solver/execute', solverRequest);
+        const canonicalPriorityConfig = this.toCanonicalPriorityConfig(solverRequest.priority_config || {});
+        this.lastCanonicalPriorityConfig = canonicalPriorityConfig;
+
+        const payload = {
+            ...solverRequest,
+            priority_config: canonicalPriorityConfig,
+            settings_used: canonicalPriorityConfig
+        };
+
+        return await this.post('/solver/execute', payload);
     }
 
     /**

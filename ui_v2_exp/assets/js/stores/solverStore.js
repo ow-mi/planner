@@ -13,6 +13,7 @@ document.addEventListener('alpine:init', () => {
         message: '',
         error: null,
         results: null,
+        settingsUsed: null,
         config: {
             timeLimit: 300,
             debugLevel: 'INFO',
@@ -62,6 +63,7 @@ document.addEventListener('alpine:init', () => {
             this.message = 'Starting solver...';
             this.error = null;
             this.results = null;
+            this.settingsUsed = null;
             this.elapsedTime = 0;
 
             try {
@@ -100,7 +102,13 @@ document.addEventListener('alpine:init', () => {
          // Execute solver via API (uses apiService)
          async executeSolverApi(solverRequest) {
              try {
-                 return await window.apiService.executeSolver(solverRequest);
+                 const response = await window.apiService.executeSolver(solverRequest);
+                 if (response.settings_used) {
+                     this.settingsUsed = response.settings_used;
+                 } else if (window.apiService.getLastCanonicalPriorityConfig) {
+                     this.settingsUsed = window.apiService.getLastCanonicalPriorityConfig();
+                 }
+                 return response;
              } catch (error) {
                  console.error("Error executing solver:", error);
                  throw error;
@@ -147,10 +155,19 @@ document.addEventListener('alpine:init', () => {
          // Fetch solver results (uses apiService)
          async fetchResults() {
              try {
-                 this.results = await window.apiService.getExecutionResults(this.executionId);
-                 return this.results;
-             } catch (error) {
-                 console.error("Error getting execution results:", error);
+                  this.results = await window.apiService.getExecutionResults(this.executionId);
+
+                  if (this.settingsUsed) {
+                      const outputFiles = this.results.output_files || {};
+                      if (!outputFiles['settings_used.json']) {
+                          outputFiles['settings_used.json'] = JSON.stringify(this.settingsUsed, null, 2);
+                      }
+                      this.results.output_files = outputFiles;
+                  }
+
+                  return this.results;
+              } catch (error) {
+                  console.error("Error getting execution results:", error);
                  this.error = { message: "Failed to fetch results: " + error.message };
                  throw error;
              }
@@ -165,6 +182,7 @@ document.addEventListener('alpine:init', () => {
             this.message = '';
             this.error = null;
             this.results = null;
+            this.settingsUsed = null;
         },
 
         // Check if solver has results
