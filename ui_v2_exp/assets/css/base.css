@@ -60,6 +60,7 @@ h1, h2, h3 {
     background-color: #c0392b;
 }
 
+/* Tab list container */
 .tabs {
     display: flex;
     border-bottom: 2px solid var(--border-color);
@@ -67,22 +68,46 @@ h1, h2, h3 {
     overflow-x: auto;
 }
 
+/* Tab button styles */
 .tab {
     padding: 0.75rem 1.5rem;
-    cursor: pointer;
     font-weight: 600;
     color: var(--text-light);
     transition: all 0.3s;
     border-bottom: 3px solid transparent;
     margin-bottom: -2px;
     white-space: nowrap;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    text-align: left;
 }
 
-.tab.active, .tab:hover {
+/* Remove default button styles for Firefox */
+.tab::-moz-focus-inner {
+    border: 0;
+    padding: 0;
+}
+
+.tab:hover {
+    color: var(--primary-color);
+}
+
+.tab.active,
+.tab:hover {
     color: var(--primary-color);
     border-bottom-color: var(--primary-color);
 }
 
+/* Tab keyboard focus outline - accessible focus indicator */
+.tab:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Tab content */
 .tab-content {
     display: none;
 }
@@ -245,4 +270,39 @@ th {
         padding: 0.5rem 1rem;
         font-size: 0.9rem;
     }
+}
+
+/* Split-view layout for visualizer */
+.split-view-container,
+.full-view-container {
+    display: flex;
+    gap: 1rem;
+    min-height: 500px;
+}
+
+.split-view-container {
+    flex-direction: row;
+}
+
+.full-view-container {
+    flex-direction: row;
+}
+
+/* Responsive: Stack vertically on mobile */
+@media (max-width: 768px) {
+    .split-view-container,
+    .full-view-container {
+        flex-direction: column;
+    }
+    
+    .split-view-container > div,
+    .full-view-container > div {
+        width: 100%;
+        min-width: 100%;
+    }
+}
+
+/* Alpine.js x-cloak - prevents flicker before Alpine initializes */
+[x-cloak] {
+    display: none !important;
 }
