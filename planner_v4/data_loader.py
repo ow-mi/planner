@@ -65,7 +65,7 @@ import pandas as pd
 from datetime import date
 import re
 from typing import Dict, List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 
 @dataclass
@@ -560,6 +560,86 @@ def load_priority_config(input_folder: str) -> Dict:
         return {}
 
 
+def load_scenario_overrides(input_folder: str) -> Dict:
+    """Load optional scenario override configuration from scenario_overrides.json."""
+    overrides_path = os.path.join(input_folder, "scenario_overrides.json")
+    if not os.path.exists(overrides_path):
+        return {}
+
+    with open(overrides_path, "r") as handle:
+        overrides = json.load(handle)
+
+    if not isinstance(overrides, dict):
+        raise ValueError("scenario_overrides.json must contain a JSON object")
+
+    return overrides
+
+
+def _resolve_assignment_override(
+    current_value: str, field_name: str, leg_override: Dict, project_override: Dict
+) -> str:
+    """Apply deterministic override precedence for assignment fields."""
+    if current_value != "*":
+        return current_value
+
+    for override_source in (leg_override, project_override):
+        override_value = override_source.get(field_name)
+        if isinstance(override_value, str):
+            override_value = override_value.strip()
+
+        if override_value and override_value != "*":
+            return override_value
+
+    return current_value
+
+
+def apply_scenario_overrides(
+    tests: List[Test], legs: Dict[str, Leg], scenario_overrides: Optional[Dict]
+) -> List[Test]:
+    """Apply scenario project/leg assignment overrides with deterministic precedence."""
+    if not scenario_overrides:
+        return tests
+
+    project_overrides = scenario_overrides.get("project_overrides", {})
+    leg_overrides = scenario_overrides.get("leg_overrides", {})
+
+    if not isinstance(project_overrides, dict) or not isinstance(leg_overrides, dict):
+        raise ValueError(
+            "scenario_overrides project_overrides and leg_overrides must be JSON objects"
+        )
+
+    updated_tests = []
+    for test in tests:
+        leg = legs.get(test.project_leg_id)
+        project_override = {}
+        if leg and leg.project_id in project_overrides:
+            project_override = project_overrides.get(leg.project_id, {})
+        leg_override = leg_overrides.get(test.project_leg_id, {})
+
+        if not isinstance(project_override, dict) or not isinstance(leg_override, dict):
+            raise ValueError("scenario override entries must be JSON objects")
+
+        updated_tests.append(
+            replace(
+                test,
+                fte_assigned=_resolve_assignment_override(
+                    test.fte_assigned,
+                    "fte_assigned",
+                    leg_override,
+                    project_override,
+                ),
+                equipment_assigned=_resolve_assignment_override(
+                    test.equipment_assigned,
+                    "equipment_assigned",
+                    leg_override,
+                    project_override,
+                ),
+            )
+        )
+
+    return updated_tests
+
+
 def validate_data(data: PlanningData) -> List[str]:
     """Validate loaded data and return list of validation errors."""
     errors = []
@@ -734,6 +814,8 @@ def load_data(input_folder: str) -> PlanningData:
     # Load all data
     legs = load_legs(input_folder)
     tests = load_tests(input_folder)
+    scenario_overrides = load_scenario_overrides(input_folder)
+    tests = apply_scenario_overrides(tests, legs, scenario_overrides)
     fte_windows = load_resource_windows(input_folder, "fte")
     equipment_windows = load_resource_windows(input_folder, "equipment")
     test_duts = load_test_duts(input_folder, tests)  # Pass tests for unique ID mapping
