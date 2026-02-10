@@ -63,6 +63,7 @@ import os
 import json
 import pandas as pd
 from datetime import date
+import re
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 
@@ -103,6 +104,7 @@ class Leg:
         The leg_number field uses string type to support complex numbering
         schemes like '2a', '2b' for parallel legs within the same sequence.
     """
+
     project_id: str
     project_name: str
     project_leg_id: str
@@ -156,6 +158,7 @@ class Test:
         types (e.g., "sofia_fte"). Use "*" in equipment_assigned for any available
         equipment of the required type.
     """
+
     test_id: str
     project_leg_id: str
     sequence_index: int
@@ -201,6 +204,7 @@ class ResourceWindow:
         For example, if end_iso_week is "2024-26", end_monday will be the
         Monday of week 2024-27.
     """
+
     resource_id: str
     start_iso_week: str
     end_iso_week: str
@@ -211,8 +215,9 @@ class ResourceWindow:
 @dataclass
 class LegDependency:
     """Represents a dependency between legs."""
+
     predecessor_leg_id: str  # Leg that must finish first
-    successor_leg_id: str    # Leg that can only start after predecessor finishes
+    successor_leg_id: str  # Leg that can only start after predecessor finishes
 
 
 @dataclass
@@ -249,6 +254,7 @@ class PlanningData:
         before creating a PlanningData instance. The container provides efficient
         access patterns for the optimization algorithms.
     """
+
     legs: Dict[str, Leg]
     tests: List[Test]
     fte_windows: List[ResourceWindow]
@@ -258,32 +264,94 @@ class PlanningData:
     leg_dependencies: List[LegDependency]
 
 
+WEEK_VALUE_RE = re.compile(
+    r"^(?P<year>\d{4})-(?:W)?(?P<week>\d{1,2})(?:\.(?P<fraction>[0-6]))?$"
+)
+
+
+def normalize_week_value(
+    raw_value, field_name: str, allow_blank: bool = False
+) -> Optional[str]:
+    """Normalize legacy/canonical week values to canonical ``YYYY-Www.f`` format."""
+    if raw_value is None or pd.isna(raw_value):
+        if allow_blank:
+            return None
+        raise ValueError(
+            f"Invalid week value for {field_name}: {raw_value!r}. Expected YYYY-Www.f"
+        )
+
+    value = str(raw_value).strip()
+    if value in {"", "*", "nan", "None"}:
+        if allow_blank:
+            return None
+        raise ValueError(
+            f"Invalid week value for {field_name}: {raw_value!r}. Expected YYYY-Www.f"
+        )
+
+    match = WEEK_VALUE_RE.fullmatch(value)
+    if not match:
+        raise ValueError(
+            f"Invalid week value for {field_name}: {raw_value!r}. Expected YYYY-Www.f"
+        )
+
+    year = int(match.group("year"))
+    week = int(match.group("week"))
+    fraction = int(match.group("fraction") or 0)
+
+    if not (1900 <= year <= 2100):
+        raise ValueError(
+            f"Invalid week value for {field_name}: {raw_value!r}. Year must be between 1900 and 2100"
+        )
+    if not (1 <= week <= 53):
+        raise ValueError(
+            f"Invalid week value for {field_name}: {raw_value!r}. Week must be between 1 and 53"
+        )
+    if not (0 <= fraction <= 6):
+        raise ValueError(
+            f"Invalid week value for {field_name}: {raw_value!r}. Fraction must be between 0 and 6"
+        )
+
+    return f"{year:04d}-W{week:02d}.{fraction}"
+
+
 def parse_iso_week(iso_week: str) -> date:
-    """Parse ISO week string (e.g., '2025-W02') to Monday date."""
-    if iso_week == "*" or iso_week.strip() == "":
+    """Parse canonical/legacy ISO week to date, where fraction is Monday+offset.
+
+    Canonical format is ``YYYY-Www.f`` where ``f`` is day offset ``0..6`` from
+    Monday (0=Monday, 6=Sunday).
+    """
+    normalized_week = normalize_week_value(iso_week, "iso_week", allow_blank=True)
+    if normalized_week is None:
         return None
-    
-    iso_week = iso_week.strip()
-    year_str, week_str = iso_week.split("-W")
-    return date.fromisocalendar(int(year_str), int(week_str), 1)
+
+    year_week, fraction = normalized_week.split(".")
+    year_str, week_str = year_week.split("-W")
+    return date.fromisocalendar(int(year_str), int(week_str), int(fraction) + 1)
 
 
 def load_legs(input_folder: str) -> Dict[str, Leg]:
     """Load project legs from data_legs.csv."""
     legs_path = os.path.join(input_folder, "data_legs.csv")
-    df = pd.read_csv(legs_path, dtype={'leg_number': str})
+    df = pd.read_csv(legs_path, dtype={"leg_number": str})
 
     # Vectorized string and date operations
-    for col in ["project_id", "project_name", "project_leg_id", "leg_name", "start_iso_week"]:
+    for col in [
+        "project_id",
+        "project_name",
+        "project_leg_id",
+        "leg_name",
+        "start_iso_week",
+    ]:
         if col in df.columns:
             df[col] = df[col].str.strip()
 
+    df["start_iso_week"] = df["start_iso_week"].apply(
+        lambda value: normalize_week_value(value, "data_legs.start_iso_week")
+    )
+
     df["start_monday"] = df["start_iso_week"].apply(parse_iso_week)
 
-    legs = {
-        row["project_leg_id"]: Leg(**row)
-        for row in df.to_dict('records')
-    }
+    legs = {row["project_leg_id"]: Leg(**row) for row in df.to_dict("records")}
     return legs
 
 
@@ -293,19 +361,29 @@ def load_tests(input_folder: str) -> List[Test]:
     df = pd.read_csv(tests_path)
 
     # Clean string columns
-    str_cols = ["project_leg_id", "test_id", "test", "test_description",
-                "fte_assigned", "equipment_assigned"]
+    str_cols = [
+        "project_leg_id",
+        "test_id",
+        "test",
+        "test_description",
+        "fte_assigned",
+        "equipment_assigned",
+    ]
     for col in str_cols:
         if col in df.columns:
             df[col] = df[col].astype(str).str.strip()
-    
-    if 'force_start_week_iso' in df.columns:
-        df['force_start_week_iso'] = df['force_start_week_iso'].astype(str).str.strip().replace(["*", "", "nan"], None)
+
+    if "force_start_week_iso" in df.columns:
+        df["force_start_week_iso"] = df["force_start_week_iso"].apply(
+            lambda value: normalize_week_value(
+                value, "data_test.force_start_week_iso", allow_blank=True
+            )
+        )
 
     # Sort and renumber sequence index within each leg
     df = df.sort_values(by=["project_leg_id", "sequence_index"])
     df["new_sequence_index"] = df.groupby("project_leg_id").cumcount() + 1
-    
+
     # Create unique test ID
     df["unique_test_id"] = df["test_id"] + "_seq" + df["new_sequence_index"].astype(str)
     df = df.rename(columns={"test": "test_name"})
@@ -323,41 +401,48 @@ def load_tests(input_folder: str) -> List[Test]:
             fte_assigned=row["fte_assigned"],
             equipment_assigned=row["equipment_assigned"],
             force_start_week_iso=row.get("force_start_week_iso"),
-            fte_time_pct=float(row.get("fte_time_pct", 100.0))
+            fte_time_pct=float(row.get("fte_time_pct", 100.0)),
         )
         for _, row in df.iterrows()
     ]
-    
+
     return tests
 
 
-def load_resource_windows(input_folder: str, resource_type: str) -> List[ResourceWindow]:
+def load_resource_windows(
+    input_folder: str, resource_type: str
+) -> List[ResourceWindow]:
     """Load resource availability windows from CSV file."""
-    file_map = {
-        "fte": "data_fte.csv",
-        "equipment": "data_equipment.csv"
-    }
-    
+    file_map = {"fte": "data_fte.csv", "equipment": "data_equipment.csv"}
+
     resource_path = os.path.join(input_folder, file_map[resource_type])
     df = pd.read_csv(resource_path)
-    
+
     id_col = f"{resource_type}_id"
     df[id_col] = df[id_col].str.strip()
-    df["available_start_week_iso"] = df["available_start_week_iso"].astype(str).str.strip()
-    df["available_end_week_iso"] = df["available_end_week_iso"].astype(str).str.strip()
+    df["available_start_week_iso"] = df["available_start_week_iso"].apply(
+        lambda value: normalize_week_value(
+            value, f"{file_map[resource_type]}.available_start_week_iso"
+        )
+    )
+    df["available_end_week_iso"] = df["available_end_week_iso"].apply(
+        lambda value: normalize_week_value(
+            value, f"{file_map[resource_type]}.available_end_week_iso"
+        )
+    )
 
     df["start_monday"] = df["available_start_week_iso"].apply(parse_iso_week)
     df["end_monday"] = df["available_end_week_iso"].apply(parse_iso_week)
-    
+
     windows = [
         ResourceWindow(
             resource_id=row[id_col],
             start_iso_week=row["available_start_week_iso"],
             end_iso_week=row["available_end_week_iso"],
             start_monday=row["start_monday"],
-            end_monday=row["end_monday"]
+            end_monday=row["end_monday"],
         )
-        for row in df.to_dict('records')
+        for row in df.to_dict("records")
     ]
     return windows
 
@@ -365,40 +450,53 @@ def load_resource_windows(input_folder: str, resource_type: str) -> List[Resourc
 def load_test_duts(input_folder: str, tests: List[Test]) -> Dict[str, int]:
     """Load test-DUT mappings from data_test_duts.csv and map to unique test IDs."""
     duts_path = os.path.join(input_folder, "data_test_duts.csv")
-    duts_df = pd.read_csv(duts_path, dtype={'test_id': str, 'dut_id': int})
+    duts_df = pd.read_csv(duts_path, dtype={"test_id": str, "dut_id": int})
 
     duts_df["test_id"] = duts_df["test_id"].str.strip()
 
     if not tests:
         return {}
-    
+
     tests_df = pd.DataFrame([vars(t) for t in tests])
-    
+
     # Extract original test ID from unique ID
-    tests_df["original_test_id"] = tests_df["test_id"].str.rsplit('_seq', n=1).str[0]
-    
+    tests_df["original_test_id"] = tests_df["test_id"].str.rsplit("_seq", n=1).str[0]
+
+    # Validate that DUT file has unique test_id entries
+    # (one DUT per original test_id, not per unique_test_id)
+    duplicate_duts = duts_df["test_id"].duplicated()
+    if duplicate_duts.any():
+        raise ValueError(
+            f"data_test_duts.csv has duplicate test_id entries: "
+            f"{duts_df.loc[duplicate_duts, 'test_id'].unique().tolist()}. "
+            f"Each original test_id should map to exactly one DUT."
+        )
+
     # Merge tests with DUTs on the original test ID
-    merged_df = pd.merge(tests_df, duts_df, left_on="original_test_id", right_on="test_id", how="inner")
-    
+    merged_df = pd.merge(
+        tests_df, duts_df, left_on="original_test_id", right_on="test_id", how="inner"
+    )
+
     # Create the final dictionary from the merged data
     if not merged_df.empty:
         return pd.Series(merged_df.dut_id.values, index=merged_df.test_id_x).to_dict()
-    
+
     return {}
 
 
 def load_priority_config(input_folder: str) -> Dict:
     """Load priority configuration from priority_config.json or priority_config.yaml."""
     import logging
+
     logger = logging.getLogger(__name__)
-    
+
     # Try YAML first, then JSON
     yaml_path = os.path.join(input_folder, "priority_config.yaml")
     json_path = os.path.join(input_folder, "priority_config.json")
-    
+
     config_path = None
     use_yaml = False
-    
+
     if os.path.exists(yaml_path):
         config_path = yaml_path
         use_yaml = True
@@ -408,36 +506,49 @@ def load_priority_config(input_folder: str) -> Dict:
         use_yaml = False
         logger.info(f"Loading priority configuration from JSON: {config_path}")
     else:
-        raise FileNotFoundError(f"Priority config file not found. Expected priority_config.yaml or priority_config.json in {input_folder}")
-    
+        raise FileNotFoundError(
+            f"Priority config file not found. Expected priority_config.yaml or priority_config.json in {input_folder}"
+        )
+
     try:
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             if use_yaml:
                 try:
                     import yaml
+
                     config_dict = yaml.safe_load(f)
                 except ImportError:
-                    raise ImportError("PyYAML is required to load YAML config files. Install with: pip install pyyaml")
+                    raise ImportError(
+                        "PyYAML is required to load YAML config files. Install with: pip install pyyaml"
+                    )
             else:
                 config_dict = json.load(f)
-        
+
         # Log the mode and key parameters
-        mode = config_dict.get('mode', 'unknown')
+        mode = config_dict.get("mode", "unknown")
         logger.info(f"Priority config loaded: mode={mode}")
-        
-        if mode == 'resource_bottleneck':
-            logger.info(f"  - Bottleneck threshold: {config_dict.get('bottleneck_threshold', 'N/A')}")
-            logger.info(f"  - Resource balance weight: {config_dict.get('resource_balance_weight', 'N/A')}")
-            logger.info(f"  - Utilization target: {config_dict.get('utilization_target', 'N/A')}")
-        elif mode == 'end_date_sticky':
-            logger.info(f"  - Target completion date: {config_dict.get('target_completion_date', 'N/A')}")
-        elif mode == 'leg_end_dates':
-            leg_deadlines = config_dict.get('leg_deadlines', {})
+
+        if mode == "resource_bottleneck":
+            logger.info(
+                f"  - Bottleneck threshold: {config_dict.get('bottleneck_threshold', 'N/A')}"
+            )
+            logger.info(
+                f"  - Resource balance weight: {config_dict.get('resource_balance_weight', 'N/A')}"
+            )
+            logger.info(
+                f"  - Utilization target: {config_dict.get('utilization_target', 'N/A')}"
+            )
+        elif mode == "end_date_sticky":
+            logger.info(
+                f"  - Target completion date: {config_dict.get('target_completion_date', 'N/A')}"
+            )
+        elif mode == "leg_end_dates":
+            leg_deadlines = config_dict.get("leg_deadlines", {})
             logger.info(f"  - Leg deadlines: {len(leg_deadlines)} legs")
-        
-        weights = config_dict.get('weights', {})
+
+        weights = config_dict.get("weights", {})
         logger.info(f"  - Weights: {weights}")
-        
+
         return config_dict
     except FileNotFoundError:
         logger.warning(f"Priority config file not found: {config_path}")
@@ -452,56 +563,66 @@ def load_priority_config(input_folder: str) -> Dict:
 def validate_data(data: PlanningData) -> List[str]:
     """Validate loaded data and return list of validation errors."""
     errors = []
-    
+
     # Check that all tests belong to valid legs
     leg_ids = set(data.legs.keys())
     for test in data.tests:
         if test.project_leg_id not in leg_ids:
-            errors.append(f"Test {test.test_id} references unknown leg {test.project_leg_id}")
-    
+            errors.append(
+                f"Test {test.test_id} references unknown leg {test.project_leg_id}"
+            )
+
     # Check test sequence indices are continuous within each leg
     leg_tests = {}
     for test in data.tests:
         if test.project_leg_id not in leg_tests:
             leg_tests[test.project_leg_id] = []
         leg_tests[test.project_leg_id].append(test)
-    
+
     for leg_id, tests in leg_tests.items():
         sequences = sorted([t.sequence_index for t in tests])
         expected = list(range(1, len(sequences) + 1))
         if sequences != expected:
-            errors.append(f"Leg {leg_id} has non-continuous sequence indices: {sequences}")
-    
+            errors.append(
+                f"Leg {leg_id} has non-continuous sequence indices: {sequences}"
+            )
+
     # Check resource assignments exist
     fte_ids = set(w.resource_id for w in data.fte_windows)
     equipment_ids = set(w.resource_id for w in data.equipment_windows)
-    
+
     for test in data.tests:
         # Check FTE assignment
         if test.fte_assigned != "*" and not test.fte_assigned.startswith("fte_"):
-            errors.append(f"Test {test.test_id} has invalid FTE assignment: {test.fte_assigned}")
-        
-        # Check equipment assignment  
-        if test.equipment_assigned != "*" and not test.equipment_assigned.startswith("setup_"):
-            errors.append(f"Test {test.test_id} has invalid equipment assignment: {test.equipment_assigned}")
-    
+            errors.append(
+                f"Test {test.test_id} has invalid FTE assignment: {test.fte_assigned}"
+            )
+
+        # Check equipment assignment
+        if test.equipment_assigned != "*" and not test.equipment_assigned.startswith(
+            "setup_"
+        ):
+            errors.append(
+                f"Test {test.test_id} has invalid equipment assignment: {test.equipment_assigned}"
+            )
+
     return errors
 
 
 def detect_leg_dependencies(legs: Dict[str, Leg]) -> List[LegDependency]:
     """
     Detect leg dependencies based on naming patterns.
-    
+
     Legs with pattern 'project_*_2a' and 'project_*_2b' depend on 'project_*_2' finishing first.
-    
+
     Args:
         legs: Dictionary of loaded legs
-        
+
     Returns:
         List of detected leg dependencies
     """
     dependencies = []
-    
+
     # Group legs by project
     projects = {}
     for leg_id, leg in legs.items():
@@ -509,28 +630,31 @@ def detect_leg_dependencies(legs: Dict[str, Leg]) -> List[LegDependency]:
         if project_id not in projects:
             projects[project_id] = []
         projects[project_id].append(leg)
-    
+
     # For each project, detect dependencies
     for project_id, project_legs in projects.items():
         leg_map = {leg.project_leg_id: leg for leg in project_legs}
-        
+
         for leg in project_legs:
             leg_id = leg.project_leg_id
-            
+
             # Check if this is a sub-leg (ends with 'a', 'b', etc.)
-            if '_' in leg_id:
-                parts = leg_id.split('_')
+            if "_" in leg_id:
+                parts = leg_id.split("_")
                 if len(parts) >= 3 and len(parts[-1]) == 2 and parts[-1][-1].isalpha():
                     # This is a sub-leg like 'mwcu_b10_2a'
-                    base_leg_id = '_'.join(parts[:-1]) + '_' + parts[-1][:-1]  # 'mwcu_b10_2'
-                    
+                    base_leg_id = (
+                        "_".join(parts[:-1]) + "_" + parts[-1][:-1]
+                    )  # 'mwcu_b10_2'
+
                     if base_leg_id in leg_map:
-                        dependencies.append(LegDependency(
-                            predecessor_leg_id=base_leg_id,
-                            successor_leg_id=leg_id
-                        ))
+                        dependencies.append(
+                            LegDependency(
+                                predecessor_leg_id=base_leg_id, successor_leg_id=leg_id
+                            )
+                        )
                         print(f"Detected dependency: {leg_id} depends on {base_leg_id}")
-    
+
     return dependencies
 
 
@@ -594,15 +718,19 @@ def load_data(input_folder: str) -> PlanningData:
     """
     # Check required files exist
     required_files = [
-        "data_legs.csv", "data_test.csv", "data_fte.csv", 
-        "data_equipment.csv", "data_test_duts.csv", "priority_config.json"
+        "data_legs.csv",
+        "data_test.csv",
+        "data_fte.csv",
+        "data_equipment.csv",
+        "data_test_duts.csv",
+        "priority_config.json",
     ]
-    
+
     for filename in required_files:
         filepath = os.path.join(input_folder, filename)
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Required file not found: {filepath}")
-    
+
     # Load all data
     legs = load_legs(input_folder)
     tests = load_tests(input_folder)
@@ -610,10 +738,10 @@ def load_data(input_folder: str) -> PlanningData:
     equipment_windows = load_resource_windows(input_folder, "equipment")
     test_duts = load_test_duts(input_folder, tests)  # Pass tests for unique ID mapping
     priority_config = load_priority_config(input_folder)
-    
+
     # Detect leg dependencies
     leg_dependencies = detect_leg_dependencies(legs)
-    
+
     data = PlanningData(
         legs=legs,
         tests=tests,
@@ -621,13 +749,15 @@ def load_data(input_folder: str) -> PlanningData:
         equipment_windows=equipment_windows,
         priority_config=priority_config,
         test_duts=test_duts,
-        leg_dependencies=leg_dependencies
+        leg_dependencies=leg_dependencies,
     )
-    
+
     # Validate data
     errors = validate_data(data)
     if errors:
-        error_msg = "Data validation failed:\n" + "\n".join(f"  - {error}" for error in errors)
+        error_msg = "Data validation failed:\n" + "\n".join(
+            f"  - {error}" for error in errors
+        )
         raise ValueError(error_msg)
-    
+
     return data
