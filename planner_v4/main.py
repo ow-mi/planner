@@ -41,14 +41,30 @@ import logging
 from datetime import datetime
 
 from .config import (
-    DEFAULT_DEBUG_LEVEL, DEFAULT_INPUT_FOLDER, DEFAULT_OUTPUT_FOLDER,
-    SOLVER_TIME_LIMIT_SECONDS, get_debug_level, LOG_TO_FILE, LOG_TO_CONSOLE
+    DEFAULT_DEBUG_LEVEL,
+    DEFAULT_INPUT_FOLDER,
+    DEFAULT_OUTPUT_FOLDER,
+    SOLVER_TIME_LIMIT_SECONDS,
+    get_debug_level,
+    LOG_TO_FILE,
+    LOG_TO_CONSOLE,
 )
 from .data_loader import load_data
 from .model_builder import build_model
 from .solver import solve_model
-from .reports.csv_reports import generate_schedule_csv, generate_resource_utilization_csv, generate_fte_usage_csv, generate_equipment_usage_csv, generate_concurrency_timeseries_csv
-from .config.priority_modes import BasePriorityConfig, PriorityMode, load_priority_config_from_dict
+from .reports.csv_reports import (
+    generate_schedule_csv,
+    generate_resource_utilization_csv,
+    generate_fte_usage_csv,
+    generate_equipment_usage_csv,
+    generate_concurrency_timeseries_csv,
+)
+from .reports.plot_reports import generate_solution_artifacts
+from .config.priority_modes import (
+    BasePriorityConfig,
+    PriorityMode,
+    load_priority_config_from_dict,
+)
 
 
 def setup_logging(debug_level: str, output_folder: str):
@@ -75,43 +91,49 @@ def setup_logging(debug_level: str, output_folder: str):
         # Creates output/my_run/logs/ directory and configures logging
     """
     log_level = get_debug_level(debug_level)
-    
+
     # Create formatters
     formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
-    
+
     # Setup root logger
     logger = logging.getLogger()
     logger.setLevel(log_level)
-    
+
     # Clear any existing handlers
     logger.handlers.clear()
-    
+
     # Console handler
     if LOG_TO_CONSOLE:
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(log_level)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
-    
+
     # File handler
     if LOG_TO_FILE:
         log_dir = os.path.join(output_folder, "logs")
         os.makedirs(log_dir, exist_ok=True)
-        log_file = os.path.join(log_dir, f"planner_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
-        
+        log_file = os.path.join(
+            log_dir, f"planner_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+        )
+
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(log_level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
-        
+
         print(f"Logging to file: {log_file}")
 
 
-def main(input_folder: str = None, debug_level: str = None,
-         time_limit: float = None, output_folder: str = None,
-         priority_config: BasePriorityConfig = None):
+def main(
+    input_folder: str = None,
+    debug_level: str = None,
+    time_limit: float = None,
+    output_folder: str = None,
+    priority_config: BasePriorityConfig = None,
+):
     """
     Main orchestration function for the Test Planner V4.
 
@@ -178,18 +200,18 @@ def main(input_folder: str = None, debug_level: str = None,
         time_limit = SOLVER_TIME_LIMIT_SECONDS
     if output_folder is None:
         output_folder = os.path.join(input_folder, "output")
-    
+
     # Create output directories
     os.makedirs(output_folder, exist_ok=True)
     data_dir = os.path.join(output_folder, "data")
     plots_dir = os.path.join(output_folder, "plots")
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(plots_dir, exist_ok=True)
-    
+
     # Setup logging
     setup_logging(debug_level, output_folder)
     logger = logging.getLogger(__name__)
-    
+
     logger.info("=" * 60)
     logger.info("Test Planner V2 - Starting")
     logger.info("=" * 60)
@@ -197,7 +219,7 @@ def main(input_folder: str = None, debug_level: str = None,
     logger.info(f"Output folder: {output_folder}")
     logger.info(f"Debug level: {debug_level}")
     logger.info(f"Time limit: {time_limit} seconds")
-    
+
     try:
         # Step 1: Load and validate data
         logger.info("Step 1: Loading and validating input data...")
@@ -207,45 +229,65 @@ def main(input_folder: str = None, debug_level: str = None,
         logger.info(f"  - {len(data.tests)} tests")
         logger.info(f"  - {len(data.fte_windows)} FTE availability windows")
         logger.info(f"  - {len(data.equipment_windows)} equipment availability windows")
-        
+
         # Step 2: Build optimization model
         logger.info("Step 2: Building constraint programming model...")
         if priority_config:
             logger.info(f"Using priority mode: {priority_config.mode.value}")
-            logger.info(f"Priority config source: {getattr(priority_config, '_config_source', 'unknown')}")
-            
+            logger.info(
+                f"Priority config source: {getattr(priority_config, '_config_source', 'unknown')}"
+            )
+
             # Log key parameters based on mode
-            if hasattr(priority_config, 'bottleneck_threshold'):
+            if hasattr(priority_config, "bottleneck_threshold"):
                 logger.info(f"Resource bottleneck config:")
-                logger.info(f"  - Bottleneck threshold: {priority_config.bottleneck_threshold}")
-                logger.info(f"  - Resource balance weight: {priority_config.resource_balance_weight}")
-                logger.info(f"  - Utilization target: {priority_config.utilization_target}")
-            elif hasattr(priority_config, 'target_completion_date'):
+                logger.info(
+                    f"  - Bottleneck threshold: {priority_config.bottleneck_threshold}"
+                )
+                logger.info(
+                    f"  - Resource balance weight: {priority_config.resource_balance_weight}"
+                )
+                logger.info(
+                    f"  - Utilization target: {priority_config.utilization_target}"
+                )
+            elif hasattr(priority_config, "target_completion_date"):
                 logger.info(f"Sticky end date config:")
-                logger.info(f"  - Target completion date: {priority_config.target_completion_date}")
-                logger.info(f"  - Penalty per day late: {priority_config.penalty_per_day_late}")
-            elif hasattr(priority_config, 'leg_deadlines'):
+                logger.info(
+                    f"  - Target completion date: {priority_config.target_completion_date}"
+                )
+                logger.info(
+                    f"  - Penalty per day late: {priority_config.penalty_per_day_late}"
+                )
+            elif hasattr(priority_config, "leg_deadlines"):
                 logger.info(f"Leg end dates config:")
-                logger.info(f"  - Leg deadlines: {len(priority_config.leg_deadlines)} legs")
-                logger.info(f"  - Deadline penalty per day: {priority_config.deadline_penalty_per_day}")
+                logger.info(
+                    f"  - Leg deadlines: {len(priority_config.leg_deadlines)} legs"
+                )
+                logger.info(
+                    f"  - Deadline penalty per day: {priority_config.deadline_penalty_per_day}"
+                )
                 if hasattr(priority_config, "leg_compactness_penalty_per_day"):
-                    logger.info(f"  - Leg compactness penalty per day: {priority_config.leg_compactness_penalty_per_day}")
-            
+                    logger.info(
+                        f"  - Leg compactness penalty per day: {priority_config.leg_compactness_penalty_per_day}"
+                    )
+
             logger.info(f"  - Weights: {priority_config.weights}")
         else:
             logger.info("Using default priority mode: end_date_priority")
         model = build_model(data, priority_config)
         logger.info(f"Model built with:")
         logger.info(f"  - {len(model.test_vars)} test variables")
-        logger.info(f"  - {len(model.resource_assignments)} resource assignment variables")
+        logger.info(
+            f"  - {len(model.resource_assignments)} resource assignment variables"
+        )
         logger.info(f"  - Time horizon: {model.horizon} days")
-        
+
         # Step 3: Solve the model
         logger.info("Step 3: Solving optimization problem...")
         solution, start_date = solve_model(model, data, time_limit)
         logger.info(f"Solver completed with status: {solution.status}")
         logger.info(f"Solve time: {solution.solve_time_seconds:.2f} seconds")
-        
+
         if solution.status in ["OPTIMAL", "FEASIBLE"]:
             logger.info(f"Solution found:")
             logger.info(f"  - Makespan: {solution.makespan_days} days")
@@ -253,27 +295,39 @@ def main(input_folder: str = None, debug_level: str = None,
             logger.info(f"  - Objective value: {solution.objective_value}")
         else:
             logger.warning(f"No solution found - status: {solution.status}")
-        
+
         # Step 4: Generate reports
         logger.info("Step 4: Generating reports and visualizations...")
+        plot_html_path, plot_png_path = generate_solution_artifacts(
+            solution, plots_dir, start_date
+        )
+        logger.info(f"Generated plot artifacts: {plot_html_path}, {plot_png_path}")
         if solution.status in ["OPTIMAL", "FEASIBLE"] and solution.test_schedules:
             # Generate CSV files
             generate_schedule_csv(solution, output_folder + "/data")
             generate_resource_utilization_csv(solution, output_folder + "/data")
             if start_date:
-                generate_fte_usage_csv(solution, data, start_date, output_folder + "/data")
-                generate_equipment_usage_csv(solution, data, start_date, output_folder + "/data")
-                generate_concurrency_timeseries_csv(solution, data, start_date, output_folder + "/data")
+                generate_fte_usage_csv(
+                    solution, data, start_date, output_folder + "/data"
+                )
+                generate_equipment_usage_csv(
+                    solution, data, start_date, output_folder + "/data"
+                )
+                generate_concurrency_timeseries_csv(
+                    solution, data, start_date, output_folder + "/data"
+                )
             logger.info("All reports generated successfully!")
         else:
-            logger.info(f"Generated summary for failed solution (status: {solution.status})")
-        
+            logger.info(
+                f"Generated summary for failed solution (status: {solution.status})"
+            )
+
         logger.info("=" * 60)
         logger.info("Test Planner V2 - Completed Successfully")
         logger.info("=" * 60)
-        
+
         return solution
-        
+
     except Exception as e:
         logger.error(f"Error during planning process: {str(e)}", exc_info=True)
         raise
@@ -296,42 +350,47 @@ def load_priority_config_from_file(config_path: str) -> BasePriorityConfig:
     import json
     import logging
     import os
-    
+
     logger = logging.getLogger(__name__)
     logger.info(f"Attempting to load priority config from: {config_path}")
-    
+
     # Determine file type from extension
     _, ext = os.path.splitext(config_path.lower())
-    use_yaml = ext in ['.yaml', '.yml']
-    
+    use_yaml = ext in [".yaml", ".yml"]
+
     try:
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             if use_yaml:
                 try:
                     import yaml
+
                     config_dict = yaml.safe_load(f)
                     logger.info("Loaded priority config from YAML file")
                 except ImportError:
-                    raise ImportError("PyYAML is required to load YAML config files. Install with: pip install pyyaml")
+                    raise ImportError(
+                        "PyYAML is required to load YAML config files. Install with: pip install pyyaml"
+                    )
             else:
                 config_dict = json.load(f)
                 logger.info("Loaded priority config from JSON file")
-        
+
         config = load_priority_config_from_dict(config_dict)
         logger.info(f"Successfully loaded priority config: mode={config.mode.value}")
-        
+
         # Log key parameters based on mode
-        if hasattr(config, 'bottleneck_threshold'):
+        if hasattr(config, "bottleneck_threshold"):
             logger.info(f"  - Bottleneck threshold: {config.bottleneck_threshold}")
-            logger.info(f"  - Resource balance weight: {config.resource_balance_weight}")
+            logger.info(
+                f"  - Resource balance weight: {config.resource_balance_weight}"
+            )
             logger.info(f"  - Utilization target: {config.utilization_target}")
-        elif hasattr(config, 'target_completion_date'):
+        elif hasattr(config, "target_completion_date"):
             logger.info(f"  - Target completion date: {config.target_completion_date}")
-        elif hasattr(config, 'leg_deadlines'):
+        elif hasattr(config, "leg_deadlines"):
             logger.info(f"  - Leg deadlines: {len(config.leg_deadlines)} legs")
-        
+
         logger.info(f"  - Weights: {config.weights}")
-        
+
         return config
     except FileNotFoundError:
         logger.warning(f"Priority config file not found: {config_path}")
@@ -412,59 +471,65 @@ Examples:
   python -m planner_v4.main --input-folder input_data/gen3_pv/senario_3 --time-limit 600
   python -m planner_v4.main --input-folder data/ --priority-mode leg_priority
   python -m planner_v4.main --input-folder data/ --priority-config priority_config.json
-        """
+        """,
     )
-    
+
     parser.add_argument(
-        "--input-folder", "-i",
+        "--input-folder",
+        "-i",
         type=str,
         default=DEFAULT_INPUT_FOLDER,
-        help=f"Path to input data folder (default: {DEFAULT_INPUT_FOLDER})"
+        help=f"Path to input data folder (default: {DEFAULT_INPUT_FOLDER})",
     )
-    
+
     parser.add_argument(
-        "--debug-level", "-d",
+        "--debug-level",
+        "-d",
         type=str,
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         default=DEFAULT_DEBUG_LEVEL,
-        help=f"Logging level (default: {DEFAULT_DEBUG_LEVEL})"
-    )
-    
-    parser.add_argument(
-        "--time-limit", "-t",
-        type=float,
-        default=SOLVER_TIME_LIMIT_SECONDS,
-        help=f"Solver time limit in seconds (default: {SOLVER_TIME_LIMIT_SECONDS})"
-    )
-    
-    parser.add_argument(
-        "--output-folder", "-o",
-        type=str,
-        default=None,
-        help="Output folder path (default: <input-folder>/output)"
+        help=f"Logging level (default: {DEFAULT_DEBUG_LEVEL})",
     )
 
     parser.add_argument(
-        "--priority-mode", "-p",
+        "--time-limit",
+        "-t",
+        type=float,
+        default=SOLVER_TIME_LIMIT_SECONDS,
+        help=f"Solver time limit in seconds (default: {SOLVER_TIME_LIMIT_SECONDS})",
+    )
+
+    parser.add_argument(
+        "--output-folder",
+        "-o",
+        type=str,
+        default=None,
+        help="Output folder path (default: <input-folder>/output)",
+    )
+
+    parser.add_argument(
+        "--priority-mode",
+        "-p",
         type=str,
         choices=[mode.value for mode in PriorityMode],
         default=None,
-        help="Priority optimization mode (default: end_date_priority)"
+        help="Priority optimization mode (default: end_date_priority)",
     )
 
     parser.add_argument(
-        "--priority-config", "-c",
+        "--priority-config",
+        "-c",
         type=str,
         default=None,
-        help="Path to priority configuration JSON file"
+        help="Path to priority configuration JSON file",
     )
-    
+
     args = parser.parse_args()
 
     # Handle priority configuration
     priority_config = None
     config_source = "default"
-    
+
     if args.priority_config:
         # Load from explicitly specified file
         priority_config = load_priority_config_from_file(args.priority_config)
@@ -474,6 +539,7 @@ Examples:
         mode_map = {mode.value: mode for mode in PriorityMode}
         mode = mode_map[args.priority_mode]
         from .config.priority_modes import create_priority_config
+
         priority_config = create_priority_config(mode)
         config_source = f"CLI mode: {args.priority_mode}"
     else:
@@ -481,39 +547,45 @@ Examples:
         # Try YAML first, then JSON
         yaml_config_path = os.path.join(args.input_folder, "priority_config.yaml")
         json_config_path = os.path.join(args.input_folder, "priority_config.json")
-        
+
         auto_config_path = None
         if os.path.exists(yaml_config_path):
             auto_config_path = yaml_config_path
         elif os.path.exists(json_config_path):
             auto_config_path = json_config_path
-        
+
         if auto_config_path:
             try:
                 priority_config = load_priority_config_from_file(auto_config_path)
                 config_source = f"auto-detected: {auto_config_path}"
             except Exception as e:
                 import logging
+
                 logger = logging.getLogger(__name__)
-                logger.warning(f"Failed to load auto-detected config {auto_config_path}: {e}")
+                logger.warning(
+                    f"Failed to load auto-detected config {auto_config_path}: {e}"
+                )
                 logger.info("Falling back to default priority mode: end_date_priority")
         else:
             import logging
+
             logger = logging.getLogger(__name__)
-            logger.info(f"No priority_config.yaml or priority_config.json found in input folder: {args.input_folder}")
+            logger.info(
+                f"No priority_config.yaml or priority_config.json found in input folder: {args.input_folder}"
+            )
             logger.info("Using default priority mode: end_date_priority")
 
     # Add config source to priority_config for logging
     if priority_config:
         priority_config._config_source = config_source
-    
+
     # Run the main planning process
     main(
         input_folder=args.input_folder,
         debug_level=args.debug_level,
         time_limit=args.time_limit,
         output_folder=args.output_folder,
-        priority_config=priority_config
+        priority_config=priority_config,
     )
 
 

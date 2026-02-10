@@ -17,8 +17,9 @@ from .csv_reports import (
     generate_resource_utilization_csv,
     generate_fte_usage_csv,
     generate_equipment_usage_csv,
-    generate_concurrency_timeseries_csv
+    generate_concurrency_timeseries_csv,
 )
+from .plot_reports import generate_solution_artifacts
 
 __all__ = [
     "generate_schedule_csv",
@@ -26,4 +27,5 @@ __all__ = [
     "generate_fte_usage_csv",
     "generate_equipment_usage_csv",
     "generate_concurrency_timeseries_csv",
+    "generate_solution_artifacts",
 ]
