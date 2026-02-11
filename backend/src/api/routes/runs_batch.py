@@ -2,12 +2,12 @@ from fastapi import APIRouter, HTTPException, status
 
 from backend.src.api.models.requests import (
     RunSessionCreateRequest,
-    RunSessionInputsRequest,
+    RunSessionFolderImportRequest,
     BatchJobCreateRequest,
 )
 from backend.src.api.models.responses import (
     RunSessionResponse,
-    RunSessionInputsResponse,
+    RunSessionFolderImportResponse,
     BatchJobSubmissionResponse,
     BatchJobStatusResponse,
     BatchJobResultsResponse,
@@ -28,12 +28,16 @@ async def create_inputs_session(request: RunSessionCreateRequest):
 
 
 @router.post(
-    "/runs/sessions/{session_id}/inputs",
-    response_model=RunSessionInputsResponse,
+    "/runs/sessions/{session_id}/inputs/import-folder",
+    response_model=RunSessionFolderImportResponse,
 )
-async def upload_session_inputs(session_id: str, request: RunSessionInputsRequest):
+async def import_session_inputs_from_folder(
+    session_id: str, request: RunSessionFolderImportRequest
+):
     try:
-        return solver_service.upload_session_inputs(session_id, request)
+        return solver_service.import_session_inputs_from_folder(
+            session_id, request.folder_path
+        )
     except KeyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e.args[0])
     except ValueError as e:

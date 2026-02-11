@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 from backend.src.api.models.requests import (
     SolverRequest,
-    RunUploadRequest,
     RunSolveRequest,
 )
 from backend.src.api.models.responses import (
@@ -22,20 +21,6 @@ router = APIRouter()
 )
 async def create_run_session():
     return solver_service.create_run_session()
-
-
-@router.post("/runs/{run_id}/upload", response_model=RunSessionState)
-async def upload_run_inputs(run_id: str, request: RunUploadRequest):
-    try:
-        return solver_service.upload_run_inputs(run_id, request)
-    except KeyError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e.args[0])
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        )
 
 
 @router.post(

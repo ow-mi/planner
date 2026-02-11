@@ -55,6 +55,8 @@ class SolverResults(BaseModel):
     test_schedule: List[Dict[str, Any]]
     resource_utilization: Optional[Dict[str, Any]] = None
     output_files: Dict[str, str]
+    output_root: Optional[str] = None
+    written_output_paths: Dict[str, str] = Field(default_factory=dict)
     solver_stats: Optional[Dict[str, Any]] = None
 
 
@@ -126,11 +128,14 @@ class RunSessionResponse(BaseModel):
     source: Optional[str] = None
 
 
-class RunSessionInputsResponse(BaseModel):
+class RunSessionFolderImportResponse(BaseModel):
     session_id: str
     status: RunSessionStatusEnum
     has_inputs: bool
     file_count: int
+    folder_path: str
+    csv_files: Dict[str, str]
+    priority_config: Optional[Dict[str, Any]] = None
 
 
 class BatchScenarioStatus(BaseModel):

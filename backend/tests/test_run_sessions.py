@@ -51,19 +51,7 @@ def test_create_run_session_returns_created_state(monkeypatch):
     }
 
 
-def test_upload_run_session_inputs_updates_state(monkeypatch):
-    monkeypatch.setattr(
-        solver_routes.solver_service,
-        "upload_run_inputs",
-        lambda run_id, request: {
-            "run_id": run_id,
-            "status": "READY",
-            "has_inputs": True,
-            "execution_id": None,
-        },
-        raising=False,
-    )
-
+def test_upload_run_session_inputs_endpoint_is_removed():
     response = client.post(
         "/api/solver/runs/run-123/upload",
         json={
@@ -72,10 +60,7 @@ def test_upload_run_session_inputs_updates_state(monkeypatch):
         },
     )
 
-    assert response.status_code == 200
-    assert response.json()["run_id"] == "run-123"
-    assert response.json()["status"] == "READY"
-    assert response.json()["has_inputs"]
+    assert response.status_code == 404
 
 
 def test_start_run_session_solver_creates_execution(monkeypatch):

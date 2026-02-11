@@ -3,17 +3,16 @@ import time
 import uuid
 import traceback
 import os
+import json
 import csv
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from backend.src.api.models.requests import (
     SolverRequest,
-    RunUploadRequest,
     RunSolveRequest,
     RunSessionCreateRequest,
-    RunSessionInputsRequest,
     BatchJobCreateRequest,
 )
 from backend.src.api.models.responses import (
@@ -26,7 +25,7 @@ from backend.src.api.models.responses import (
     RunSessionState,
     RunSessionStatusEnum,
     RunSessionResponse,
-    RunSessionInputsResponse,
+    RunSessionFolderImportResponse,
     BatchJobSubmissionResponse,
     BatchJobStatusResponse,
     BatchJobResultsResponse,
@@ -63,44 +62,6 @@ class SolverService:
             execution_status=None,
         )
 
-    def upload_run_inputs(
-        self, run_id: str, request: RunUploadRequest
-    ) -> RunSessionState:
-        run_session = self._run_sessions.get(run_id)
-        if not run_session:
-            raise KeyError("Run session not found")
-
-        csv_errors = ValidationUtils.validate_csv_files(request.csv_files)
-        if csv_errors:
-            raise ValueError(f"CSV Validation Error: {'; '.join(csv_errors)}")
-
-        priority_errors = ValidationUtils.validate_priority_config(
-            request.priority_config
-        )
-        if priority_errors:
-            raise ValueError(
-                f"Priority Config Validation Error: {'; '.join(priority_errors)}"
-            )
-
-        run_session.csv_files = request.csv_files
-        run_session.priority_config = request.priority_config
-
-        current_execution = (
-            self.get_execution_status(run_session.execution_id)
-            if run_session.execution_id
-            else None
-        )
-        execution_status = current_execution.status if current_execution else None
-        status = self._derive_run_session_status(run_session, current_execution)
-
-        return RunSessionState(
-            run_id=run_id,
-            status=status,
-            has_inputs=True,
-            execution_id=run_session.execution_id,
-            execution_status=execution_status,
-        )
-
     def start_run_session_execution(
         self, run_id: str, request: RunSolveRequest
     ) -> SolverExecution:
@@ -109,7 +70,7 @@ class SolverService:
             raise KeyError("Run session not found")
         if not run_session.csv_files or run_session.priority_config is None:
             raise ValueError(
-                "Run session inputs are missing. Upload inputs before solving"
+                "Run session inputs are missing. Import folder inputs before solving"
             )
 
         execution = self.create_execution(
@@ -169,38 +130,80 @@ class SolverService:
             source=request.source,
         )
 
-    def upload_session_inputs(
-        self, session_id: str, request: RunSessionInputsRequest
-    ) -> RunSessionInputsResponse:
+    def import_session_inputs_from_folder(
+        self, session_id: str, folder_path: str
+    ) -> RunSessionFolderImportResponse:
         input_session = self._input_sessions.get(session_id)
         if not input_session:
             raise KeyError("Run session not found")
 
-        files = self._canonicalize_session_inputs(request)
-        csv_errors = ValidationUtils.validate_csv_files(files)
+        resolved_folder = self._resolve_folder_path(folder_path)
+        csv_files = self._read_required_csv_bundle(resolved_folder)
+        csv_errors = ValidationUtils.validate_csv_files(csv_files)
         if csv_errors:
             raise ValueError(f"CSV Validation Error: {'; '.join(csv_errors)}")
 
-        input_session.files = files
+        priority_config = self._read_priority_config_if_present(resolved_folder)
 
-        return RunSessionInputsResponse(
+        input_session.files = csv_files
+        input_session.base_folder = resolved_folder
+        input_session.priority_config = priority_config
+
+        return RunSessionFolderImportResponse(
             session_id=session_id,
             status=RunSessionStatusEnum.READY,
-            has_inputs=len(files) > 0,
-            file_count=len(files),
+            has_inputs=len(csv_files) > 0,
+            file_count=len(csv_files),
+            folder_path=resolved_folder,
+            csv_files=csv_files,
+            priority_config=priority_config,
         )
 
-    def _canonicalize_session_inputs(
-        self, request: RunSessionInputsRequest
-    ) -> Dict[str, str]:
-        canonical_files: Dict[str, str] = {}
-        for input_file in request.files:
-            canonical_name = os.path.basename(input_file.name.replace("\\", "/"))
-            canonical_content = input_file.content.removeprefix("\ufeff").replace(
-                "\r\n", "\n"
+    def _resolve_folder_path(self, folder_path: str) -> str:
+        if not folder_path or not folder_path.strip():
+            raise ValueError("Folder path is required")
+
+        resolved = os.path.abspath(os.path.expanduser(folder_path.strip()))
+        if not os.path.isdir(resolved):
+            raise ValueError(f"Folder does not exist or is not a directory: {resolved}")
+        if not os.access(resolved, os.R_OK):
+            raise ValueError(f"Folder is not readable: {resolved}")
+        if not os.access(resolved, os.W_OK):
+            raise ValueError(f"Folder is not writable: {resolved}")
+        return resolved
+
+    def _read_required_csv_bundle(self, folder_path: str) -> Dict[str, str]:
+        csv_files: Dict[str, str] = {}
+        for file_name in ValidationUtils.REQUIRED_CSV_FILES:
+            candidate_path = os.path.join(folder_path, file_name)
+            if not os.path.isfile(candidate_path):
+                continue
+            with open(candidate_path, "r", encoding="utf-8") as file:
+                csv_files[file_name] = (
+                    file.read().removeprefix("\ufeff").replace("\r\n", "\n")
+                )
+        return csv_files
+
+    def _read_priority_config_if_present(
+        self, folder_path: str
+    ) -> Optional[Dict[str, Any]]:
+        candidate_path = os.path.join(folder_path, "priority_config.json")
+        if not os.path.isfile(candidate_path):
+            return None
+        try:
+            with open(candidate_path, "r", encoding="utf-8") as file:
+                payload = json.load(file)
+        except Exception as e:
+            raise ValueError(f"Failed to read priority_config.json: {e}")
+
+        if not isinstance(payload, dict):
+            raise ValueError("priority_config.json must contain a JSON object")
+        priority_errors = ValidationUtils.validate_priority_config(payload)
+        if priority_errors:
+            raise ValueError(
+                f"Priority Config Validation Error: {'; '.join(priority_errors)}"
             )
-            canonical_files[canonical_name] = canonical_content
-        return canonical_files
+        return payload
 
     def create_batch_job(
         self, request: BatchJobCreateRequest
@@ -210,18 +213,21 @@ class SolverService:
             raise KeyError("Run session not found")
         if not input_session.files:
             raise ValueError(
-                "Run session inputs are missing. Upload inputs before batch run"
+                "Run session inputs are missing. Import folder inputs before batch run"
             )
 
         scenario_records = []
         for scenario in request.scenarios:
+            scenario_output_folder = scenario.output_folder or input_session.base_folder
             execution = self.create_execution(
                 SolverRequest(
                     csv_files=input_session.files,
-                    priority_config=self._default_batch_priority_config(),
+                    priority_config=input_session.priority_config
+                    or self._default_batch_priority_config(),
                     time_limit=scenario.time_limit,
                     debug_level=scenario.debug_level,
-                    output_folder=scenario.output_folder,
+                    output_folder=scenario_output_folder,
+                    input_folder=input_session.base_folder,
                 )
             )
             scenario_records.append(
@@ -284,8 +290,11 @@ class SolverService:
                 )
             )
 
+        input_session = self._input_sessions.get(batch_job.session_id)
         summary_artifacts = self._write_batch_summary_artifacts(
-            batch_job.batch_id, items
+            batch_job.batch_id,
+            items,
+            output_root=input_session.base_folder if input_session else None,
         )
 
         return BatchJobResultsResponse(
@@ -296,9 +305,15 @@ class SolverService:
         )
 
     def _write_batch_summary_artifacts(
-        self, batch_id: str, items: list[BatchScenarioResultItem]
+        self,
+        batch_id: str,
+        items: list[BatchScenarioResultItem],
+        output_root: Optional[str] = None,
     ) -> list[BatchSummaryArtifact]:
-        output_dir = os.path.join(os.getcwd(), "runs", "batch_summaries", batch_id)
+        if output_root:
+            output_dir = os.path.join(output_root, "batch_summaries", batch_id)
+        else:
+            output_dir = os.path.join(os.getcwd(), "runs", "batch_summaries", batch_id)
         os.makedirs(output_dir, exist_ok=True)
 
         summary_csv_path = os.path.join(output_dir, "batch_summary.csv")
@@ -417,37 +432,44 @@ class SolverService:
 
         artifact_paths = None
         try:
-            # 1. Setup Workspace
-            execution.current_phase = "Setting up workspace"
-            run_name = self._derive_run_name(request.output_folder)
-            artifact_paths = FileHandler.create_run_artifact_workspace(
-                run_id=execution.execution_id,
-                run_name=run_name,
-                created_at=execution.created_at,
-            )
-            input_original_path = artifact_paths["input_original"]
-            input_effective_path = artifact_paths["input_effective"]
-            output_path = artifact_paths["output"]
+            direct_folder_mode = bool(request.input_folder)
 
-            # 2. Save Input Files
-            execution.current_phase = "Saving input files"
-            FileHandler.save_input_files(input_original_path, request.csv_files)
-            FileHandler.save_input_files(input_effective_path, request.csv_files)
+            if direct_folder_mode:
+                input_effective_path = request.input_folder
+                output_path = request.output_folder or request.input_folder
+                os.makedirs(output_path, exist_ok=True)
+            else:
+                # 1. Setup Workspace
+                execution.current_phase = "Setting up workspace"
+                run_name = self._derive_run_name(request.output_folder)
+                artifact_paths = FileHandler.create_run_artifact_workspace(
+                    run_id=execution.execution_id,
+                    run_name=run_name,
+                    created_at=execution.created_at,
+                )
+                input_original_path = artifact_paths["input_original"]
+                input_effective_path = artifact_paths["input_effective"]
+                output_path = artifact_paths["output"]
 
-            # 3. Parse and Save Priority Config
-            # We need to save it to disk because data_loader expects it to exist
-            priority_config_original_path = (
-                f"{input_original_path}/priority_config.json"
-            )
-            priority_config_effective_path = (
-                f"{input_effective_path}/priority_config.json"
-            )
-            FileHandler.write_json(
-                priority_config_original_path, request.priority_config
-            )
-            FileHandler.write_json(
-                priority_config_effective_path, request.priority_config
-            )
+                # 2. Save Input Files
+                execution.current_phase = "Saving input files"
+                FileHandler.save_input_files(input_original_path, request.csv_files)
+                FileHandler.save_input_files(input_effective_path, request.csv_files)
+
+                # 3. Parse and Save Priority Config
+                # We need to save it to disk because data_loader expects it to exist
+                priority_config_original_path = (
+                    f"{input_original_path}/priority_config.json"
+                )
+                priority_config_effective_path = (
+                    f"{input_effective_path}/priority_config.json"
+                )
+                FileHandler.write_json(
+                    priority_config_original_path, request.priority_config
+                )
+                FileHandler.write_json(
+                    priority_config_effective_path, request.priority_config
+                )
 
             priority_config = load_priority_config_from_dict(request.priority_config)
 
@@ -504,6 +526,11 @@ class SolverService:
                 f"{output_path}/data", expected_files
             )
 
+            written_output_paths = {
+                filename: os.path.join(output_path, "data", filename)
+                for filename in output_files.keys()
+            }
+
             # Validation and Aliasing
             # Ensure tests_schedule.csv is present if schedule.csv exists
             if (
@@ -531,9 +558,14 @@ class SolverService:
             # Add logs
             log_contents = FileHandler.read_output_files(output_path, log_files)
             output_files.update(log_contents)
+            for filename in log_contents.keys():
+                written_output_paths[filename] = os.path.join(output_path, filename)
 
             # Mirror generated plots in the contract-level plots folder.
-            FileHandler.copy_directory(f"{output_path}/plots", artifact_paths["plots"])
+            if artifact_paths:
+                FileHandler.copy_directory(
+                    f"{output_path}/plots", artifact_paths["plots"]
+                )
 
             # Solution is a SolutionResult object, not a dict
             solution_status = (
@@ -575,6 +607,8 @@ class SolverService:
                 if hasattr(solution, "resource_utilization")
                 else {},
                 output_files=output_files,
+                output_root=output_path,
+                written_output_paths=written_output_paths,
                 solver_stats={
                     "solve_time": solution.solve_time_seconds
                     if hasattr(solution, "solve_time_seconds")
@@ -797,6 +831,8 @@ class InputSessionRecord:
     name: Optional[str] = None
     source: Optional[str] = None
     files: Optional[Dict[str, str]] = None
+    base_folder: Optional[str] = None
+    priority_config: Optional[Dict[str, Any]] = None
 
 
 @dataclass

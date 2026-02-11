@@ -1,0 +1,12 @@
+- generic [ref=e2]:
+  - heading "Priority Configuration Editor v2" [level=1] [ref=e4]
+  - generic [ref=e8]:
+    - tablist "Application tabs" [ref=e9]:
+      - tab "Input Data" [selected] [ref=e10] [cursor=pointer]
+      - tab "Edit Data" [ref=e11] [cursor=pointer]
+      - tab "Configuration" [ref=e12] [cursor=pointer]
+      - tab "Solver" [ref=e13] [cursor=pointer]
+      - tab "Batch" [ref=e14] [cursor=pointer]
+      - tab "Visualizer" [ref=e15] [cursor=pointer]
+      - tab "Output Data" [ref=e16] [cursor=pointer]
+    - button "Toggle color theme" [ref=e17] [cursor=pointer]: 🌙/☀️ Theme

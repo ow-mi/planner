@@ -23,13 +23,7 @@ class SolverRequest(BaseModel):
         DebugLevel.INFO, description="Logging level"
     )
     output_folder: Optional[str] = Field(None, description="Output folder path")
-
-
-class RunUploadRequest(BaseModel):
-    csv_files: Dict[str, str] = Field(
-        ..., description="Map of CSV file names to file contents"
-    )
-    priority_config: Dict = Field(..., description="Priority configuration JSON")
+    input_folder: Optional[str] = Field(None, description="Input folder path")
 
 
 class RunSolveRequest(BaseModel):
@@ -47,15 +41,8 @@ class RunSessionCreateRequest(BaseModel):
     source: Optional[str] = Field(None, description="Client source identifier")
 
 
-class SessionInputFile(BaseModel):
-    name: str = Field(..., min_length=1, description="Input file name")
-    content: str = Field(..., description="Input file content")
-
-
-class RunSessionInputsRequest(BaseModel):
-    files: List[SessionInputFile] = Field(
-        ..., min_length=1, description="List of input files"
-    )
+class RunSessionFolderImportRequest(BaseModel):
+    folder_path: str = Field(..., min_length=1, description="Absolute folder path")
 
 
 class BatchScenarioRequest(BaseModel):

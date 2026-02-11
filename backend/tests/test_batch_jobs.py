@@ -29,8 +29,38 @@ def _result_for_execution(execution_id: str, makespan: float) -> SolverResults:
     )
 
 
+def _write_required_inputs(folder: Path) -> None:
+    (folder / "data_legs.csv").write_text("leg_id\nLEG-1\n", encoding="utf-8")
+    (folder / "data_test.csv").write_text("test_id\nT1\n", encoding="utf-8")
+    (folder / "data_fte.csv").write_text("fte_id\nF1\n", encoding="utf-8")
+    (folder / "data_equipment.csv").write_text("equipment_id\nE1\n", encoding="utf-8")
+    (folder / "data_test_duts.csv").write_text(
+        "test_id,dut_id\nT1,D1\n", encoding="utf-8"
+    )
+
+
+def _create_session_and_import_folder(folder: Path) -> str:
+    session_response = client.post(
+        "/api/runs/sessions", json={"name": "Batch Session", "source": "ui_v2_exp"}
+    )
+    assert session_response.status_code == 201
+    session_id = session_response.json()["session_id"]
+
+    import_response = client.post(
+        f"/api/runs/sessions/{session_id}/inputs/import-folder",
+        json={"folder_path": str(folder)},
+    )
+    assert import_response.status_code == 200
+    assert import_response.json()["status"] == "READY"
+    return session_id
+
+
 def test_batch_job_lifecycle_exposes_per_scenario_statuses(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
+    input_folder = tmp_path / "batch-session-inputs"
+    input_folder.mkdir()
+    _write_required_inputs(input_folder)
+
     executions_by_id = {}
     results_by_execution_id = {}
 
@@ -61,26 +91,7 @@ def test_batch_job_lifecycle_exposes_per_scenario_statuses(monkeypatch, tmp_path
         lambda execution_id: results_by_execution_id.get(execution_id),
     )
 
-    session_response = client.post(
-        "/api/runs/sessions", json={"name": "Batch Session", "source": "ui_v2_exp"}
-    )
-    assert session_response.status_code == 201
-    session_id = session_response.json()["session_id"]
-
-    upload_response = client.post(
-        f"/api/runs/sessions/{session_id}/inputs",
-        json={
-            "files": [
-                {"name": "data_legs.csv", "content": "leg_id\nLEG-1"},
-                {"name": "data_test.csv", "content": "test_id\nT1"},
-                {"name": "data_fte.csv", "content": "fte_id\nF1"},
-                {"name": "data_equipment.csv", "content": "equipment_id\nE1"},
-                {"name": "data_test_duts.csv", "content": "test_id,dut_id\nT1,D1"},
-            ]
-        },
-    )
-    assert upload_response.status_code == 200
-    assert upload_response.json()["status"] == "READY"
+    session_id = _create_session_and_import_folder(input_folder)
 
     submit_response = client.post(
         "/api/batch/jobs",
@@ -178,7 +189,7 @@ def test_batch_status_and_results_return_404_for_unknown_batch():
     assert results_response.status_code == 404
 
 
-def test_upload_session_inputs_canonicalizes_files_for_batch_job(monkeypatch):
+def test_import_folder_normalizes_csv_content_for_batch_job(monkeypatch, tmp_path):
     captured_csv_files = []
 
     def fake_create_execution(request):
@@ -197,38 +208,19 @@ def test_upload_session_inputs_canonicalizes_files_for_batch_job(monkeypatch):
         fake_create_execution,
     )
 
-    session_response = client.post(
-        "/api/runs/sessions",
-        json={"name": "Canonical Session", "source": "ui_v2_exp"},
+    folder = tmp_path / "canonical-folder"
+    folder.mkdir()
+    (folder / "data_legs.csv").write_text("\ufeffleg_id\r\nLEG-1\r\n", encoding="utf-8")
+    (folder / "data_test.csv").write_text("test_id\r\nT1\r\n", encoding="utf-8")
+    (folder / "data_fte.csv").write_text("fte_id\r\nF1\r\n", encoding="utf-8")
+    (folder / "data_equipment.csv").write_text(
+        "equipment_id\r\nE1\r\n", encoding="utf-8"
     )
-    assert session_response.status_code == 201
-    session_id = session_response.json()["session_id"]
+    (folder / "data_test_duts.csv").write_text(
+        "test_id,dut_id\r\nT1,D1\r\n", encoding="utf-8"
+    )
 
-    upload_response = client.post(
-        f"/api/runs/sessions/{session_id}/inputs",
-        json={
-            "files": [
-                {
-                    "name": "nested/data_legs.csv",
-                    "content": "\ufeffleg_id\r\nLEG-1\r\n",
-                },
-                {
-                    "name": "C:\\tmp\\data_test.csv",
-                    "content": "test_id\r\nT1\r\n",
-                },
-                {"name": "./data_fte.csv", "content": "fte_id\r\nF1\r\n"},
-                {
-                    "name": "folder/data_equipment.csv",
-                    "content": "equipment_id\r\nE1\r\n",
-                },
-                {
-                    "name": "folder/data_test_duts.csv",
-                    "content": "test_id,dut_id\r\nT1,D1\r\n",
-                },
-            ]
-        },
-    )
-    assert upload_response.status_code == 200
+    session_id = _create_session_and_import_folder(folder)
 
     submit_response = client.post(
         "/api/batch/jobs",
@@ -252,7 +244,14 @@ def test_upload_session_inputs_canonicalizes_files_for_batch_job(monkeypatch):
     assert normalized_csv_files["data_test.csv"] == "test_id\nT1\n"
 
 
-def test_upload_session_inputs_returns_400_for_invalid_csv_bundle():
+def test_import_session_inputs_returns_400_for_invalid_csv_bundle(tmp_path):
+    folder = tmp_path / "missing-file-folder"
+    folder.mkdir()
+    (folder / "data_legs.csv").write_text("leg_id\nLEG-1\n", encoding="utf-8")
+    (folder / "data_test.csv").write_text("test_id\nT1\n", encoding="utf-8")
+    (folder / "data_fte.csv").write_text("fte_id\nF1\n", encoding="utf-8")
+    (folder / "data_equipment.csv").write_text("equipment_id\nE1\n", encoding="utf-8")
+
     session_response = client.post(
         "/api/runs/sessions",
         json={"name": "Invalid Session", "source": "ui_v2_exp"},
@@ -260,19 +259,97 @@ def test_upload_session_inputs_returns_400_for_invalid_csv_bundle():
     assert session_response.status_code == 201
     session_id = session_response.json()["session_id"]
 
-    upload_response = client.post(
-        f"/api/runs/sessions/{session_id}/inputs",
-        json={
-            "files": [
-                {"name": "data_legs.csv", "content": "leg_id\nLEG-1"},
-                {"name": "data_test.csv", "content": "test_id\nT1"},
-                {"name": "data_fte.csv", "content": "fte_id\nF1"},
-                {"name": "data_equipment.csv", "content": "equipment_id\nE1"},
-            ]
-        },
+    import_response = client.post(
+        f"/api/runs/sessions/{session_id}/inputs/import-folder",
+        json={"folder_path": str(folder)},
     )
 
-    assert upload_response.status_code == 400
+    assert import_response.status_code == 400
     assert (
-        "Missing required file: data_test_duts.csv" in upload_response.json()["detail"]
+        "Missing required file: data_test_duts.csv" in import_response.json()["detail"]
     )
+
+
+def test_import_session_inputs_from_folder_returns_csv_bundle(tmp_path):
+    folder = tmp_path / "session-inputs"
+    folder.mkdir()
+    _write_required_inputs(folder)
+    (folder / "priority_config.json").write_text(
+        '{"mode":"leg_end_dates","weights":{"makespan_weight":0.2,"priority_weight":0.8}}',
+        encoding="utf-8",
+    )
+
+    session_response = client.post(
+        "/api/runs/sessions",
+        json={"name": "Folder Session", "source": "ui_v2_exp"},
+    )
+    assert session_response.status_code == 201
+    session_id = session_response.json()["session_id"]
+
+    import_response = client.post(
+        f"/api/runs/sessions/{session_id}/inputs/import-folder",
+        json={"folder_path": str(folder)},
+    )
+
+    assert import_response.status_code == 200
+    payload = import_response.json()
+    assert payload["status"] == "READY"
+    assert payload["folder_path"] == str(folder)
+    assert payload["has_inputs"] is True
+    assert payload["file_count"] == 5
+    assert set(payload["csv_files"].keys()) == {
+        "data_legs.csv",
+        "data_test.csv",
+        "data_fte.csv",
+        "data_equipment.csv",
+        "data_test_duts.csv",
+    }
+    assert payload["priority_config"]["mode"] == "leg_end_dates"
+
+
+def test_batch_submission_uses_imported_folder_for_io(monkeypatch, tmp_path):
+    folder = tmp_path / "folder-io"
+    folder.mkdir()
+    _write_required_inputs(folder)
+
+    captured_requests = []
+
+    def fake_create_execution(request):
+        captured_requests.append(request)
+        return SolverExecution(
+            execution_id="exec-io-1",
+            status=ExecutionStatusEnum.PENDING,
+            created_at=datetime.now(timezone.utc),
+            queue_position=0,
+        )
+
+    monkeypatch.setattr(
+        solver_routes.solver_service,
+        "create_execution",
+        fake_create_execution,
+    )
+
+    session_response = client.post(
+        "/api/runs/sessions",
+        json={"name": "Folder Session", "source": "ui_v2_exp"},
+    )
+    assert session_response.status_code == 201
+    session_id = session_response.json()["session_id"]
+
+    import_response = client.post(
+        f"/api/runs/sessions/{session_id}/inputs/import-folder",
+        json={"folder_path": str(folder)},
+    )
+    assert import_response.status_code == 200
+
+    submit_response = client.post(
+        "/api/batch/jobs",
+        json={
+            "session_id": session_id,
+            "scenarios": [{"name": "Scenario A", "time_limit": 120}],
+        },
+    )
+    assert submit_response.status_code == 202
+    assert len(captured_requests) == 1
+    assert captured_requests[0].input_folder == str(folder)
+    assert captured_requests[0].output_folder == str(folder)

@@ -6,7 +6,7 @@
  */
 
 document.addEventListener('alpine:init', () => {
-    Alpine.component('themeToggle', () => ({
+    Alpine.data('themeToggle', () => ({
         isOpen: false,
         searchQuery: '',
 

@@ -36,7 +36,11 @@
     },
     "moduleDirectories": [
       "node_modules",
-      "ui_v2_exp/assets/js"
+      "ui_v2_exp/src/js"
+    ],
+    "testPathIgnorePatterns": [
+      "/trash/",
+      "/node_modules/"
     ]
   }
 }
