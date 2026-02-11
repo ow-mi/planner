@@ -64,173 +64,27 @@
 
     <!-- CSS -->
     <link rel="icon" href="../favicon.ico" sizes="any">
-    <link rel="stylesheet" href="styles/base.css">
-    <link rel="stylesheet" href="styles/utilities.css">
-    <style>
-        .tabs-bar {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-        }
-
-        .tabs-bar .tabs {
-            margin-bottom: 0;
-            flex: 1;
-        }
-
-        .theme-toggle {
-            border: 1px solid var(--theme-toggle-border);
-            background: var(--theme-toggle-bg);
-            color: var(--text-color);
-            border-radius: 999px;
-            padding: 0.45rem 0.8rem;
-            font-size: 0.9rem;
-            line-height: 1;
-            cursor: pointer;
-            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-            white-space: nowrap;
-        }
-
-        .app-header {
-            position: relative;
-            display: flex;
-            align-items: center;
-            padding-right: 9rem;
-        }
-
-        .app-header .theme-toggle {
-            position: absolute;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .theme-toggle:hover {
-            background: var(--theme-toggle-hover);
-            border-color: var(--primary-color);
-        }
-
-        .theme-toggle:focus {
-            outline: 2px solid var(--primary-color);
-            outline-offset: 2px;
-        }
-
-        @media (max-width: 768px) {
-            .tabs-bar {
-                gap: 0.5rem;
-            }
-
-            .theme-toggle {
-                padding: 0.4rem 0.65rem;
-                font-size: 0.85rem;
-            }
-
-            .app-header {
-                padding-right: 8rem;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="app-container">
-        <div class="app-header">
-            <h1 style="margin: 0;">Priority Configuration Editor v2</h1>
-            <button
-                type="button"
-                class="btn btn-secondary"
-                onclick="resetAllStores()"
-                style="position: absolute; right: 80px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; padding: 0.25rem 0.75rem;"
-                aria-label="Reset UI"
-                title="Reset all data"
-            >
-                🔄 Reset
-            </button>
-
-        </div>
-        <div class="app-content">
-            <!-- Main application container -->
-            <div x-data="app()" x-init="initApp()" x-cloak>
-         <!-- Tabs container - loaded via HTMX -->
-         <div id="tabs-container" hx-get="components/tabs.html" hx-trigger="load" hx-swap="innerHTML"></div>
-
-           <!-- Tab content containers -->
-           <div id="data-container" class="tab-content" data-loaded="false">
-               <div id="file-upload-container" class="tab-content" data-loaded="false"></div>
-               <div id="data-editor-container" class="tab-content" data-loaded="false"></div>
-           </div>
-           <div id="config-editor-container" class="tab-content" data-loaded="false"></div>
-           <div id="solver-tab-container" class="tab-content" data-loaded="false"></div>
-          <div id="visualizer-container" class="tab-content" data-loaded="false"></div>
-          <div id="output-viewer-container" class="tab-content" data-loaded="false"></div>
-            </div>
-        </div>
-    </div>
-
-     <!-- Load editor setup (CodeMirror) -->
-     <script type="module" src="js/editor-setup.js"></script>
-
-       <!-- Load Alpine.js stores -->
-       <script src="js/stores/fileStore.js"></script>
-       <script src="js/stores/configStore.js"></script>
-       <script src="js/stores/solverStore.js"></script>
-       <script src="js/stores/batchStore.js"></script>
-       <script src="js/stores/visualizationStore.js"></script>
-       <script src="js/stores/uiStore.js"></script>
-       <script src="js/stores/themeStore.js"></script>
- 
-       <!-- Load components -->
-       <script src="js/components/themeToggleComponent.js"></script>
- 
-       <!-- Load legacy templates (d3-based visualizations) -->
-       <script src="js/legacy-templates.js"></script>
-
-    <!-- Load services -->
-    <script src="js/services/apiService.js"></script>
-    <script src="js/services/notificationService.js"></script>
-
-    <!-- Load utilities -->
-    <script src="js/utils/helpers.js"></script>
-    <script src="js/utils/validation.js"></script>
-
-    <!-- Load tab loader (must be before app initialization) -->
-    <script src="js/core/tabLoader.js"></script>
-
-     <!-- Global theme toggle function for dynamic components -->
-     <script>
-         window.toggleTheme = function() {
-             // Try to find the app component and call its toggleTheme
-             const appElement = document.querySelector('[x-data*="app()"]');
-             if (appElement && appElement._x_dataStack && appElement._x_dataStack[0]) {
-                 const app = appElement._x_dataStack[0];
-                 if (app.toggleTheme) {
-                     app.toggleTheme();
-                     return;
-                 }
-             }
-             // Fallback: toggle theme directly
-             const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-             document.documentElement.setAttribute('data-theme', newTheme);
-             localStorage.setItem('theme', newTheme);
-         };
-
-         window.resetAllStores = function() {
-             const appElement = document.querySelector('[x-data*="app()"]');
-             if (appElement && appElement._x_dataStack && appElement._x_dataStack[0]) {
-                 const appData = appElement._x_dataStack[0];
-                 if (typeof appData.resetAllStores === 'function') {
-                     appData.resetAllStores();
-                     return;
-                 }
-             }
-
-             if (confirm('Are you sure you want to reset the UI? All imported data and configuration will be lost.')) {
-                 localStorage.clear();
-                 window.location.reload();
-             }
-         };
-     </script>
+    <!-- Tailwind CSS (required for DaisyUI) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- DaisyUI Theme CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {},
+            },
+            daisyui: {
+                themes: true, // Enable all themes
+                darkTheme: "dark",
+                base: true,
+                styled: true,
+                utils: true,
+                prefix: "",
+                logs: true,
+            },
+        };
+    </script>
 
      <!-- Main application logic -->
      <script>
