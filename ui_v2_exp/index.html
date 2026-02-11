@@ -35,6 +35,7 @@
 
      <!-- Component definitions - MUST be loaded BEFORE Alpine.js initializes -->
      <script src="src/js/components/configEditorComponent.js"></script>
+     <script src="src/js/stores/themeStore.js"></script>
      <script src="src/js/components/themeToggleComponent.js"></script>
 
       <!-- Main application logic -->
@@ -76,8 +77,9 @@
             },
         };
     </script>
-    <link rel="stylesheet" href="src/styles/base.css">
-    <link rel="stylesheet" href="src/styles/utilities.css">
+     <link rel="stylesheet" href="src/styles/base.css">
+     <link rel="stylesheet" href="src/styles/theme-toggle.css">
+     <link rel="stylesheet" href="src/styles/utilities.css">
 </head>
 <body>
     <div class="app-container">
@@ -111,7 +113,6 @@
        <script src="src/js/stores/solverStore.js"></script>
        <script src="src/js/stores/batchStore.js"></script>
        <script src="src/js/stores/visualizationStore.js"></script>
-       <script src="src/js/stores/themeStore.js"></script>
 
        <!-- Load legacy templates (d3-based visualizations) -->
        <script src="src/js/legacy-templates.js"></script>

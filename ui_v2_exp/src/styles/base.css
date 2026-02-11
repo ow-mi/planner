@@ -522,86 +522,6 @@ th {
     }
 }
 
-/* Tab Bar Theme Toggle Styling */
-.tabs .theme-toggle {
-    min-width: 40px;
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    padding: 0 8px;
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-}
-
-.tabs .theme-toggle .theme-icon {
-    margin-right: 4px;
-    flex-shrink: 0;
-}
-
-.tabs .theme-toggle .theme-name {
-    display: inline-block;
-    max-width: 70px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: middle;
-}
-
-/* Theme Dropdown Styling */
-.theme-dropdown {
-    min-width: 200px;
-    max-height: 400px;
-    overflow-y: auto;
-    background-color: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    margin-top: 4px;
-}
-
-.theme-dropdown .theme-category {
-    margin-bottom: 12px;
-}
-
-.theme-dropdown .theme-category h3 {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-light);
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border-color);
-    margin: 0;
-}
-
-.theme-dropdown .theme-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 8px;
-    padding: 8px;
-}
-
-.theme-dropdown .theme-item {
-    display: flex;
-    align-items: center;
-    padding: 4px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.875rem;
-}
-
-.theme-dropdown .theme-item:hover {
-    background-color: var(--bg-elevated);
-}
-
-.theme-dropdown .theme-item.active {
-    background-color: var(--primary-color);
-    color: var(--button-text-color);
-}
-
 /* Print styles for configuration sections */
 @media print {
     .subtab-sidebar {
@@ -615,10 +535,6 @@ th {
     .config-section {
         display: block !important;
         page-break-inside: avoid;
-    }
-    
-    .theme-toggle {
-        display: none !important;
     }
 }
 
