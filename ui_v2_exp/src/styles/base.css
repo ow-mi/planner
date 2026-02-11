@@ -1,0 +1,559 @@
+/* Base CSS for the application */
+/* DaisyUI themes handle most color variables automatically */
+/* We define additional app-specific variables here */
+
+:root {
+    /* App-specific custom properties - these work alongside DaisyUI */
+    --shadow-color: rgba(15, 23, 42, 0.08);
+    --theme-toggle-bg: oklch(var(--b1));
+    --theme-toggle-border: oklch(var(--b3));
+    --theme-toggle-hover: oklch(var(--b2));
+
+    /* DaisyUI will override these with theme-specific values */
+    --primary-color: oklch(var(--p));
+    --secondary-color: oklch(var(--s));
+    --success-color: oklch(var(--su));
+    --danger-color: oklch(var(--er));
+    --warning-color: oklch(var(--wa));
+    --info-color: oklch(var(--in));
+
+    --bg-primary: oklch(var(--b1));
+    --bg-secondary: oklch(var(--b2));
+    --bg-surface: oklch(var(--b1));
+    --bg-elevated: oklch(var(--b2));
+    --input-bg: oklch(var(--b1));
+
+    --border-color: oklch(var(--b3));
+    --text-color: oklch(var(--bc));
+    --text-light: oklch(var(--bc) / 0.7);
+    --text-strong: oklch(var(--bc));
+    --button-text-color: oklch(var(--pc));
+}
+
+/* Override DaisyUI base styles to match our design */
+html {
+    /* Ensure smooth transitions */
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: auto;
+    /* Smooth theme transitions */
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.app-container {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    background: var(--bg-surface);
+    padding: 1rem;
+    box-sizing: border-box;
+    box-shadow: 0 2px 10px var(--shadow-color);
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.app-content {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.app-content > [x-data] {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#tabs-container {
+    flex: 0 0 auto;
+    min-height: 0;
+    max-height: 100%;
+    overflow: auto;
+}
+
+h1, h2, h3 {
+    color: var(--text-strong);
+}
+
+.btn {
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: var(--button-text-color);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: var(--secondary-color);
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+/* Tab list container */
+.tabs {
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 1rem;
+    overflow-x: auto;
+}
+
+/* Tab button styles */
+.tab {
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    color: var(--text-light);
+    transition: all 0.3s;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    white-space: nowrap;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    text-align: left;
+}
+
+/* Remove default button styles for Firefox */
+.tab::-moz-focus-inner {
+    border: 0;
+    padding: 0;
+}
+
+.tab:hover {
+    color: var(--primary-color);
+}
+
+.tab.active,
+.tab:hover {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+/* Tab keyboard focus outline - accessible focus indicator */
+.tab:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Tab content */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+.section {
+    background-color: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-strong);
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 0.9rem;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    transition: border-color 0.3s;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.validation-error {
+    color: var(--danger-color);
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.flex-container {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.flex-item {
+    flex-grow: 1;
+    min-width: 200px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+input[type="checkbox"] {
+    width: auto;
+}
+
+.drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: 6px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s, border-color 0.3s;
+    margin-bottom: 1rem;
+}
+
+.drop-zone.drag-over {
+    border-color: var(--primary-color);
+    background-color: var(--bg-elevated);
+}
+
+.file-list {
+    margin-top: 1rem;
+    list-style: none;
+    padding: 0;
+}
+
+.file-list li {
+    background: var(--bg-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+th, td {
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    text-align: left;
+}
+
+th {
+    background-color: var(--bg-secondary);
+    font-weight: 600;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    border: 3px solid var(--border-color);
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    margin-right: 0.5rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Disabled section styles */
+.disabled-section {
+    opacity: 0.5;
+}
+
+.disabled-section h3 {
+    color: var(--text-light);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .app-container {
+        padding: 0.5rem;
+    }
+
+    .tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+
+    .tab {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Split-view layout for visualizer */
+.split-view-container,
+.full-view-container {
+    display: flex;
+    gap: 1rem;
+    min-height: 500px;
+}
+
+.split-view-container {
+    flex-direction: row;
+}
+
+.full-view-container {
+    flex-direction: row;
+}
+
+/* Responsive: Stack vertically on mobile */
+@media (max-width: 768px) {
+    .split-view-container,
+    .full-view-container {
+        flex-direction: column;
+    }
+    
+    .split-view-container > div,
+    .full-view-container > div {
+        width: 100%;
+        min-width: 100%;
+    }
+}
+
+/* Alpine.js x-cloak - prevents flicker before Alpine initializes */
+[x-cloak] {
+    display: none !important;
+}
+
+/* Subtab Navigation Styles for Configuration Editor */
+.subtab-container {
+    display: flex;
+    gap: 1rem;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.subtab-sidebar {
+    flex: 0 0 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.subtab-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: var(--text-light);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.subtab-btn:hover {
+    background-color: var(--bg-elevated);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.subtab-btn.active {
+    background-color: var(--primary-color);
+    color: var(--button-text-color);
+    border-color: var(--primary-color);
+}
+
+.subtab-btn svg {
+    flex-shrink: 0;
+}
+
+.subtab-content {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+}
+
+#data-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+#data-container > [x-data] {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+
+.config-section {
+    background-color: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: 6px;
+    margin-top: 0;
+    animation: fadeIn 0.3s ease;
+}
+
+.config-section:last-child {
+    margin-bottom: 0;
+}
+
+.section-header {
+    margin-bottom: 1.5rem;
+}
+
+.section-header h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
+.section-header p {
+    color: var(--text-light);
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive: Stack vertically on mobile */
+@media (max-width: 768px) {
+    .subtab-container {
+        flex-direction: column;
+    }
+    
+    .subtab-sidebar {
+        flex: none;
+        flex-direction: row;
+        overflow-x: auto;
+        padding-right: 0;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .subtab-btn {
+        min-width: 140px;
+        white-space: nowrap;
+    }
+}
+
+/* JSON preview container improvements */
+.json-preview-container {
+    background-color: var(--input-bg);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.json-preview-container textarea {
+    background-color: var(--input-bg);
+    resize: vertical;
+    min-height: 150px;
+}
+
+.copy-success-badge {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Print styles for configuration sections */
+@media print {
+    .subtab-sidebar {
+        display: none;
+    }
+    
+    .subtab-content {
+        flex: none;
+    }
+    
+    .config-section {
+        display: block !important;
+        page-break-inside: avoid;
+    }
+}
+
+/* Data Subtab Styles */
+#data-container .tabs-bar {
+    margin-top: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+#data-container .tabs-bar .tabs {
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 0;
+}
+
+#data-container .tab.active {
+    border-bottom-color: var(--primary-color);
+}
+
+#data-container .tab-content {
+    margin-top: 1rem;
+}
