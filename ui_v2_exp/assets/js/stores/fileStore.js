@@ -107,6 +107,15 @@ function applyRectangularPaste(rows, startRow, startCol, pastedMatrix, columnCou
     return nextRows;
 }
 
+function getFileIdentity(file) {
+    if (!file || !file.name) {
+        return '';
+    }
+    const size = Number.isFinite(file.size) ? file.size : 0;
+    const lastModified = Number.isFinite(file.lastModified) ? file.lastModified : 0;
+    return `${file.name}::${size}::${lastModified}`;
+}
+
 document.addEventListener('alpine:init', () => {
     Alpine.store('files', {
         // State
@@ -186,19 +195,54 @@ document.addEventListener('alpine:init', () => {
             const csvFiles = Array.from(files).filter(file =>
                 file.type === 'text/csv' || file.name.endsWith('.csv')
             );
+            const seenIdentities = new Set();
+            const preferredByName = new Map();
 
-            if (csvFiles.length === 0) {
+            csvFiles.forEach((file) => {
+                if (!file || !file.name) {
+                    return;
+                }
+
+                const identity = getFileIdentity(file);
+                if (seenIdentities.has(identity)) {
+                    return;
+                }
+
+                seenIdentities.add(identity);
+                const existing = preferredByName.get(file.name);
+                if (!existing || (existing.size === 0 && file.size > 0)) {
+                    preferredByName.set(file.name, file);
+                }
+            });
+
+            const dedupedCsvFiles = Array.from(preferredByName.values());
+
+            if (dedupedCsvFiles.length === 0) {
                 this.error = 'No CSV files found in selection';
                 this.isLoading = false;
                 return;
             }
 
-            // Add files to uploaded list
-            this.uploadedFiles.push(...csvFiles);
+            // Add files to uploaded list with filename de-duplication
+            const uploadedByFilename = new Map();
+            this.uploadedFiles.forEach((file) => {
+                if (file && file.name) {
+                    uploadedByFilename.set(file.name, file);
+                }
+            });
+
+            dedupedCsvFiles.forEach((file) => {
+                const existing = uploadedByFilename.get(file.name);
+                if (!existing || (existing.size === 0 && file.size > 0)) {
+                    uploadedByFilename.set(file.name, file);
+                }
+            });
+
+            this.uploadedFiles = Array.from(uploadedByFilename.values());
             this.saveToLocalStorage();
 
             // Process each CSV file
-            csvFiles.forEach(file => {
+            dedupedCsvFiles.forEach(file => {
                 this.parseCsvFile(file);
             });
 

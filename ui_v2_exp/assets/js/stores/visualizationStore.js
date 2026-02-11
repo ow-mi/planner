@@ -980,6 +980,10 @@ document.addEventListener('alpine:init', () => {
                    (this.activeDataSource === 'csv' && this.csvData);
         },
 
+        hasCsvData() {
+            return !!this.csvData;
+        },
+
         // Get current data for visualization
         getCurrentData() {
             if (this.activeDataSource === 'solver') {

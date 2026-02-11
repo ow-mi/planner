@@ -3,6 +3,115 @@
  *
  * Manages solver configuration settings and validation
  */
+function isValidWeekDeadlineFormat(value) {
+    if (typeof value !== 'string') {
+        return false;
+    }
+
+    const match = value.match(/^(\d{4})-W(\d{2})\.(\d)$/);
+    if (!match) {
+        return false;
+    }
+
+    const week = Number(match[2]);
+    const day = Number(match[3]);
+
+    if (!Number.isInteger(week) || week < 1 || week > 53) {
+        return false;
+    }
+
+    if (!Number.isInteger(day) || day < 1 || day > 7) {
+        return false;
+    }
+
+    return true;
+}
+
+function convertDateToWeekFormat(value) {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+        return '';
+    }
+
+    if (isValidWeekDeadlineFormat(value)) {
+        return value;
+    }
+
+    const date = new Date(`${value}T00:00:00Z`);
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+
+    const dayOfWeek = date.getUTCDay();
+    const isoDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+    const thursday = new Date(Date.UTC(
+        date.getUTCFullYear(),
+        date.getUTCMonth(),
+        date.getUTCDate() + (4 - isoDay)
+    ));
+    const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
+    const week = Math.ceil((((thursday - yearStart) / 86400000) + 1) / 7);
+    const weekStr = String(week).padStart(2, '0');
+    return `${thursday.getUTCFullYear()}-W${weekStr}.${isoDay}`;
+}
+
+function normalizeDeadlineValue(value) {
+    if (!value) {
+        return '';
+    }
+    return convertDateToWeekFormat(String(value));
+}
+
+function normalizeDeadlineEntry(entry) {
+    if (!entry || typeof entry !== 'object') {
+        return null;
+    }
+
+    const legId = entry.legId || '';
+    const startEnabled = typeof entry.startEnabled === 'boolean' ? entry.startEnabled : false;
+    const endEnabled = typeof entry.endEnabled === 'boolean' ? entry.endEnabled : true;
+    const startDeadline = normalizeDeadlineValue(entry.startDeadline || entry.startDate || '');
+    const endDeadline = normalizeDeadlineValue(entry.endDeadline || entry.deadlineDate || entry.endDate || '');
+
+    return {
+        legId,
+        startDeadline,
+        endDeadline,
+        startEnabled,
+        endEnabled
+    };
+}
+
+function buildDefaultDeadlines() {
+    const defaultDates = [
+        { legId: 'mwcu_b10_6', endDate: '2027-05-01' },
+        { legId: 'mwcu_a7_6', endDate: '2027-05-01' },
+        { legId: 'mwcu_b10_2.1', endDate: '2028-12-15' },
+        { legId: 'mwcu_a7_2.1', endDate: '2028-12-15' },
+        { legId: 'mwcu_b10_2.2', endDate: '2028-07-01' },
+        { legId: 'mwcu_a7_2.2', endDate: '2028-07-01' },
+        { legId: 'mwcu_b10_3', endDate: '2028-06-01' },
+        { legId: 'mwcu_a7_3', endDate: '2028-06-01' },
+        { legId: 'mwcu_b10_4', endDate: '2027-07-01' },
+        { legId: 'mwcu_a7_4', endDate: '2027-07-01' },
+        { legId: 'mwcu_b10_5', endDate: '2027-07-01' },
+        { legId: 'mwcu_a7_5', endDate: '2027-07-01' },
+        { legId: 'mwcu_b10_5a', endDate: '2027-07-01' },
+        { legId: 'mwcu_a7_5a', endDate: '2027-07-01' },
+        { legId: 'mwcu_b10_5b', endDate: '2027-07-01' },
+        { legId: 'mwcu_a7_5b', endDate: '2027-07-01' },
+        { legId: 'mwcu_b10_7', endDate: '2028-12-15' },
+        { legId: 'mwcu_a7_7', endDate: '2028-12-15' }
+    ];
+
+    return defaultDates.map((entry) => ({
+        legId: entry.legId,
+        startDeadline: '',
+        endDeadline: convertDateToWeekFormat(entry.endDate),
+        startEnabled: false,
+        endEnabled: true
+    }));
+}
+
 document.addEventListener('alpine:init', () => {
     Alpine.store('config', {
          // State
@@ -13,26 +122,7 @@ document.addEventListener('alpine:init', () => {
                  makespan_weight: 0.2,
                  priority_weight: 0.8,
              },
-             deadlines: [
-                 { legId: 'mwcu_b10_6', deadlineDate: '2027-05-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_a7_6', deadlineDate: '2027-05-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_b10_2.1', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
-                 { legId: 'mwcu_a7_2.1', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
-                 { legId: 'mwcu_b10_2.2', deadlineDate: '2028-07-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_a7_2.2', deadlineDate: '2028-07-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_b10_3', deadlineDate: '2028-06-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_a7_3', deadlineDate: '2028-06-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_b10_4', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_a7_4', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_b10_5', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_a7_5', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_b10_5a', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_a7_5a', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_b10_5b', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_a7_5b', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                 { legId: 'mwcu_b10_7', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
-                 { legId: 'mwcu_a7_7', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
-             ],
+             deadlines: buildDefaultDeadlines(),
              penaltySettings: {
                  deadline_penalty: 1000.0,
                  compactness_penalty: 500.0,
@@ -71,6 +161,9 @@ document.addEventListener('alpine:init', () => {
          init() {
              console.log('Configuration store initialized');
              this.loadFromLocalStorage();
+             this.config.deadlines = (this.config.deadlines || [])
+                 .map(normalizeDeadlineEntry)
+                 .filter(Boolean);
              this.updateOutputSettings();
  
              // Watch for sectionEnabled changes and trigger output settings update
@@ -134,16 +227,31 @@ document.addEventListener('alpine:init', () => {
 
              // Add sections only if they are enabled
              if (this.sectionEnabled.deadlinesEnabled && this.config.deadlines.length > 0) {
-                 this.priority_config_settings.leg_deadlines = {};
+                 const startDeadlines = {};
+                 const endDeadlines = {};
+
                  this.config.deadlines.forEach(deadline => {
-                    if (deadline.legId && deadline.deadlineDate) {
-                       const date = deadline.deadlineDate ? new Date(deadline.deadlineDate) : null;
-                       const deadlineDate = date ? date.toISOString().split('T')[0] : null;
-                       if (deadlineDate) {
-                           this.priority_config_settings.leg_deadlines[deadline.legId] = deadlineDate;
-                       }
+                    if (!deadline || !deadline.legId) {
+                        return;
+                    }
+
+                    if (deadline.startEnabled && isValidWeekDeadlineFormat(deadline.startDeadline)) {
+                        startDeadlines[deadline.legId] = deadline.startDeadline;
+                    }
+
+                    if (deadline.endEnabled && isValidWeekDeadlineFormat(deadline.endDeadline)) {
+                        endDeadlines[deadline.legId] = deadline.endDeadline;
                     }
                  });
+
+                 if (Object.keys(endDeadlines).length > 0) {
+                     this.priority_config_settings.leg_deadlines = endDeadlines;
+                     this.priority_config_settings.leg_end_deadlines = endDeadlines;
+                 }
+
+                 if (Object.keys(startDeadlines).length > 0) {
+                     this.priority_config_settings.leg_start_deadlines = startDeadlines;
+                 }
              }
 
              if (this.sectionEnabled.penaltyEnabled) {
@@ -153,12 +261,24 @@ document.addEventListener('alpine:init', () => {
              }
 
              if (this.sectionEnabled.proximityEnabled && this.config.proximityRules?.length > 0) {
-                 this.priority_config_settings.test_proximity_rules = {
-                     patterns: this.config.proximityRules.map(rule => rule.pattern),
-                     max_gap_days: this.config.proximityRules[0]?.maxgapdays || 10,
-                     proximity_penalty_per_day: this.config.proximityRules[0]?.proximitypenaltyperday || 50.0,
-                     enforce_sequence_order: this.config.proximityRules.some(rule => rule.enforce_sequence_order)
-                 };
+                 const seenPatterns = new Set();
+                 const uniqueRules = this.config.proximityRules.filter((rule) => {
+                     const pattern = rule?.pattern;
+                     if (!pattern || seenPatterns.has(pattern)) {
+                         return false;
+                     }
+                     seenPatterns.add(pattern);
+                     return true;
+                 });
+
+                 if (uniqueRules.length > 0) {
+                     this.priority_config_settings.test_proximity_rules = {
+                         patterns: uniqueRules.map(rule => rule.pattern),
+                         max_gap_days: uniqueRules[0]?.maxgapdays || 10,
+                         proximity_penalty_per_day: uniqueRules[0]?.proximitypenaltyperday || 50.0,
+                         enforce_sequence_order: uniqueRules.some(rule => rule.enforce_sequence_order)
+                     };
+                 }
              }
 
              this.saveToLocalStorage();
@@ -183,42 +303,51 @@ document.addEventListener('alpine:init', () => {
 
         // Leg deadlines management
         addLegDeadline() {
-            this.config.leg_deadlines.push({ id: '', date: '' });
-            this.updateOutputSettings();
+            this.addDeadlineRow();
         },
 
         removeLegDeadline(index) {
-            this.config.leg_deadlines.splice(index, 1);
-            this.updateOutputSettings();
+            this.removeDeadlineRow(index);
         },
 
-        updateLegDeadline(index, id, date) {
-            this.config.leg_deadlines[index] = { id, date };
+        updateLegDeadline(index, id, startDeadline, endDeadline) {
+            if (!this.config.deadlines[index]) {
+                return;
+            }
+            this.config.deadlines[index] = {
+                ...this.config.deadlines[index],
+                legId: id,
+                startDeadline: normalizeDeadlineValue(startDeadline),
+                endDeadline: normalizeDeadlineValue(endDeadline)
+            };
             this.updateOutputSettings();
         },
 
          // Proximity rules management
          addPattern() {
-             this.config.test_proximity_rules.patterns.push('');
-             this.updateOutputSettings();
+             this.addProximityRule();
          },
 
          removePattern(index) {
-             this.config.test_proximity_rules.patterns.splice(index, 1);
-             this.updateOutputSettings();
+             this.removeProximityRule(index);
          },
 
          updatePattern(index, pattern) {
-             this.config.test_proximity_rules.patterns[index] = pattern;
+             if (!this.config.proximityRules[index]) {
+                 return;
+             }
+             this.config.proximityRules[index].pattern = pattern;
              this.updateOutputSettings();
          },
 
          // Deadline management (UI wrapper methods)
          addDeadlineRow() {
              this.config.deadlines.push({ 
-                 legId: '', 
-                 deadlineDate: '', 
-                 deadlineTime: '00:00' 
+                 legId: '',
+                 startDeadline: '',
+                 endDeadline: '',
+                 startEnabled: false,
+                 endEnabled: true
              });
              this.updateOutputSettings();
          },
@@ -339,11 +468,21 @@ document.addEventListener('alpine:init', () => {
                 this.config.weights.priority_weight = jsonData.weights.priority_weight;
 
                 // Load leg deadlines if present
-                if (jsonData.leg_deadlines && Object.keys(jsonData.leg_deadlines).length > 0) {
-                    this.config.deadlines = Object.entries(jsonData.leg_deadlines).map(([legId, deadlineDate]) => ({
+                const legacyDeadlines = jsonData.leg_deadlines || {};
+                const startDeadlines = jsonData.leg_start_deadlines || {};
+                const endDeadlines = jsonData.leg_end_deadlines || legacyDeadlines;
+                const legIds = new Set([
+                    ...Object.keys(startDeadlines || {}),
+                    ...Object.keys(endDeadlines || {})
+                ]);
+
+                if (legIds.size > 0) {
+                    this.config.deadlines = Array.from(legIds).map((legId) => ({
                         legId,
-                        deadlineDate,
-                        deadlineTime: '00:00'
+                        startDeadline: normalizeDeadlineValue(startDeadlines[legId]),
+                        endDeadline: normalizeDeadlineValue(endDeadlines[legId]),
+                        startEnabled: startDeadlines[legId] !== undefined,
+                        endEnabled: endDeadlines[legId] !== undefined
                     }));
                     this.sectionEnabled.deadlinesEnabled = true;
                 } else {
@@ -407,26 +546,7 @@ document.addEventListener('alpine:init', () => {
                   makespan_weight: 0.2,
                   priority_weight: 0.8,
                },
-               deadlines: [
-                  { legId: 'mwcu_b10_6', deadlineDate: '2027-05-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_a7_6', deadlineDate: '2027-05-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_b10_2.1', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
-                  { legId: 'mwcu_a7_2.1', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
-                  { legId: 'mwcu_b10_2.2', deadlineDate: '2028-07-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_a7_2.2', deadlineDate: '2028-07-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_b10_3', deadlineDate: '2028-06-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_a7_3', deadlineDate: '2028-06-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_b10_4', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_a7_4', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_b10_5', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_a7_5', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_b10_5a', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_a7_5a', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_b10_5b', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_a7_5b', deadlineDate: '2027-07-01', deadlineTime: '00:00' },
-                  { legId: 'mwcu_b10_7', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
-                  { legId: 'mwcu_a7_7', deadlineDate: '2028-12-15', deadlineTime: '00:00' },
-               ],
+               deadlines: buildDefaultDeadlines(),
                penaltySettings: {
                   deadline_penalty: 1000.0,
                   compactness_penalty: 500.0,
@@ -483,3 +603,10 @@ document.addEventListener('alpine:init', () => {
           }
      });
  });
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        isValidWeekDeadlineFormat,
+        convertDateToWeekFormat
+    };
+}

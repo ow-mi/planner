@@ -44,18 +44,36 @@ class ApiService {
             !!source.penaltySettings;
 
         if (isUiShape) {
-            const legDeadlines = {};
+            const legStartDeadlines = {};
+            const legEndDeadlines = {};
+
             (source.deadlines || []).forEach((deadline) => {
-                if (!deadline || !deadline.legId || !deadline.deadlineDate) {
+                if (!deadline || !deadline.legId) {
                     return;
                 }
-                const normalized = normalizeDate(deadline.deadlineDate);
-                if (normalized) {
-                    legDeadlines[deadline.legId] = normalized;
+
+                if (deadline.startEnabled && deadline.startDeadline) {
+                    const normalizedStart = normalizeDate(deadline.startDeadline);
+                    if (normalizedStart) {
+                        legStartDeadlines[deadline.legId] = normalizedStart;
+                    }
+                }
+
+                const legacyDeadline = deadline.deadlineDate || deadline.endDeadline;
+                if (deadline.endEnabled !== false && legacyDeadline) {
+                    const normalizedEnd = normalizeDate(legacyDeadline);
+                    if (normalizedEnd) {
+                        legEndDeadlines[deadline.legId] = normalizedEnd;
+                    }
                 }
             });
-            if (Object.keys(legDeadlines).length > 0) {
-                canonical.leg_deadlines = legDeadlines;
+
+            if (Object.keys(legEndDeadlines).length > 0) {
+                canonical.leg_deadlines = legEndDeadlines;
+            }
+
+            if (Object.keys(legStartDeadlines).length > 0) {
+                canonical.leg_start_deadlines = legStartDeadlines;
             }
 
             const penalty = source.penaltySettings || {};
@@ -64,15 +82,26 @@ class ApiService {
             canonical.allow_parallel_within_deadlines = normalizeNumber(penalty.parallel_within_deadlines, 100.0);
 
             if (Array.isArray(source.proximityRules) && source.proximityRules.length > 0) {
-                const firstRule = source.proximityRules[0] || {};
-                canonical.test_proximity_rules = {
-                    patterns: source.proximityRules
-                        .map((rule) => rule?.pattern)
-                        .filter((pattern) => typeof pattern === 'string' && pattern.trim().length > 0),
-                    max_gap_days: normalizeNumber(firstRule.maxgapdays, 10),
-                    proximity_penalty_per_day: normalizeNumber(firstRule.proximitypenaltyperday, 50.0),
-                    enforce_sequence_order: source.proximityRules.some((rule) => !!rule?.enforce_sequence_order)
-                };
+                const seenPatterns = new Set();
+                const uniqueRules = source.proximityRules.filter((rule) => {
+                    const pattern = rule?.pattern;
+                    if (!pattern || seenPatterns.has(pattern)) {
+                        return false;
+                    }
+                    seenPatterns.add(pattern);
+                    return true;
+                });
+                if (uniqueRules.length > 0) {
+                    const firstRule = uniqueRules[0] || {};
+                    canonical.test_proximity_rules = {
+                        patterns: uniqueRules
+                            .map((rule) => rule?.pattern)
+                            .filter((pattern) => typeof pattern === 'string' && pattern.trim().length > 0),
+                        max_gap_days: normalizeNumber(firstRule.maxgapdays, 10),
+                        proximity_penalty_per_day: normalizeNumber(firstRule.proximitypenaltyperday, 50.0),
+                        enforce_sequence_order: uniqueRules.some((rule) => !!rule?.enforce_sequence_order)
+                    };
+                }
             }
 
             return canonical;
@@ -296,6 +325,56 @@ class ApiService {
      */
     async healthCheck() {
         return await this.get('/health');
+    }
+
+    /**
+     * Create a run session for solver or batch workflows
+     */
+    async createRunSession(payload = {}) {
+        return await this.post('/runs/sessions', payload);
+    }
+
+    /**
+     * Upload session-scoped input files
+     */
+    async uploadSessionInputs(sessionId, payload = {}) {
+        if (!sessionId) {
+            throw new Error('sessionId is required');
+        }
+        return await this.post(`/runs/sessions/${sessionId}/inputs`, payload);
+    }
+
+    /**
+     * Submit a batch request with scenarios for a session
+     */
+    async submitBatch(sessionId, payload = {}) {
+        if (!sessionId) {
+            throw new Error('sessionId is required');
+        }
+        return await this.post('/batch/jobs', {
+            session_id: sessionId,
+            ...payload
+        });
+    }
+
+    /**
+     * Get batch status by batch identifier
+     */
+    async getBatchStatus(batchId) {
+        if (!batchId) {
+            throw new Error('batchId is required');
+        }
+        return await this.get(`/batch/jobs/${batchId}/status`);
+    }
+
+    /**
+     * Get batch results by batch identifier
+     */
+    async getBatchResults(batchId) {
+        if (!batchId) {
+            throw new Error('batchId is required');
+        }
+        return await this.get(`/batch/jobs/${batchId}/results`);
     }
 }
 

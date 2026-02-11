@@ -8,6 +8,73 @@
  */
 
 describe('fileStore', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const fileStorePath = path.join(process.cwd(), 'ui_v2_exp', 'assets', 'js', 'stores', 'fileStore.js');
+    const dataEditorPath = path.join(process.cwd(), 'ui_v2_exp', 'components', 'data-editor.html');
+
+    function loadDataEditorFactory() {
+        const componentHtml = fs.readFileSync(dataEditorPath, 'utf8');
+        const scriptMatch = componentHtml.match(/<script>([\s\S]*?)<\/script>/);
+        if (!scriptMatch) {
+            throw new Error('Unable to locate data-editor component script');
+        }
+
+        return new Function(`${scriptMatch[1]}; return dataEditorComponent;`)();
+    }
+
+    function createDataEditorInstance(overrides = {}) {
+        const componentFactory = loadDataEditorFactory();
+        const defaultFilesStore = {
+            uploadedFiles: [],
+            parsedCsvData: {},
+            saveToLocalStorage: jest.fn(),
+            inferColumnTypes: jest.fn(() => []),
+            validateCellValueByType: jest.fn(() => true),
+            parseTabularText: jest.fn(() => []),
+            applyRectangularPaste: jest.fn(() => [])
+        };
+
+        const filesStore = {
+            ...defaultFilesStore,
+            ...(overrides.files || {})
+        };
+
+        const component = componentFactory();
+        component.$store = { files: filesStore };
+        component.$watch = jest.fn();
+
+        Object.keys(overrides).forEach((key) => {
+            if (key !== 'files') {
+                component[key] = overrides[key];
+            }
+        });
+
+        return { component, filesStore };
+    }
+
+    function createFileStore() {
+        jest.resetModules();
+        const stores = {};
+        global.Alpine = {
+            store(name, value) {
+                if (arguments.length === 2) {
+                    stores[name] = value;
+                    return value;
+                }
+
+                return stores[name];
+            }
+        };
+        global.Papa = {
+            parse: jest.fn(),
+            unparse: jest.fn(() => '')
+        };
+
+        require(fileStorePath);
+        document.dispatchEvent(new Event('alpine:init'));
+        return global.Alpine.store('files');
+    }
 
     beforeEach(() => {
         // Clear localStorage before each test
@@ -231,6 +298,117 @@ describe('fileStore', () => {
             // Should not crash, should have empty state
             expect(files.uploadedFiles).toEqual([]);
             expect(files.parsedCsvData).toEqual({});
+        });
+    });
+
+    describe('planner-2fw regressions', () => {
+        test('processFiles should dedupe uploadedFiles by filename', () => {
+            const files = createFileStore();
+            files.uploadedFiles = [{ name: 'existing.csv', type: 'text/csv' }];
+            files.saveToLocalStorage = jest.fn();
+            files.parseCsvFile = jest.fn();
+
+            files.processFiles([
+                { name: 'existing.csv', type: 'text/csv' },
+                { name: 'new.csv', type: 'text/csv' },
+                { name: 'new.csv', type: 'text/csv' }
+            ]);
+
+            expect(files.uploadedFiles.map(file => file.name)).toEqual(['existing.csv', 'new.csv']);
+            expect(files.parseCsvFile).toHaveBeenCalledTimes(2);
+            expect(files.parseCsvFile.mock.calls.map(call => call[0].name)).toEqual(['existing.csv', 'new.csv']);
+        });
+
+        test('processFiles should keep unique files when uploading 5+ entries', () => {
+            const files = createFileStore();
+            files.uploadedFiles = [{ name: 'existing.csv', type: 'text/csv', size: 0, lastModified: 1 }];
+            files.saveToLocalStorage = jest.fn();
+            files.parseCsvFile = jest.fn();
+
+            files.processFiles([
+                { name: 'existing.csv', type: 'text/csv', size: 123, lastModified: 10 },
+                { name: 'alpha.csv', type: 'text/csv', size: 50, lastModified: 11 },
+                { name: 'beta.csv', type: 'text/csv', size: 60, lastModified: 12 },
+                { name: 'gamma.csv', type: 'text/csv', size: 70, lastModified: 13 },
+                { name: 'delta.csv', type: 'text/csv', size: 80, lastModified: 14 },
+                { name: 'alpha.csv', type: 'text/csv', size: 50, lastModified: 11 }
+            ]);
+
+            expect(files.uploadedFiles.map(file => file.name)).toEqual([
+                'existing.csv',
+                'alpha.csv',
+                'beta.csv',
+                'gamma.csv',
+                'delta.csv'
+            ]);
+            const existing = files.uploadedFiles.find(file => file.name === 'existing.csv');
+            expect(existing.size).toBe(123);
+        });
+
+        test('data editor template should render selector using deduped filename keys', () => {
+            const componentHtml = fs.readFileSync(dataEditorPath, 'utf8');
+
+            expect(componentHtml).toMatch(/x-for="fileName in dedupedUploadedFilenames"\s*:key="fileName"/);
+            expect(componentHtml).toMatch(/<option :value="fileName" x-text="fileName"><\/option>/);
+        });
+
+        test('addNewRow should apply a row mutation guard for single increment', () => {
+            const { component } = createDataEditorInstance({
+                activeCsvData: { headers: ['name'], rows: [] }
+            });
+            let retriggered = false;
+            component.syncActiveCsvDataToStore = jest.fn(() => {
+                if (!retriggered) {
+                    retriggered = true;
+                    component.addNewRow();
+                }
+            });
+
+            component.addNewRow();
+
+            expect(component.activeCsvData.rows).toHaveLength(1);
+            expect(component.isMutatingRows).toBe(false);
+        });
+
+        test('selected row should persist after sync and display reload', () => {
+            const { component, filesStore } = createDataEditorInstance({
+                selectedCsv: 'alpha.csv',
+                files: {
+                    parsedCsvData: {
+                        'alpha.csv': {
+                            headers: ['name'],
+                            rows: [['A'], ['B']]
+                        }
+                    }
+                }
+            });
+
+            component.displayCsvData();
+            component.selectRow(1);
+            component.syncActiveCsvDataToStore();
+            component.displayCsvData();
+
+            expect(component.selectedRowIndex).toBe(1);
+            expect(component.selectedRowIndex === -1).toBe(false);
+            expect(filesStore.saveToLocalStorage).toHaveBeenCalled();
+        });
+
+        test('syncActiveCsvDataToStore should deep clone data before storing', () => {
+            const { component, filesStore } = createDataEditorInstance({
+                selectedCsv: 'alpha.csv',
+                activeCsvData: {
+                    headers: ['name', 'value'],
+                    rows: [['A', '10']]
+                },
+                files: {
+                    parsedCsvData: {}
+                }
+            });
+
+            component.syncActiveCsvDataToStore();
+            component.activeCsvData.rows[0][1] = '99';
+
+            expect(filesStore.parsedCsvData['alpha.csv'].rows[0][1]).toBe('10');
         });
     });
 });

@@ -94,7 +94,7 @@
          </div>
 
          <!-- Success Message -->
-         <div x-show="csvData && !error" style="margin-bottom: 1rem; padding: 0.5rem; background-color: #d4edda; border-radius: 4px; color: #155724;" role="status" aria-live="polite">
+         <div x-show="hasCsvData && !error" style="margin-bottom: 1rem; padding: 0.5rem; background-color: #d4edda; border-radius: 4px; color: #155724;" role="status" aria-live="polite">
              <p style="margin: 0; font-size: 0.9rem;">CSV data loaded successfully!</p>
          </div>
 
@@ -200,13 +200,17 @@
              return this.$store.visualization.error;
          },
 
-         get hasData() {
-             return this.$store.visualization.hasData();
-         },
+          get hasData() {
+              return this.$store.visualization.hasData();
+          },
 
-         get isEditorVisible() {
-             return this.$store.visualization.isEditorVisible;
-         },
+          get hasCsvData() {
+              return this.$store.visualization.hasCsvData();
+          },
+
+          get isEditorVisible() {
+              return this.$store.visualization.isEditorVisible;
+          },
 
          loadTemplate(templateId) {
              this.$store.visualization.loadTemplate(templateId);

@@ -1,4 +1,4 @@
-<div x-data="configEditorComponent()" x-cloak>
+<div x-data="configEditorComponent()" x-init="init()" x-cloak>
      <!-- Loading indicator for request operations -->
      <div class="htmx-indicator" style="display:none;" id="config-loader">
          <div class="spinner"></div>
@@ -39,10 +39,10 @@
       <div class="section" :class="{ 'disabled-section': !sectionEnabled.modeEnabled }">
           <div class="flex-container" style="margin-bottom: 1rem;">
                <h3 style="margin: 0;">Configuration Mode</h3>
-               <label class="checkbox-label">
-                   <input type="checkbox" x-model="sectionEnabled.modeEnabled" x-on:change="$store.config.updateOutputSettings()">
-                   Enable
-               </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" x-model="sectionEnabled.modeEnabled" @change="$nextTick(() => $store.config.updateOutputSettings())">
+                    Enable
+                </label>
           </div>
           <div class="form-group">
               <label for="mode">Scheduling Mode</label>
@@ -66,36 +66,55 @@
       <div class="section" :class="{ 'disabled-section': !sectionEnabled.deadlinesEnabled }">
           <div class="flex-container" style="margin-bottom: 1rem;">
                <h3 style="margin: 0;">Leg Deadlines</h3>
-               <label class="checkbox-label">
-                   <input type="checkbox" x-model="sectionEnabled.deadlinesEnabled" x-on:change="$store.config.updateOutputSettings()">
-                   Enable
-               </label>
-              <button @click="addDeadlineRow()" class="btn" :disabled="!sectionEnabled.deadlinesEnabled" style="margin-left: auto;">Add Leg</button>
+                <label class="checkbox-label">
+                    <input type="checkbox" x-model="sectionEnabled.deadlinesEnabled" @change="$nextTick(() => $store.config.updateOutputSettings())">
+                    Enable
+                </label>
           </div>
           <div x-show="config.deadlines.length > 0" style="overflow-x: auto;">
               <table>
                   <thead>
                       <tr>
                           <th style="width: 30%;">Leg ID</th>
-                          <th style="width: 30%;">Deadline Date</th>
-                          <th style="width: 20%;">Deadline Time</th>
-                          <th style="width: 20%;">Action</th>
+                          <th style="width: 25%;">Start Deadline</th>
+                          <th style="width: 10%;">Start Enabled</th>
+                          <th style="width: 25%;">End Deadline</th>
+                          <th style="width: 10%;">End Enabled</th>
                       </tr>
                   </thead>
                   <tbody>
-                      <template x-for="(deadline, index) in config.deadlines" :key="deadline.legId">
+                      <template x-for="(deadline, index) in config.deadlines" :key="`${index}-${deadline.legId}`">
                           <tr>
                               <td>
                                   <input type="text" x-model="deadline.legId" :disabled="!sectionEnabled.deadlinesEnabled" class="form-control" placeholder="Leg ID">
                               </td>
                               <td>
-                                  <input type="date" x-model="deadline.deadlineDate" :disabled="!sectionEnabled.deadlinesEnabled" class="form-control">
+                                  <input type="text"
+                                         x-model="deadline.startDeadline"
+                                         :disabled="!sectionEnabled.deadlinesEnabled"
+                                         :class="{ 'input-invalid': getDeadlineError(deadline.startDeadline, deadline.startEnabled) }"
+                                         class="form-control"
+                                         placeholder="YYYY-WWW.N">
+                                  <div class="validation-error" x-show="getDeadlineError(deadline.startDeadline, deadline.startEnabled)" x-text="getDeadlineError(deadline.startDeadline, deadline.startEnabled)"></div>
                               </td>
                               <td>
-                                  <input type="time" x-model="deadline.deadlineTime" :disabled="!sectionEnabled.deadlinesEnabled" class="form-control">
+                                  <label class="checkbox-label" style="justify-content: center;">
+                                      <input type="checkbox" x-model="deadline.startEnabled" :disabled="!sectionEnabled.deadlinesEnabled">
+                                  </label>
                               </td>
                               <td>
-                                  <button @click="removeDeadlineRow(index)" class="btn btn-danger" :disabled="!sectionEnabled.deadlinesEnabled" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Remove</button>
+                                  <input type="text"
+                                         x-model="deadline.endDeadline"
+                                         :disabled="!sectionEnabled.deadlinesEnabled"
+                                         :class="{ 'input-invalid': getDeadlineError(deadline.endDeadline, deadline.endEnabled) }"
+                                         class="form-control"
+                                         placeholder="YYYY-WWW.N">
+                                  <div class="validation-error" x-show="getDeadlineError(deadline.endDeadline, deadline.endEnabled)" x-text="getDeadlineError(deadline.endDeadline, deadline.endEnabled)"></div>
+                              </td>
+                              <td>
+                                  <label class="checkbox-label" style="justify-content: center;">
+                                      <input type="checkbox" x-model="deadline.endEnabled" :disabled="!sectionEnabled.deadlinesEnabled">
+                                  </label>
                               </td>
                           </tr>
                       </template>
@@ -103,7 +122,7 @@
               </table>
           </div>
           <div x-show="config.deadlines.length === 0" class="validation-error">
-              No leg deadlines defined. Click "Add Leg" to add deadlines.
+              No leg deadlines defined.
           </div>
       </div>
  
@@ -111,10 +130,10 @@
       <div class="section" :class="{ 'disabled-section': !sectionEnabled.penaltyEnabled }">
           <div class="flex-container" style="margin-bottom: 1rem;">
                <h3 style="margin: 0;">Deadline Penalty Settings</h3>
-               <label class="checkbox-label">
-                   <input type="checkbox" x-model="sectionEnabled.penaltyEnabled" x-on:change="$store.config.updateOutputSettings()">
-                   Enable
-               </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" x-model="sectionEnabled.penaltyEnabled" @change="$nextTick(() => $store.config.updateOutputSettings())">
+                    Enable
+                </label>
           </div>
           <div class="flex-container">
               <div class="form-group flex-item">
@@ -139,13 +158,12 @@
       <div class="section" :class="{ 'disabled-section': !sectionEnabled.proximityEnabled }">
           <div class="flex-container" style="margin-bottom: 1rem;">
                <h3 style="margin: 0;">Test Proximity Rules</h3>
-               <label class="checkbox-label">
-                   <input type="checkbox" x-model="sectionEnabled.proximityEnabled" x-on:change="$store.config.updateOutputSettings()">
-                   Enable
-               </label>
-              <button @click="addProximityRule()" class="btn" :disabled="!sectionEnabled.proximityEnabled" style="margin-left: auto;">Add Rule</button>
+                <label class="checkbox-label">
+                    <input type="checkbox" x-model="sectionEnabled.proximityEnabled" @change="$nextTick(() => $store.config.updateOutputSettings())">
+                    Enable
+                </label>
           </div>
-          <div x-show="config.proximityRules.length > 0" style="overflow-x: auto;">
+          <div x-show="dedupedProximityRules.length > 0" style="overflow-x: auto;">
               <table>
                   <thead>
                       <tr>
@@ -153,36 +171,32 @@
                           <th style="width: 15%;">Max Gap Days</th>
                           <th style="width: 20%;">Penalty Per Day</th>
                           <th style="width: 15%;">Enforce Seq</th>
-                          <th style="width: 20%;">Action</th>
                       </tr>
                   </thead>
                   <tbody>
-                      <template x-for="(rule, index) in config.proximityRules" :key="index">
+                      <template x-for="item in dedupedProximityRules" :key="item.key">
                           <tr>
                               <td>
-                                  <input type="text" x-model="rule.pattern" :disabled="!sectionEnabled.proximityEnabled" class="form-control" placeholder="Pattern">
+                                  <input type="text" x-model="item.rule.pattern" :disabled="!sectionEnabled.proximityEnabled" class="form-control" placeholder="Pattern">
                               </td>
                               <td>
-                                  <input type="number" x-model.number="rule.maxgapdays" :disabled="!sectionEnabled.proximityEnabled" min="1" step="1" class="form-control">
+                                  <input type="number" x-model.number="item.rule.maxgapdays" :disabled="!sectionEnabled.proximityEnabled" min="1" step="1" class="form-control">
                               </td>
                               <td>
-                                  <input type="number" x-model.number="rule.proximitypenaltyperday" :disabled="!sectionEnabled.proximityEnabled" min="0" step="0.01" class="form-control">
+                                  <input type="number" x-model.number="item.rule.proximitypenaltyperday" :disabled="!sectionEnabled.proximityEnabled" min="0" step="0.01" class="form-control">
                               </td>
                               <td>
                                   <label class="checkbox-label">
-                                      <input type="checkbox" x-model="rule.enforce_sequence_order" :disabled="!sectionEnabled.proximityEnabled">
+                                      <input type="checkbox" x-model="item.rule.enforce_sequence_order" :disabled="!sectionEnabled.proximityEnabled">
                                   </label>
-                              </td>
-                              <td>
-                                  <button @click="removeProximityRule(index)" class="btn btn-danger" :disabled="!sectionEnabled.proximityEnabled" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Remove</button>
                               </td>
                           </tr>
                       </template>
                   </tbody>
               </table>
           </div>
-          <div x-show="config.proximityRules.length === 0" class="validation-error">
-              No proximity rules defined. Click "Add Rule" to add rules.
+          <div x-show="dedupedProximityRules.length === 0" class="validation-error">
+              No proximity rules defined.
           </div>
       </div>
 
@@ -198,13 +212,21 @@
          <div class="flex-container">
              <div class="form-group flex-item">
                  <label for="makespan_weight">Makespan Weight</label>
-                 <input type="number" id="makespan_weight" x-model.number="config.weights.makespan_weight"
-                        :disabled="!sectionEnabled.modeEnabled" min="0" max="1" step="0.05" class="form-control">
+                 <input type="range" id="makespan_weight" x-model.number="weightsPercent.makespan"
+                        :disabled="!sectionEnabled.modeEnabled" min="0" max="100" step="1" class="form-control"
+                        @input="syncWeightsToConfig()">
+                 <div style="margin-top: 0.25rem; color: var(--text-light); font-size: 0.85rem;">
+                     <span x-text="weightsPercent.makespan"></span>%
+                 </div>
              </div>
              <div class="form-group flex-item">
                  <label for="priority_weight">Priority Weight</label>
-                 <input type="number" id="priority_weight" x-model.number="config.weights.priority_weight"
-                        :disabled="!sectionEnabled.modeEnabled" min="0" max="1" step="0.05" class="form-control">
+                 <input type="range" id="priority_weight" x-model.number="weightsPercent.priority"
+                        :disabled="!sectionEnabled.modeEnabled" min="0" max="100" step="1" class="form-control"
+                        @input="syncWeightsToConfig()">
+                 <div style="margin-top: 0.25rem; color: var(--text-light); font-size: 0.85rem;">
+                     <span x-text="weightsPercent.priority"></span>%
+                 </div>
              </div>
          </div>
          <template x-if="Math.abs(config.weights.makespan_weight + config.weights.priority_weight - 1.0) > 1e-9 && sectionEnabled.modeEnabled">

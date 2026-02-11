@@ -1,0 +1,201 @@
+<div x-data="batchEditorComponent()" x-init="init()" x-cloak>
+    <div class="section">
+        <h3>Batch Scenarios</h3>
+        <p>Author multiple scenarios locally, then submit them together as one batch run.</p>
+
+        <div class="form-group">
+            <button type="button" class="btn" @click="addScenario()">Add Scenario</button>
+            <button type="button" class="btn" style="margin-left: 0.5rem;" @click="syncInputFiles()">Sync Inputs From Uploads</button>
+            <button type="button" class="btn" style="margin-left: 0.5rem;" :disabled="isRunning" @click="runBatch()">Run Batch</button>
+        </div>
+
+        <template x-for="(scenario, index) in scenarios" :key="`scenario-${index}`">
+            <div class="section" style="margin-top: 0.75rem;">
+                <div class="form-group">
+                    <label :for="`scenario-name-${index}`">Scenario Name</label>
+                    <input
+                        type="text"
+                        :id="`scenario-name-${index}`"
+                        :value="scenario.name"
+                        @input="setScenarioField(index, 'name', $event.target.value)"
+                        placeholder="Scenario name"
+                    >
+                </div>
+
+                <div class="flex-container">
+                    <div class="flex-item">
+                        <label :for="`scenario-time-limit-${index}`">Time Limit (seconds)</label>
+                        <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            :id="`scenario-time-limit-${index}`"
+                            :value="scenario.time_limit"
+                            @input="setScenarioField(index, 'time_limit', Number($event.target.value))"
+                        >
+                    </div>
+                    <div class="flex-item">
+                        <label :for="`scenario-debug-level-${index}`">Debug Level</label>
+                        <select
+                            :id="`scenario-debug-level-${index}`"
+                            :value="scenario.debug_level"
+                            @change="setScenarioField(index, 'debug_level', $event.target.value)"
+                        >
+                            <option value="DEBUG">DEBUG</option>
+                            <option value="INFO">INFO</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="ERROR">ERROR</option>
+                        </select>
+                    </div>
+                    <div class="flex-item">
+                        <label :for="`scenario-output-folder-${index}`">Output Folder (optional)</label>
+                        <input
+                            type="text"
+                            :id="`scenario-output-folder-${index}`"
+                            :value="scenario.output_folder"
+                            @input="setScenarioField(index, 'output_folder', $event.target.value)"
+                            placeholder="batch/scenario-a"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 0.75rem;">
+                    <button type="button" class="btn btn-danger" @click="removeScenario(index)">Remove Scenario</button>
+                </div>
+            </div>
+        </template>
+
+        <div class="form-group" x-show="error" style="margin-top: 1rem;">
+            <p class="validation-error" x-text="error"></p>
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+            <p>Status: <strong x-text="status"></strong></p>
+            <p x-show="message" x-text="message"></p>
+            <p x-show="progress > 0">Progress: <span x-text="progress"></span>%</p>
+        </div>
+
+        <div class="section" x-show="results">
+            <h3>Batch Results</h3>
+            <div style="overflow-x: auto;">
+                <table style="margin-top: 0.75rem; min-width: 780px;">
+                    <thead>
+                        <tr>
+                            <th>Scenario</th>
+                            <th>ID</th>
+                            <th>Status</th>
+                            <th>Makespan</th>
+                            <th>Objective</th>
+                            <th>Solve Time</th>
+                            <th>Artifacts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="(row, index) in comparisonRows" :key="`batch-result-${index}`">
+                            <tr>
+                                <td x-text="row.scenarioLabel"></td>
+                                <td x-text="row.scenarioId"></td>
+                                <td x-text="row.status"></td>
+                                <td x-text="row.makespan"></td>
+                                <td x-text="row.objective"></td>
+                                <td x-text="row.solveTime"></td>
+                                <td>
+                                    <template x-for="(artifact, artifactIndex) in row.artifacts" :key="artifactKey(artifact, artifactIndex)">
+                                        <div>
+                                            <span x-text="`${artifact.label}: `"></span>
+                                            <template x-if="isArtifactLink(artifact.value)">
+                                                <a :href="artifact.value" target="_blank" rel="noopener" x-text="artifact.value"></a>
+                                            </template>
+                                            <template x-if="!isArtifactLink(artifact.value)">
+                                                <span x-text="artifact.value"></span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+            <p x-show="comparisonRows.length === 0" style="margin-top: 0.75rem;">No scenario rows were returned for this batch.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function batchEditorComponent() {
+    return {
+        init() {
+            if (this.$store.batch && typeof this.$store.batch.init === 'function') {
+                this.$store.batch.init();
+            }
+        },
+
+        get scenarios() {
+            return this.$store.batch.scenarios;
+        },
+
+        get status() {
+            return this.$store.batch.status;
+        },
+
+        get message() {
+            return this.$store.batch.message;
+        },
+
+        get progress() {
+            return this.$store.batch.progress;
+        },
+
+        get results() {
+            return this.$store.batch.results;
+        },
+
+        get error() {
+            return this.$store.batch.error;
+        },
+
+        get isRunning() {
+            return this.$store.batch.isLoading;
+        },
+
+        get comparisonRows() {
+            if (!this.$store.batch || typeof this.$store.batch.getComparisonRows !== 'function') {
+                return [];
+            }
+            return this.$store.batch.getComparisonRows();
+        },
+
+        artifactKey(artifact, index) {
+            return `${artifact?.label || 'artifact'}-${index}`;
+        },
+
+        isArtifactLink(value) {
+            if (!value || typeof value !== 'string') {
+                return false;
+            }
+            return value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/') || value.startsWith('./') || value.startsWith('../');
+        },
+
+        addScenario() {
+            this.$store.batch.addScenario();
+        },
+
+        removeScenario(index) {
+            this.$store.batch.removeScenario(index);
+        },
+
+        setScenarioField(index, field, value) {
+            this.$store.batch.updateScenario(index, field, value);
+        },
+
+        syncInputFiles() {
+            this.$store.batch.setInputsFromFileStore();
+        },
+
+        runBatch() {
+            this.$store.batch.runBatch();
+        }
+    };
+}
+</script>

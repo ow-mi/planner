@@ -68,7 +68,16 @@ document.addEventListener('alpine:init', () => {
 
             try {
                 // 1. Prepare Data
-                const csvFiles = this.$store.files.getSolverInputData();
+                const filesStore = typeof Alpine !== 'undefined' && Alpine.store ? Alpine.store('files') : null;
+                const configStore = typeof Alpine !== 'undefined' && Alpine.store ? Alpine.store('config') : null;
+
+                if (!filesStore || !configStore) {
+                    this.status = 'FAILED';
+                    this.error = { message: "Stores not initialized. Please refresh the page." };
+                    return;
+                }
+
+                const csvFiles = filesStore.getSolverInputData();
                 if (Object.keys(csvFiles).length === 0) {
                     this.status = 'FAILED';
                     this.error = { message: "No input data found. Please upload CSV files first." };
@@ -78,7 +87,7 @@ document.addEventListener('alpine:init', () => {
                 // 2. Prepare Request
                 const request = {
                     csv_files: csvFiles,
-                    priority_config: this.$store.config.getCurrentConfig(),
+                    priority_config: configStore.getCurrentConfig(),
                     time_limit: this.config.timeLimit,
                     debug_level: this.config.debugLevel,
                     output_folder: this.config.outputFolder || null

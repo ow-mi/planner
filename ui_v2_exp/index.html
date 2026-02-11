@@ -317,6 +317,7 @@
          <div id="data-editor-container" class="tab-content" data-loaded="false"></div>
          <div id="config-editor-container" class="tab-content" data-loaded="false"></div>
          <div id="solver-controls-container" class="tab-content" data-loaded="false"></div>
+         <div id="batch-editor-container" class="tab-content" data-loaded="false"></div>
          <div id="visualizer-container" class="tab-content" data-loaded="false"></div>
          <div id="output-viewer-container" class="tab-content" data-loaded="false"></div>
      </div>
@@ -329,6 +330,7 @@
        <script src="assets/js/stores/fileStore.js"></script>
        <script src="assets/js/stores/configStore.js"></script>
        <script src="assets/js/stores/solverStore.js"></script>
+       <script src="assets/js/stores/batchStore.js"></script>
        <script src="assets/js/stores/visualizationStore.js"></script>
        
        <!-- Load legacy templates (d3-based visualizations) -->
@@ -384,10 +386,11 @@
                     const tabConfig = {
                         'input_data': { url: 'components/file-upload.html', target: '#file-upload-container' },
                         'edit_data': { url: 'components/data-editor.html', target: '#data-editor-container' },
-                        'configuration': { url: 'components/config-editor.html', target: '#config-editor-container' },
-                        'solver': { url: 'components/solver-controls.html', target: '#solver-controls-container' },
-                        'visualizer': { url: 'components/visualizer.html', target: '#visualizer-container' },
-                        'output_data': { url: 'components/output-viewer.html', target: '#output-viewer-container' }
+                         'configuration': { url: 'components/config-editor.html', target: '#config-editor-container' },
+                         'solver': { url: 'components/solver-controls.html', target: '#solver-controls-container' },
+                         'batch': { url: 'components/batch-editor.html', target: '#batch-editor-container' },
+                         'visualizer': { url: 'components/visualizer.html', target: '#visualizer-container' },
+                         'output_data': { url: 'components/output-viewer.html', target: '#output-viewer-container' }
                     };
                     
                     const config = tabConfig[tabName];
@@ -463,7 +466,7 @@
                  },
 
                  handleTabNavigation(direction) {
-                     const tabs = ['input_data', 'edit_data', 'configuration', 'solver', 'visualizer', 'output_data', 'save'];
+                     const tabs = ['input_data', 'edit_data', 'configuration', 'solver', 'batch', 'visualizer', 'output_data', 'save'];
                      const currentIndex = tabs.indexOf(this.activeTab);
                      
                      if (currentIndex === -1) return;
@@ -493,17 +496,47 @@
 
     <!-- Main application logic -->
     <script>
-        function app() {
-            return {
-                activeTab: 'input_data',
-                isLoading: false,
-                error: null,
+         function app() {
+             return {
+                 activeTab: 'input_data',
+                 isLoading: false,
+                 error: null,
 
-                initApp() {
-                    console.log('Initializing Priority Configuration Editor v2');
-                    
-                    // Set up event listeners (these don't depend on stores)
-                    this.setupEventListeners();
+                 getValidTabs() {
+                     return ['input_data', 'edit_data', 'configuration', 'solver', 'batch', 'visualizer', 'output_data'];
+                 },
+
+                 getTabFromHash() {
+                     const hashTab = window.location.hash.replace('#', '').trim();
+                     const validTabs = this.getValidTabs();
+                     return validTabs.includes(hashTab) ? hashTab : 'input_data';
+                 },
+
+                 setHashForTab(tabName) {
+                     if (!this.getValidTabs().includes(tabName)) {
+                         return;
+                     }
+
+                     const nextHash = `#${tabName}`;
+                     if (window.location.hash !== nextHash) {
+                         window.location.hash = nextHash;
+                     }
+                 },
+
+                 initApp() {
+                     console.log('Initializing Priority Configuration Editor v2');
+
+                     this.activeTab = this.getTabFromHash();
+
+                     window.addEventListener('hashchange', () => {
+                         const hashTab = this.getTabFromHash();
+                         if (hashTab !== this.activeTab) {
+                             this.setActiveTab(hashTab);
+                         }
+                     });
+                     
+                     // Set up event listeners (these don't depend on stores)
+                     this.setupEventListeners();
                     
                     // Start polling for store availability
                     this.waitForStores();
@@ -519,30 +552,33 @@
                         // Check each store individually
                         const filesReady = this.$store && this.$store.files;
                         const configReady = this.$store && this.$store.config;
-                        const solverReady = this.$store && this.$store.solver;
-                        const vizReady = this.$store && this.$store.visualization;
-                        
-                        if (filesReady && configReady && solverReady && vizReady) {
-                            console.log('All stores detected, initializing...');
-                            this.initializeStores();
-                        } else if (attempts < maxAttempts) {
+                         const solverReady = this.$store && this.$store.solver;
+                         const batchReady = this.$store && this.$store.batch;
+                         const vizReady = this.$store && this.$store.visualization;
+                         
+                         if (filesReady && configReady && solverReady && batchReady && vizReady) {
+                             console.log('All stores detected, initializing...');
+                             this.initializeStores();
+                         } else if (attempts < maxAttempts) {
                             // Log which stores are missing (for debugging)
                             if (attempts % 10 === 0) {
                                 console.log(`Waiting for stores... (attempt ${attempts})`);
                                 if (!filesReady) console.log('  - files store not ready');
-                                if (!configReady) console.log('  - config store not ready');
-                                if (!solverReady) console.log('  - solver store not ready');
-                                if (!vizReady) console.log('  - visualization store not ready');
-                            }
+                                 if (!configReady) console.log('  - config store not ready');
+                                 if (!solverReady) console.log('  - solver store not ready');
+                                 if (!batchReady) console.log('  - batch store not ready');
+                                 if (!vizReady) console.log('  - visualization store not ready');
+                             }
                             // Try again in 100ms
                             setTimeout(checkStores, 100);
                         } else {
                             // Timeout - show error
                             const missing = [];
                             if (!filesReady) missing.push('files');
-                            if (!configReady) missing.push('config');
-                            if (!solverReady) missing.push('solver');
-                            if (!vizReady) missing.push('visualization');
+                             if (!configReady) missing.push('config');
+                             if (!solverReady) missing.push('solver');
+                             if (!batchReady) missing.push('batch');
+                             if (!vizReady) missing.push('visualization');
                             
                             console.error(`Timeout waiting for stores: ${missing.join(', ')} not available`);
                             this.error = `Failed to initialize: ${missing.join(', ')} stores not loaded. Please refresh the page.`;
@@ -565,6 +601,7 @@
                         this.$store.files.init();
                         this.$store.config.init();
                         this.$store.solver.init();
+                        this.$store.batch.init();
                         this.$store.visualization.init();
                         console.log('All stores initialized successfully');
 
@@ -589,10 +626,11 @@
                     const tabTargets = {
                         'input_data': '#file-upload-container',
                         'edit_data': '#data-editor-container',
-                        'configuration': '#config-editor-container',
-                        'solver': '#solver-controls-container',
-                        'visualizer': '#visualizer-container',
-                        'output_data': '#output-viewer-container'
+                         'configuration': '#config-editor-container',
+                         'solver': '#solver-controls-container',
+                         'batch': '#batch-editor-container',
+                         'visualizer': '#visualizer-container',
+                         'output_data': '#output-viewer-container'
                     };
 
                     document.querySelectorAll('.tab-content').forEach((element) => {
@@ -614,10 +652,11 @@
                     const tabConfig = {
                         'input_data': { url: 'components/file-upload.html', target: '#file-upload-container' },
                         'edit_data': { url: 'components/data-editor.html', target: '#data-editor-container' },
-                        'configuration': { url: 'components/config-editor.html', target: '#config-editor-container' },
-                        'solver': { url: 'components/solver-controls.html', target: '#solver-controls-container' },
-                        'visualizer': { url: 'components/visualizer.html', target: '#visualizer-container' },
-                        'output_data': { url: 'components/output-viewer.html', target: '#output-viewer-container' }
+                         'configuration': { url: 'components/config-editor.html', target: '#config-editor-container' },
+                         'solver': { url: 'components/solver-controls.html', target: '#solver-controls-container' },
+                         'batch': { url: 'components/batch-editor.html', target: '#batch-editor-container' },
+                         'visualizer': { url: 'components/visualizer.html', target: '#visualizer-container' },
+                         'output_data': { url: 'components/output-viewer.html', target: '#output-viewer-container' }
                     };
 
                     const config = tabConfig[tabName];
@@ -702,36 +741,62 @@
                     this.error = null;
                 },
 
-                 setActiveTab(tabName) {
-                     this.activeTab = tabName;
-                     this.updateTabVisibility(tabName);
-                 },
+                  setActiveTab(tabName) {
+                      if (!this.getValidTabs().includes(tabName)) {
+                          return;
+                      }
+
+                      this.activeTab = tabName;
+                      this.setHashForTab(tabName);
+                      this.updateTabVisibility(tabName);
+                  },
  
-                 handleTabNavigation(direction) {
-                     const tabs = ['input_data', 'edit_data', 'configuration', 'solver', 'visualizer', 'output_data'];
-                     const currentIndex = tabs.indexOf(this.activeTab);
-                     
-                     if (currentIndex === -1) return;
-                     
-                     let newIndex = currentIndex;
-                     
-                     switch (direction) {
-                         case 'left':
-                             newIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
-                             break;
-                         case 'right':
-                             newIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
-                             break;
-                         case 'home':
-                             newIndex = 0;
-                             break;
-                         case 'end':
-                             newIndex = tabs.length - 1;
-                             break;
-                     }
-                     
-                     this.setActiveTab(tabs[newIndex]);
-                 }
+                  handleTabNavigation(direction) {
+                      const tabs = this.getValidTabs();
+                      
+                      // DOM-AWARE: Find current tab by checking which button has tabindex="0"
+                      // This prevents issues with state out of sync with DOM
+                      const tabButtons = document.querySelectorAll('.tab');
+                      let currentIndex = -1;
+                      
+                      tabButtons.forEach((btn, idx) => {
+                          if (btn.getAttribute('tabindex') === '0') {
+                              currentIndex = idx;
+                          }
+                      });
+                      
+                      // Fallback to state-based lookup if DOM method fails
+                      if (currentIndex === -1) {
+                          currentIndex = tabs.indexOf(this.activeTab);
+                      }
+                      
+                      if (currentIndex === -1) {
+                          console.warn('handleTabNavigation: Could not determine current tab');
+                          return;
+                      }
+                      
+                      let newIndex = currentIndex;
+                      
+                      switch (direction) {
+                          case 'left':
+                              newIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
+                              break;
+                          case 'right':
+                              newIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+                              break;
+                          case 'home':
+                              newIndex = 0;
+                              break;
+                          case 'end':
+                              newIndex = tabs.length - 1;
+                              break;
+                      }
+                      
+                      // Debug logging
+                      console.log(`handleTabNavigation: direction=${direction}, currentIndex=${currentIndex}, newIndex=${newIndex}, tab=${tabs[newIndex]}`);
+                      
+                      this.setActiveTab(tabs[newIndex]);
+                  }
              }
          }
 

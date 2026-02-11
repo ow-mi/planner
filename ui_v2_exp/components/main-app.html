@@ -6,10 +6,10 @@
              class="tab"
              :class="{ 'active': activeTab === 'input_data' }"
              role="tab"
-             id="tab-main-input_data"
-             aria-controls="panel-main-input_data"
-             :aria-selected="activeTab === 'input_data' ? 'true' : 'false'"
-             tabindex="0"
+              id="tab-main-input_data"
+              aria-controls="panel-main-input_data"
+              :aria-selected="activeTab === 'input_data' ? 'true' : 'false'"
+              :tabindex="activeTab === 'input_data' ? '0' : '-1'"
              @click="setActiveTab('input_data')"
              @keydown.enter.prevent="setActiveTab('input_data')"
              @keydown.space.prevent="setActiveTab('input_data')"
@@ -58,10 +58,10 @@
          >
              Configuration
          </button>
-         <button
-             type="button"
-             class="tab"
-             :class="{ 'active': activeTab === 'solver' }"
+          <button
+              type="button"
+              class="tab"
+              :class="{ 'active': activeTab === 'solver' }"
              role="tab"
              id="tab-main-solver"
              aria-controls="panel-main-solver"
@@ -74,12 +74,31 @@
              @keydown.arrow-right.prevent="handleTabNavigation('right')"
              @keydown.home.prevent="handleTabNavigation('home')"
              @keydown.end.prevent="handleTabNavigation('end')"
-         >
-             Solver
-         </button>
-         <button
-             type="button"
-             class="tab"
+          >
+              Solver
+          </button>
+          <button
+              type="button"
+              class="tab"
+              :class="{ 'active': activeTab === 'batch' }"
+              role="tab"
+              id="tab-main-batch"
+              aria-controls="panel-main-batch"
+              :aria-selected="activeTab === 'batch' ? 'true' : 'false'"
+              :tabindex="activeTab === 'batch' ? '0' : '-1'"
+              @click="setActiveTab('batch')"
+              @keydown.enter.prevent="setActiveTab('batch')"
+              @keydown.space.prevent="setActiveTab('batch')"
+              @keydown.arrow-left.prevent="handleTabNavigation('left')"
+              @keydown.arrow-right.prevent="handleTabNavigation('right')"
+              @keydown.home.prevent="handleTabNavigation('home')"
+              @keydown.end.prevent="handleTabNavigation('end')"
+          >
+              Batch
+          </button>
+          <button
+              type="button"
+              class="tab"
              :class="{ 'active': activeTab === 'visualizer' }"
              role="tab"
              id="tab-main-visualizer"
@@ -205,6 +224,20 @@
     </div>
 
     <div
+        x-show="activeTab === 'batch'"
+        class="tab-content"
+        :class="{'active': activeTab === 'batch'}"
+        role="tabpanel"
+        id="panel-main-batch"
+        aria-labelledby="tab-main-batch"
+    >
+        <h2>Batch</h2>
+        <div id="batch-editor-container">
+            <div class="loading-spinner"></div> Loading batch editor...
+        </div>
+    </div>
+
+    <div
         x-show="activeTab === 'visualizer'"
         class="tab-content"
         :class="{'active': activeTab === 'visualizer'}"
@@ -280,5 +313,3 @@
          </div>
      </div>
  </div>
-
-

@@ -12,8 +12,8 @@ describe('configStore deadline methods', () => {
         store = {
             config: {
                 deadlines: [
-                    { legId: 'test1', deadlineDate: '2027-05-01', deadlineTime: '00:00' },
-                    { legId: 'test2', deadlineDate: '2027-05-02', deadlineTime: '00:00' }
+                    { legId: 'test1', startDeadline: '2027-W18.6', endDeadline: '2027-W18.6', startEnabled: true, endEnabled: true },
+                    { legId: 'test2', startDeadline: '2027-W18.7', endDeadline: '2027-W18.7', startEnabled: false, endEnabled: true }
                 ],
                 proximityRules: [
                     { pattern: 'P-01', maxgapdays: 10, proximitypenaltyperday: 50.0, enforce_sequence_order: false }
@@ -62,9 +62,11 @@ describe('configStore deadline methods', () => {
         // Add methods from the store
         store.addDeadlineRow = function() {
             this.config.deadlines.push({ 
-                legId: '', 
-                deadlineDate: '', 
-                deadlineTime: '00:00' 
+                legId: '',
+                startDeadline: '',
+                endDeadline: '',
+                startEnabled: false,
+                endEnabled: true
             });
             this.updateOutputSettings();
         };
@@ -98,8 +100,10 @@ describe('configStore deadline methods', () => {
         expect(store.config.deadlines.length).toBe(initialLength + 1);
         expect(store.config.deadlines[initialLength]).toEqual({
             legId: '',
-            deadlineDate: '',
-            deadlineTime: '00:00'
+            startDeadline: '',
+            endDeadline: '',
+            startEnabled: false,
+            endEnabled: true
         });
         expect(store.updateOutputSettings).toHaveBeenCalledTimes(1);
     });
@@ -109,8 +113,10 @@ describe('configStore deadline methods', () => {
         
         const newRow = store.config.deadlines[store.config.deadlines.length - 1];
         expect(newRow).toHaveProperty('legId', '');
-        expect(newRow).toHaveProperty('deadlineDate', '');
-        expect(newRow).toHaveProperty('deadlineTime', '00:00');
+        expect(newRow).toHaveProperty('startDeadline', '');
+        expect(newRow).toHaveProperty('endDeadline', '');
+        expect(newRow).toHaveProperty('startEnabled', false);
+        expect(newRow).toHaveProperty('endEnabled', true);
     });
 
     test('removeDeadlineRow should remove a deadline row by index', () => {
@@ -124,7 +130,7 @@ describe('configStore deadline methods', () => {
     });
 
     test('removeDeadlineRow should handle removing last row', () => {
-        store.config.deadlines = [{ legId: 'only', deadlineDate: '2027-05-01', deadlineTime: '00:00' }];
+        store.config.deadlines = [{ legId: 'only', startDeadline: '2027-W18.6', endDeadline: '2027-W18.6', startEnabled: true, endEnabled: true }];
         
         store.removeDeadlineRow(0);
         
@@ -296,7 +302,7 @@ describe('configStore integration tests', () => {
         };
 
         store.addDeadlineRow = function() {
-            this.config.deadlines.push({ legId: '', deadlineDate: '', deadlineTime: '00:00' });
+            this.config.deadlines.push({ legId: '', startDeadline: '', endDeadline: '', startEnabled: false, endEnabled: true });
             this.updateOutputSettings();
         };
         store.removeDeadlineRow = function(index) {
@@ -401,9 +407,21 @@ describe('configStore integration tests', () => {
                  this.config.weights.priority_weight = jsonData.weights.priority_weight;
 
                  // Load leg deadlines if present
-                 if (jsonData.leg_deadlines && Object.keys(jsonData.leg_deadlines).length > 0) {
-                     this.config.deadlines = Object.entries(jsonData.leg_deadlines).map(([legId, deadlineDate]) => ({
-                         legId, deadlineDate, deadlineTime: '00:00'
+                 const legacyDeadlines = jsonData.leg_deadlines || {};
+                 const startDeadlines = jsonData.leg_start_deadlines || {};
+                 const endDeadlines = jsonData.leg_end_deadlines || legacyDeadlines;
+                 const legIds = new Set([
+                     ...Object.keys(startDeadlines),
+                     ...Object.keys(endDeadlines)
+                 ]);
+
+                 if (legIds.size > 0) {
+                     this.config.deadlines = Array.from(legIds).map((legId) => ({
+                         legId,
+                         startDeadline: startDeadlines[legId] || '',
+                         endDeadline: endDeadlines[legId] || '',
+                         startEnabled: startDeadlines[legId] !== undefined,
+                         endEnabled: endDeadlines[legId] !== undefined
                      }));
                      this.sectionEnabled.deadlinesEnabled = true;
                  } else {
@@ -699,3 +717,160 @@ describe('configStore integration tests', () => {
          expect(newStore.parsedCsvData['test3.csv']).toBeDefined();
      });
  });
+
+describe('dataEditor row operation persistence', () => {
+     let componentScript;
+     let componentHtml;
+
+     beforeAll(() => {
+         const fs = require('fs');
+         const path = require('path');
+
+         const dataEditorPath = path.join(process.cwd(), 'ui_v2_exp', 'components', 'data-editor.html');
+         componentHtml = fs.readFileSync(dataEditorPath, 'utf8');
+         const scriptMatch = componentHtml.match(/<script>([\s\S]*?)<\/script>/);
+
+         if (!scriptMatch) {
+             throw new Error('Unable to locate data-editor component script');
+         }
+
+         componentScript = scriptMatch[1];
+     });
+
+     test('addNewRow should call syncActiveCsvDataToStore after row push', () => {
+         expect(componentScript).toMatch(/addNewRow\(\)\s*\{[\s\S]*?this\.activeCsvData\.rows\.push\(newRow\);[\s\S]*?this\.syncActiveCsvDataToStore\(\);[\s\S]*?\}/);
+     });
+
+     test('removeSelectedRow should call syncActiveCsvDataToStore after splice', () => {
+         expect(componentScript).toMatch(/removeSelectedRow\(\)\s*\{[\s\S]*?this\.activeCsvData\.rows\.splice\(this\.selectedRowIndex, 1\);[\s\S]*?this\.selectedRowIndex = -1;[\s\S]*?this\.syncActiveCsvDataToStore\(\);[\s\S]*?\}/);
+     });
+
+     test('syncActiveCsvDataToStore should update parsedCsvData and save localStorage', () => {
+         expect(componentScript).toMatch(/syncActiveCsvDataToStore\(\)\s*\{[\s\S]*?this\.\$store\.files\.parsedCsvData\[this\.selectedCsv\] = this\.activeCsvData;[\s\S]*?this\.\$store\.files\.saveToLocalStorage\(\);[\s\S]*?\}/);
+     });
+
+     test('data editor should render typed-column classes and validation hints', () => {
+         expect(componentScript).toMatch(/getColumnType\(cellIndex\)/);
+         expect(componentScript).toMatch(/validateCell\(rowIndex, cellIndex\)/);
+         expect(componentScript).toMatch(/getValidationHint\(rowIndex, cellIndex\)/);
+     });
+
+     test('data editor should support rectangular paste keyboard operation', () => {
+          expect(componentHtml).toMatch(/@paste="handleCellPaste\(\$event, rowIndex, cellIndex\)"/);
+          expect(componentScript).toMatch(/handleCellPaste\(event, startRow, startCol\)/);
+     });
+
+     test('data editor should expose uploadedFiles getter for template access', () => {
+          expect(componentScript).toMatch(/get uploadedFiles\(\)\s*\{\s*return this\.\$store\.files\.uploadedFiles \|\| \[\];\s*\}/);
+     });
+
+     test('data editor template should use deterministic unique keys', () => {
+          expect(componentHtml).toMatch(/x-for="\(header, headerIndex\) in activeCsvData\.headers"\s*:key="`\$\{headerIndex\}-\$\{header\}`"/);
+          expect(componentHtml).toMatch(/x-for="\(cell, cellIndex\) in row"\s*:key="`\$\{rowIndex\}-\$\{cellIndex\}`"/);
+     });
+ });
+
+describe('fileUpload template key stability', () => {
+     test('file upload list should use deterministic unique keys', () => {
+          const fs = require('fs');
+          const path = require('path');
+          const fileUploadPath = path.join(process.cwd(), 'ui_v2_exp', 'components', 'file-upload.html');
+          const fileUploadHtml = fs.readFileSync(fileUploadPath, 'utf8');
+
+          expect(fileUploadHtml).toMatch(/x-for="\(file, fileIndex\) in uploadedFiles"\s*:key="`\$\{file\.name\}-\$\{file\.size \|\| 0\}-\$\{file\.lastModified \|\| 0\}`"/);
+     });
+});
+
+describe('main app hash-based tab routing', () => {
+    let indexHtml;
+
+    beforeAll(() => {
+        const fs = require('fs');
+        const path = require('path');
+        const indexPath = path.join(process.cwd(), 'ui_v2_exp', 'index.html');
+        indexHtml = fs.readFileSync(indexPath, 'utf8');
+    });
+
+    test('initial tab selection should parse hash with valid-tab guard fallback', () => {
+        expect(indexHtml).toMatch(/getTabFromHash\(\)\s*\{[\s\S]*?window\.location\.hash[\s\S]*?const validTabs = this\.getValidTabs\(\);[\s\S]*?return validTabs\.includes\(hashTab\) \? hashTab : 'input_data';[\s\S]*?\}/);
+    });
+
+    test('init should use hash-derived tab and listen for hashchange', () => {
+        expect(indexHtml).toMatch(/initApp\(\)\s*\{[\s\S]*?this\.activeTab = this\.getTabFromHash\(\);[\s\S]*?window\.addEventListener\('hashchange',[\s\S]*?\}[\s\S]*?\}/);
+        expect(indexHtml).toMatch(/window\.addEventListener\('hashchange',\s*\(\)\s*=>\s*\{[\s\S]*?const hashTab = this\.getTabFromHash\(\);[\s\S]*?if \(hashTab !== this\.activeTab\) \{[\s\S]*?this\.setActiveTab\(hashTab\);[\s\S]*?\}[\s\S]*?\}\);/);
+    });
+
+    test('tab changes should keep location hash in sync', () => {
+        expect(indexHtml).toMatch(/setHashForTab\(tabName\)\s*\{[\s\S]*?const nextHash = `#\$\{tabName\}`;[\s\S]*?if \(window\.location\.hash !== nextHash\) \{[\s\S]*?window\.location\.hash = nextHash;[\s\S]*?\}[\s\S]*?\}/);
+        expect(indexHtml).toMatch(/setActiveTab\(tabName\)\s*\{[\s\S]*?this\.activeTab = tabName;[\s\S]*?this\.setHashForTab\(tabName\);[\s\S]*?this\.updateTabVisibility\(tabName\);[\s\S]*?\}/);
+    });
+});
+
+describe('fileStore CSV editor helper logic', () => {
+     let helpers;
+
+     beforeAll(() => {
+         helpers = require('./fileStore.js');
+     });
+
+     test('inferColumnTypes should infer number, date, and text columns', () => {
+         const data = {
+             headers: ['qty', 'start_date', 'name'],
+             rows: [
+                 ['12', '2026-01-02', 'alpha'],
+                 ['4.5', '2026-03-12', 'beta'],
+                 ['', '', 'gamma']
+             ]
+         };
+
+         expect(helpers.inferColumnTypes(data)).toEqual(['number', 'date', 'text']);
+     });
+
+     test('validateCellValueByType should flag invalid number and date values', () => {
+         expect(helpers.validateCellValueByType('not-a-number', 'number')).toBe(false);
+         expect(helpers.validateCellValueByType('2026-13-99', 'date')).toBe(false);
+         expect(helpers.validateCellValueByType('42.2', 'number')).toBe(true);
+         expect(helpers.validateCellValueByType('2026-12-31', 'date')).toBe(true);
+     });
+
+     test('applyRectangularPaste should paste tabular content without altering shape', () => {
+         const rows = [
+             ['A1', 'B1', 'C1'],
+             ['A2', 'B2', 'C2']
+         ];
+
+         const pasted = helpers.parseTabularText('9\t8\n7\t6');
+         const updated = helpers.applyRectangularPaste(rows, 0, 1, pasted, 3);
+
+         expect(updated).toEqual([
+             ['A1', '9', '8'],
+             ['A2', '7', '6']
+         ]);
+     });
+ });
+
+describe('deadline format validation', () => {
+    test('isValidWeekDeadlineFormat should validate YYYY-WWW.N', () => {
+        const { isValidWeekDeadlineFormat } = require('./configStore.js');
+
+        expect(isValidWeekDeadlineFormat('2026-W30.5')).toBe(true);
+        expect(isValidWeekDeadlineFormat('2026-W03.1')).toBe(true);
+        expect(isValidWeekDeadlineFormat('2026-W3.1')).toBe(false);
+        expect(isValidWeekDeadlineFormat('2026-W54.1')).toBe(false);
+        expect(isValidWeekDeadlineFormat('2026-W30.9')).toBe(false);
+        expect(isValidWeekDeadlineFormat('bad-format')).toBe(false);
+    });
+});
+
+describe('configuration checkbox toggling', () => {
+    test('disabled sections should not block checkbox interaction', () => {
+        const fs = require('fs');
+        const path = require('path');
+        const cssPath = path.join(process.cwd(), 'ui_v2_exp', 'assets', 'css', 'base.css');
+        const css = fs.readFileSync(cssPath, 'utf8');
+
+        const disabledSectionBlock = css.match(/\.disabled-section\s*\{[^}]*\}/);
+        expect(disabledSectionBlock).not.toBeNull();
+        expect(disabledSectionBlock[0]).not.toMatch(/pointer-events:\s*none/);
+    });
+});

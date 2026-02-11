@@ -1,0 +1,80 @@
+- generic [ref=e2]:
+  - heading "Priority Configuration Editor v2" [level=1] [ref=e3]
+  - generic [ref=e4]:
+    - tablist "Application tabs" [ref=e6]:
+      - tab "Input Data" [ref=e7] [cursor=pointer]
+      - tab "Edit Data" [active] [ref=e8] [cursor=pointer]
+      - tab "Configuration" [ref=e9] [cursor=pointer]
+      - tab "Solver" [ref=e10] [cursor=pointer]
+      - tab "Batch" [selected] [ref=e11] [cursor=pointer]
+      - tab "Visualizer" [ref=e12] [cursor=pointer]
+      - tab "Output Data" [ref=e13] [cursor=pointer]
+    - generic [ref=e26]:
+      - heading "Batch Scenarios" [level=3] [ref=e27]
+      - paragraph [ref=e28]: Author multiple scenarios locally, then submit them together as one batch run.
+      - generic [ref=e29]:
+        - button "Add Scenario" [ref=e30] [cursor=pointer]
+        - button "Sync Inputs From Uploads" [ref=e31] [cursor=pointer]
+        - button "Run Batch" [ref=e32] [cursor=pointer]
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - generic [ref=e35]: Scenario Name
+          - textbox "Scenario Name Scenario Name Scenario Name" [ref=e36]:
+            - /placeholder: Scenario name
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - generic [ref=e39]: Time Limit (seconds)
+            - spinbutton "Time Limit (seconds) Time Limit (seconds) Time Limit (seconds)" [ref=e40]: "300"
+          - generic [ref=e41]:
+            - generic [ref=e42]: Debug Level
+            - combobox "Debug Level Debug Level Debug Level" [ref=e43]:
+              - option "DEBUG"
+              - option "INFO" [selected]
+              - option "WARNING"
+              - option "ERROR"
+          - generic [ref=e44]:
+            - generic [ref=e45]: Output Folder (optional)
+            - textbox "Output Folder (optional) Output Folder (optional) Output Folder (optional)" [ref=e46]:
+              - /placeholder: batch/scenario-a
+        - button "Remove Scenario" [ref=e48] [cursor=pointer]
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - generic [ref=e51]: Scenario Name
+          - textbox "Scenario name" [ref=e52]
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - generic [ref=e55]: Time Limit (seconds)
+            - spinbutton [ref=e56]: "300"
+          - generic [ref=e57]:
+            - generic [ref=e58]: Debug Level
+            - combobox [ref=e59]:
+              - option "DEBUG"
+              - option "INFO" [selected]
+              - option "WARNING"
+              - option "ERROR"
+          - generic [ref=e60]:
+            - generic [ref=e61]: Output Folder (optional)
+            - textbox "batch/scenario-a" [ref=e62]
+        - button "Remove Scenario" [ref=e64] [cursor=pointer]
+      - generic [ref=e65]:
+        - generic [ref=e66]:
+          - generic [ref=e67]: Scenario Name
+          - textbox "Scenario name" [ref=e68]
+        - generic [ref=e69]:
+          - generic [ref=e70]:
+            - generic [ref=e71]: Time Limit (seconds)
+            - spinbutton [ref=e72]: "300"
+          - generic [ref=e73]:
+            - generic [ref=e74]: Debug Level
+            - combobox [ref=e75]:
+              - option "DEBUG"
+              - option "INFO" [selected]
+              - option "WARNING"
+              - option "ERROR"
+          - generic [ref=e76]:
+            - generic [ref=e77]: Output Folder (optional)
+            - textbox "batch/scenario-a" [ref=e78]
+        - button "Remove Scenario" [ref=e80] [cursor=pointer]
+      - paragraph [ref=e82]:
+        - text: "Status:"
+        - strong [ref=e83]: IDLE

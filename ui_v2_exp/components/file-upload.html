@@ -17,7 +17,7 @@
         <div x-show="uploadedFiles.length > 0">
             <h3>Uploaded Files</h3>
             <ul class="file-list">
-                <template x-for="file in uploadedFiles" :key="file.name">
+                <template x-for="(file, fileIndex) in uploadedFiles" :key="`${file.name}-${file.size || 0}-${file.lastModified || 0}`">
                     <li>
                         <span x-text="file.name"></span>
                         <span x-text="helpers.formatFileSize(file.size)" style="margin-left: 10px; color: var(--text-light); font-size: 0.8rem;"></span>

@@ -102,4 +102,35 @@ describe('ApiService canonical config mapping', () => {
         expect(sentBody.settings_used).toEqual(sentBody.priority_config);
         expect(service.getLastCanonicalPriorityConfig()).toEqual(sentBody.priority_config);
     });
+
+    test('batch lifecycle methods hit expected endpoints', async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ ok: true })
+        });
+
+        await service.createRunSession({ name: 'demo-session' });
+        await service.uploadSessionInputs('session-123', { files: [{ name: 'input.csv', content: 'a,b' }] });
+        await service.submitBatch('session-123', { scenarios: [{ name: 'Scenario A' }] });
+        await service.getBatchStatus('batch-123');
+        await service.getBatchResults('batch-123');
+
+        expect(fetch.mock.calls[0][0]).toBe('http://localhost:8000/api/runs/sessions');
+        expect(fetch.mock.calls[0][1].method).toBe('POST');
+
+        expect(fetch.mock.calls[1][0]).toBe('http://localhost:8000/api/runs/sessions/session-123/inputs');
+        expect(fetch.mock.calls[1][1].method).toBe('POST');
+
+        expect(fetch.mock.calls[2][0]).toBe('http://localhost:8000/api/batch/jobs');
+        expect(fetch.mock.calls[2][1].method).toBe('POST');
+        expect(JSON.parse(fetch.mock.calls[2][1].body)).toEqual({
+            session_id: 'session-123',
+            scenarios: [{ name: 'Scenario A' }]
+        });
+
+        expect(fetch.mock.calls[3][0]).toContain('/batch/jobs/batch-123/status');
+        expect(fetch.mock.calls[3][1].method).toBe('GET');
+        expect(fetch.mock.calls[4][0]).toContain('/batch/jobs/batch-123/results');
+        expect(fetch.mock.calls[4][1].method).toBe('GET');
+    });
 });

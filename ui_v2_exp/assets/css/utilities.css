@@ -15,6 +15,11 @@
     border-color: var(--primary-color);
 }
 
+.input-invalid {
+    border-color: var(--danger-color);
+    background-color: rgba(231, 76, 60, 0.08);
+}
+
 /* Spacing utilities */
 .mt-1 { margin-top: 0.5rem; }
 .mt-2 { margin-top: 1rem; }

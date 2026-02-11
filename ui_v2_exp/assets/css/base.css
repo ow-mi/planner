@@ -248,7 +248,6 @@ th {
 /* Disabled section styles */
 .disabled-section {
     opacity: 0.5;
-    pointer-events: none;
 }
 
 .disabled-section h3 {

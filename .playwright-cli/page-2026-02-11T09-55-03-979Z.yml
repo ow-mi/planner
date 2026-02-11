@@ -1,0 +1,33 @@
+- generic [ref=e2]:
+  - heading "Priority Configuration Editor v2" [level=1] [ref=e3]
+  - generic [ref=e4]:
+    - tablist "Application tabs" [ref=e6]:
+      - tab "Input Data" [selected] [ref=e7] [cursor=pointer]
+      - tab "Edit Data" [ref=e8] [cursor=pointer]
+      - tab "Configuration" [ref=e9] [cursor=pointer]
+      - tab "Solver" [ref=e10] [cursor=pointer]
+      - tab "Batch" [ref=e11] [cursor=pointer]
+      - tab "Visualizer" [ref=e12] [cursor=pointer]
+      - tab "Output Data" [ref=e13] [cursor=pointer]
+    - generic [ref=e16]:
+      - paragraph [ref=e18] [cursor=pointer]: Drag & drop CSV files here, or click to select files.
+      - generic [ref=e19]:
+        - heading "Uploaded Files" [level=3] [ref=e20]
+        - list [ref=e21]:
+          - listitem [ref=e22]:
+            - generic [ref=e23]: data_equipment.csv
+            - generic [ref=e24]: 324 Bytes
+            - button "Remove" [ref=e25] [cursor=pointer]
+          - listitem [ref=e26]:
+            - generic [ref=e27]: data_legs.csv
+            - generic [ref=e28]: 707 Bytes
+            - button "Remove" [ref=e29] [cursor=pointer]
+          - listitem [ref=e30]:
+            - generic [ref=e31]: data_equipment.csv
+            - generic [ref=e32]: 324 Bytes
+            - button "Remove" [ref=e33] [cursor=pointer]
+          - listitem [ref=e34]:
+            - generic [ref=e35]: data_legs.csv
+            - generic [ref=e36]: 707 Bytes
+            - button "Remove" [ref=e37] [cursor=pointer]
+        - button "Clear All Files" [ref=e39] [cursor=pointer]

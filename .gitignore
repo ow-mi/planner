@@ -189,3 +189,4 @@ cython_debug/
 
 # bv (beads viewer) local config and caches
 .bv/
+.grepai/

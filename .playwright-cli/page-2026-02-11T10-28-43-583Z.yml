@@ -1,0 +1,788 @@
+- generic [ref=e2]:
+  - heading "Priority Configuration Editor v2" [level=1] [ref=e3]
+  - generic [ref=e4]:
+    - tablist "Application tabs" [ref=e6]:
+      - tab "Input Data" [ref=e7] [cursor=pointer]
+      - tab "Edit Data" [ref=e8] [cursor=pointer]
+      - tab "Configuration" [active] [selected] [ref=e9] [cursor=pointer]
+      - tab "Solver" [ref=e10] [cursor=pointer]
+      - tab "Batch" [ref=e11] [cursor=pointer]
+      - tab "Visualizer" [ref=e12] [cursor=pointer]
+      - tab "Output Data" [ref=e13] [cursor=pointer]
+    - generic [ref=e89]:
+      - generic [ref=e90]:
+        - heading "Load Configuration from JSON" [level=3] [ref=e91]
+        - paragraph [ref=e93] [cursor=pointer]: Drag & drop JSON configuration file here, or click to select file.
+      - generic [ref=e94]:
+        - generic [ref=e95]:
+          - heading "Configuration Mode" [level=3] [ref=e96]
+          - generic [ref=e97]:
+            - checkbox "Enable" [checked] [ref=e98]
+            - text: Enable
+        - generic [ref=e99]:
+          - generic [ref=e100]: Scheduling Mode
+          - combobox "Scheduling Mode" [ref=e101]:
+            - option "Leg End Dates" [selected]
+            - option "Leg Priority"
+            - option "End Date Priority"
+            - option "End Date Sticky"
+            - option "Resource Bottleneck"
+        - generic [ref=e102]:
+          - generic [ref=e103]: Description
+          - textbox "Description" [ref=e104]:
+            - /placeholder: A human-readable description of what this configuration does.
+            - text: Each leg has a target completion date. Legs can be scheduled in parallel if they don't exceed their deadlines.
+      - generic [ref=e105]:
+        - generic [ref=e106]:
+          - heading "Leg Deadlines" [level=3] [ref=e107]
+          - generic [ref=e108]:
+            - checkbox "Enable" [checked] [ref=e109]
+            - text: Enable
+          - button "Add Leg" [ref=e110] [cursor=pointer]
+        - table [ref=e112]:
+          - rowgroup [ref=e113]:
+            - row "Leg ID Deadline Date Deadline Time Action" [ref=e114]:
+              - columnheader "Leg ID" [ref=e115]
+              - columnheader "Deadline Date" [ref=e116]
+              - columnheader "Deadline Time" [ref=e117]
+              - columnheader "Action" [ref=e118]
+          - rowgroup [ref=e119]:
+            - row "mwcu_b10_6 2027-05-01 00:00 Remove" [ref=e120]:
+              - cell "mwcu_b10_6" [ref=e121]:
+                - textbox "Leg ID" [ref=e122]: mwcu_b10_6
+              - cell "2027-05-01" [ref=e123]:
+                - textbox [ref=e124]: 2027-05-01
+              - cell "00:00" [ref=e125]:
+                - textbox [ref=e126]: 00:00
+              - cell "Remove" [ref=e127]:
+                - button "Remove" [ref=e128] [cursor=pointer]
+            - row "mwcu_a7_6 2027-05-01 00:00 Remove" [ref=e129]:
+              - cell "mwcu_a7_6" [ref=e130]:
+                - textbox "Leg ID" [ref=e131]: mwcu_a7_6
+              - cell "2027-05-01" [ref=e132]:
+                - textbox [ref=e133]: 2027-05-01
+              - cell "00:00" [ref=e134]:
+                - textbox [ref=e135]: 00:00
+              - cell "Remove" [ref=e136]:
+                - button "Remove" [ref=e137] [cursor=pointer]
+            - row "mwcu_b10_2.1 2028-12-15 00:00 Remove" [ref=e138]:
+              - cell "mwcu_b10_2.1" [ref=e139]:
+                - textbox "Leg ID" [ref=e140]: mwcu_b10_2.1
+              - cell "2028-12-15" [ref=e141]:
+                - textbox [ref=e142]: 2028-12-15
+              - cell "00:00" [ref=e143]:
+                - textbox [ref=e144]: 00:00
+              - cell "Remove" [ref=e145]:
+                - button "Remove" [ref=e146] [cursor=pointer]
+            - row "mwcu_a7_2.1 2028-12-15 00:00 Remove" [ref=e147]:
+              - cell "mwcu_a7_2.1" [ref=e148]:
+                - textbox "Leg ID" [ref=e149]: mwcu_a7_2.1
+              - cell "2028-12-15" [ref=e150]:
+                - textbox [ref=e151]: 2028-12-15
+              - cell "00:00" [ref=e152]:
+                - textbox [ref=e153]: 00:00
+              - cell "Remove" [ref=e154]:
+                - button "Remove" [ref=e155] [cursor=pointer]
+            - row "mwcu_b10_2.2 2028-07-01 00:00 Remove" [ref=e156]:
+              - cell "mwcu_b10_2.2" [ref=e157]:
+                - textbox "Leg ID" [ref=e158]: mwcu_b10_2.2
+              - cell "2028-07-01" [ref=e159]:
+                - textbox [ref=e160]: 2028-07-01
+              - cell "00:00" [ref=e161]:
+                - textbox [ref=e162]: 00:00
+              - cell "Remove" [ref=e163]:
+                - button "Remove" [ref=e164] [cursor=pointer]
+            - row "mwcu_a7_2.2 2028-07-01 00:00 Remove" [ref=e165]:
+              - cell "mwcu_a7_2.2" [ref=e166]:
+                - textbox "Leg ID" [ref=e167]: mwcu_a7_2.2
+              - cell "2028-07-01" [ref=e168]:
+                - textbox [ref=e169]: 2028-07-01
+              - cell "00:00" [ref=e170]:
+                - textbox [ref=e171]: 00:00
+              - cell "Remove" [ref=e172]:
+                - button "Remove" [ref=e173] [cursor=pointer]
+            - row "mwcu_b10_3 2028-06-01 00:00 Remove" [ref=e174]:
+              - cell "mwcu_b10_3" [ref=e175]:
+                - textbox "Leg ID" [ref=e176]: mwcu_b10_3
+              - cell "2028-06-01" [ref=e177]:
+                - textbox [ref=e178]: 2028-06-01
+              - cell "00:00" [ref=e179]:
+                - textbox [ref=e180]: 00:00
+              - cell "Remove" [ref=e181]:
+                - button "Remove" [ref=e182] [cursor=pointer]
+            - row "mwcu_a7_3 2028-06-01 00:00 Remove" [ref=e183]:
+              - cell "mwcu_a7_3" [ref=e184]:
+                - textbox "Leg ID" [ref=e185]: mwcu_a7_3
+              - cell "2028-06-01" [ref=e186]:
+                - textbox [ref=e187]: 2028-06-01
+              - cell "00:00" [ref=e188]:
+                - textbox [ref=e189]: 00:00
+              - cell "Remove" [ref=e190]:
+                - button "Remove" [ref=e191] [cursor=pointer]
+            - row "mwcu_b10_4 2027-07-01 00:00 Remove" [ref=e192]:
+              - cell "mwcu_b10_4" [ref=e193]:
+                - textbox "Leg ID" [ref=e194]: mwcu_b10_4
+              - cell "2027-07-01" [ref=e195]:
+                - textbox [ref=e196]: 2027-07-01
+              - cell "00:00" [ref=e197]:
+                - textbox [ref=e198]: 00:00
+              - cell "Remove" [ref=e199]:
+                - button "Remove" [ref=e200] [cursor=pointer]
+            - row "mwcu_a7_4 2027-07-01 00:00 Remove" [ref=e201]:
+              - cell "mwcu_a7_4" [ref=e202]:
+                - textbox "Leg ID" [ref=e203]: mwcu_a7_4
+              - cell "2027-07-01" [ref=e204]:
+                - textbox [ref=e205]: 2027-07-01
+              - cell "00:00" [ref=e206]:
+                - textbox [ref=e207]: 00:00
+              - cell "Remove" [ref=e208]:
+                - button "Remove" [ref=e209] [cursor=pointer]
+            - row "mwcu_b10_5 2027-07-01 00:00 Remove" [ref=e210]:
+              - cell "mwcu_b10_5" [ref=e211]:
+                - textbox "Leg ID" [ref=e212]: mwcu_b10_5
+              - cell "2027-07-01" [ref=e213]:
+                - textbox [ref=e214]: 2027-07-01
+              - cell "00:00" [ref=e215]:
+                - textbox [ref=e216]: 00:00
+              - cell "Remove" [ref=e217]:
+                - button "Remove" [ref=e218] [cursor=pointer]
+            - row "mwcu_a7_5 2027-07-01 00:00 Remove" [ref=e219]:
+              - cell "mwcu_a7_5" [ref=e220]:
+                - textbox "Leg ID" [ref=e221]: mwcu_a7_5
+              - cell "2027-07-01" [ref=e222]:
+                - textbox [ref=e223]: 2027-07-01
+              - cell "00:00" [ref=e224]:
+                - textbox [ref=e225]: 00:00
+              - cell "Remove" [ref=e226]:
+                - button "Remove" [ref=e227] [cursor=pointer]
+            - row "mwcu_b10_5a 2027-07-01 00:00 Remove" [ref=e228]:
+              - cell "mwcu_b10_5a" [ref=e229]:
+                - textbox "Leg ID" [ref=e230]: mwcu_b10_5a
+              - cell "2027-07-01" [ref=e231]:
+                - textbox [ref=e232]: 2027-07-01
+              - cell "00:00" [ref=e233]:
+                - textbox [ref=e234]: 00:00
+              - cell "Remove" [ref=e235]:
+                - button "Remove" [ref=e236] [cursor=pointer]
+            - row "mwcu_a7_5a 2027-07-01 00:00 Remove" [ref=e237]:
+              - cell "mwcu_a7_5a" [ref=e238]:
+                - textbox "Leg ID" [ref=e239]: mwcu_a7_5a
+              - cell "2027-07-01" [ref=e240]:
+                - textbox [ref=e241]: 2027-07-01
+              - cell "00:00" [ref=e242]:
+                - textbox [ref=e243]: 00:00
+              - cell "Remove" [ref=e244]:
+                - button "Remove" [ref=e245] [cursor=pointer]
+            - row "mwcu_b10_5b 2027-07-01 00:00 Remove" [ref=e246]:
+              - cell "mwcu_b10_5b" [ref=e247]:
+                - textbox "Leg ID" [ref=e248]: mwcu_b10_5b
+              - cell "2027-07-01" [ref=e249]:
+                - textbox [ref=e250]: 2027-07-01
+              - cell "00:00" [ref=e251]:
+                - textbox [ref=e252]: 00:00
+              - cell "Remove" [ref=e253]:
+                - button "Remove" [ref=e254] [cursor=pointer]
+            - row "mwcu_a7_5b 2027-07-01 00:00 Remove" [ref=e255]:
+              - cell "mwcu_a7_5b" [ref=e256]:
+                - textbox "Leg ID" [ref=e257]: mwcu_a7_5b
+              - cell "2027-07-01" [ref=e258]:
+                - textbox [ref=e259]: 2027-07-01
+              - cell "00:00" [ref=e260]:
+                - textbox [ref=e261]: 00:00
+              - cell "Remove" [ref=e262]:
+                - button "Remove" [ref=e263] [cursor=pointer]
+            - row "mwcu_b10_7 2028-12-15 00:00 Remove" [ref=e264]:
+              - cell "mwcu_b10_7" [ref=e265]:
+                - textbox "Leg ID" [ref=e266]: mwcu_b10_7
+              - cell "2028-12-15" [ref=e267]:
+                - textbox [ref=e268]: 2028-12-15
+              - cell "00:00" [ref=e269]:
+                - textbox [ref=e270]: 00:00
+              - cell "Remove" [ref=e271]:
+                - button "Remove" [ref=e272] [cursor=pointer]
+            - row "mwcu_a7_7 2028-12-15 00:00 Remove" [ref=e273]:
+              - cell "mwcu_a7_7" [ref=e274]:
+                - textbox "Leg ID" [ref=e275]: mwcu_a7_7
+              - cell "2028-12-15" [ref=e276]:
+                - textbox [ref=e277]: 2028-12-15
+              - cell "00:00" [ref=e278]:
+                - textbox [ref=e279]: 00:00
+              - cell "Remove" [ref=e280]:
+                - button "Remove" [ref=e281] [cursor=pointer]
+            - row "mwcu_b10_6 2027-05-01 00:00 Remove" [ref=e282]:
+              - cell "mwcu_b10_6" [ref=e283]:
+                - textbox "Leg ID" [ref=e284]: mwcu_b10_6
+              - cell "2027-05-01" [ref=e285]:
+                - textbox [ref=e286]: 2027-05-01
+              - cell "00:00" [ref=e287]:
+                - textbox [ref=e288]: 00:00
+              - cell "Remove" [ref=e289]:
+                - button "Remove" [ref=e290] [cursor=pointer]
+            - row "mwcu_a7_6 2027-05-01 00:00 Remove" [ref=e291]:
+              - cell "mwcu_a7_6" [ref=e292]:
+                - textbox "Leg ID" [ref=e293]: mwcu_a7_6
+              - cell "2027-05-01" [ref=e294]:
+                - textbox [ref=e295]: 2027-05-01
+              - cell "00:00" [ref=e296]:
+                - textbox [ref=e297]: 00:00
+              - cell "Remove" [ref=e298]:
+                - button "Remove" [ref=e299] [cursor=pointer]
+            - row "mwcu_b10_2.1 2028-12-15 00:00 Remove" [ref=e300]:
+              - cell "mwcu_b10_2.1" [ref=e301]:
+                - textbox "Leg ID" [ref=e302]: mwcu_b10_2.1
+              - cell "2028-12-15" [ref=e303]:
+                - textbox [ref=e304]: 2028-12-15
+              - cell "00:00" [ref=e305]:
+                - textbox [ref=e306]: 00:00
+              - cell "Remove" [ref=e307]:
+                - button "Remove" [ref=e308] [cursor=pointer]
+            - row "mwcu_a7_2.1 2028-12-15 00:00 Remove" [ref=e309]:
+              - cell "mwcu_a7_2.1" [ref=e310]:
+                - textbox "Leg ID" [ref=e311]: mwcu_a7_2.1
+              - cell "2028-12-15" [ref=e312]:
+                - textbox [ref=e313]: 2028-12-15
+              - cell "00:00" [ref=e314]:
+                - textbox [ref=e315]: 00:00
+              - cell "Remove" [ref=e316]:
+                - button "Remove" [ref=e317] [cursor=pointer]
+            - row "mwcu_b10_2.2 2028-07-01 00:00 Remove" [ref=e318]:
+              - cell "mwcu_b10_2.2" [ref=e319]:
+                - textbox "Leg ID" [ref=e320]: mwcu_b10_2.2
+              - cell "2028-07-01" [ref=e321]:
+                - textbox [ref=e322]: 2028-07-01
+              - cell "00:00" [ref=e323]:
+                - textbox [ref=e324]: 00:00
+              - cell "Remove" [ref=e325]:
+                - button "Remove" [ref=e326] [cursor=pointer]
+            - row "mwcu_a7_2.2 2028-07-01 00:00 Remove" [ref=e327]:
+              - cell "mwcu_a7_2.2" [ref=e328]:
+                - textbox "Leg ID" [ref=e329]: mwcu_a7_2.2
+              - cell "2028-07-01" [ref=e330]:
+                - textbox [ref=e331]: 2028-07-01
+              - cell "00:00" [ref=e332]:
+                - textbox [ref=e333]: 00:00
+              - cell "Remove" [ref=e334]:
+                - button "Remove" [ref=e335] [cursor=pointer]
+            - row "mwcu_b10_3 2028-06-01 00:00 Remove" [ref=e336]:
+              - cell "mwcu_b10_3" [ref=e337]:
+                - textbox "Leg ID" [ref=e338]: mwcu_b10_3
+              - cell "2028-06-01" [ref=e339]:
+                - textbox [ref=e340]: 2028-06-01
+              - cell "00:00" [ref=e341]:
+                - textbox [ref=e342]: 00:00
+              - cell "Remove" [ref=e343]:
+                - button "Remove" [ref=e344] [cursor=pointer]
+            - row "mwcu_a7_3 2028-06-01 00:00 Remove" [ref=e345]:
+              - cell "mwcu_a7_3" [ref=e346]:
+                - textbox "Leg ID" [ref=e347]: mwcu_a7_3
+              - cell "2028-06-01" [ref=e348]:
+                - textbox [ref=e349]: 2028-06-01
+              - cell "00:00" [ref=e350]:
+                - textbox [ref=e351]: 00:00
+              - cell "Remove" [ref=e352]:
+                - button "Remove" [ref=e353] [cursor=pointer]
+            - row "mwcu_b10_4 2027-07-01 00:00 Remove" [ref=e354]:
+              - cell "mwcu_b10_4" [ref=e355]:
+                - textbox "Leg ID" [ref=e356]: mwcu_b10_4
+              - cell "2027-07-01" [ref=e357]:
+                - textbox [ref=e358]: 2027-07-01
+              - cell "00:00" [ref=e359]:
+                - textbox [ref=e360]: 00:00
+              - cell "Remove" [ref=e361]:
+                - button "Remove" [ref=e362] [cursor=pointer]
+            - row "mwcu_a7_4 2027-07-01 00:00 Remove" [ref=e363]:
+              - cell "mwcu_a7_4" [ref=e364]:
+                - textbox "Leg ID" [ref=e365]: mwcu_a7_4
+              - cell "2027-07-01" [ref=e366]:
+                - textbox [ref=e367]: 2027-07-01
+              - cell "00:00" [ref=e368]:
+                - textbox [ref=e369]: 00:00
+              - cell "Remove" [ref=e370]:
+                - button "Remove" [ref=e371] [cursor=pointer]
+            - row "mwcu_b10_5 2027-07-01 00:00 Remove" [ref=e372]:
+              - cell "mwcu_b10_5" [ref=e373]:
+                - textbox "Leg ID" [ref=e374]: mwcu_b10_5
+              - cell "2027-07-01" [ref=e375]:
+                - textbox [ref=e376]: 2027-07-01
+              - cell "00:00" [ref=e377]:
+                - textbox [ref=e378]: 00:00
+              - cell "Remove" [ref=e379]:
+                - button "Remove" [ref=e380] [cursor=pointer]
+            - row "mwcu_a7_5 2027-07-01 00:00 Remove" [ref=e381]:
+              - cell "mwcu_a7_5" [ref=e382]:
+                - textbox "Leg ID" [ref=e383]: mwcu_a7_5
+              - cell "2027-07-01" [ref=e384]:
+                - textbox [ref=e385]: 2027-07-01
+              - cell "00:00" [ref=e386]:
+                - textbox [ref=e387]: 00:00
+              - cell "Remove" [ref=e388]:
+                - button "Remove" [ref=e389] [cursor=pointer]
+            - row "mwcu_b10_5a 2027-07-01 00:00 Remove" [ref=e390]:
+              - cell "mwcu_b10_5a" [ref=e391]:
+                - textbox "Leg ID" [ref=e392]: mwcu_b10_5a
+              - cell "2027-07-01" [ref=e393]:
+                - textbox [ref=e394]: 2027-07-01
+              - cell "00:00" [ref=e395]:
+                - textbox [ref=e396]: 00:00
+              - cell "Remove" [ref=e397]:
+                - button "Remove" [ref=e398] [cursor=pointer]
+            - row "mwcu_a7_5a 2027-07-01 00:00 Remove" [ref=e399]:
+              - cell "mwcu_a7_5a" [ref=e400]:
+                - textbox "Leg ID" [ref=e401]: mwcu_a7_5a
+              - cell "2027-07-01" [ref=e402]:
+                - textbox [ref=e403]: 2027-07-01
+              - cell "00:00" [ref=e404]:
+                - textbox [ref=e405]: 00:00
+              - cell "Remove" [ref=e406]:
+                - button "Remove" [ref=e407] [cursor=pointer]
+            - row "mwcu_b10_5b 2027-07-01 00:00 Remove" [ref=e408]:
+              - cell "mwcu_b10_5b" [ref=e409]:
+                - textbox "Leg ID" [ref=e410]: mwcu_b10_5b
+              - cell "2027-07-01" [ref=e411]:
+                - textbox [ref=e412]: 2027-07-01
+              - cell "00:00" [ref=e413]:
+                - textbox [ref=e414]: 00:00
+              - cell "Remove" [ref=e415]:
+                - button "Remove" [ref=e416] [cursor=pointer]
+            - row "mwcu_a7_5b 2027-07-01 00:00 Remove" [ref=e417]:
+              - cell "mwcu_a7_5b" [ref=e418]:
+                - textbox "Leg ID" [ref=e419]: mwcu_a7_5b
+              - cell "2027-07-01" [ref=e420]:
+                - textbox [ref=e421]: 2027-07-01
+              - cell "00:00" [ref=e422]:
+                - textbox [ref=e423]: 00:00
+              - cell "Remove" [ref=e424]:
+                - button "Remove" [ref=e425] [cursor=pointer]
+            - row "mwcu_b10_7 2028-12-15 00:00 Remove" [ref=e426]:
+              - cell "mwcu_b10_7" [ref=e427]:
+                - textbox "Leg ID" [ref=e428]: mwcu_b10_7
+              - cell "2028-12-15" [ref=e429]:
+                - textbox [ref=e430]: 2028-12-15
+              - cell "00:00" [ref=e431]:
+                - textbox [ref=e432]: 00:00
+              - cell "Remove" [ref=e433]:
+                - button "Remove" [ref=e434] [cursor=pointer]
+            - row "mwcu_a7_7 2028-12-15 00:00 Remove" [ref=e435]:
+              - cell "mwcu_a7_7" [ref=e436]:
+                - textbox "Leg ID" [ref=e437]: mwcu_a7_7
+              - cell "2028-12-15" [ref=e438]:
+                - textbox [ref=e439]: 2028-12-15
+              - cell "00:00" [ref=e440]:
+                - textbox [ref=e441]: 00:00
+              - cell "Remove" [ref=e442]:
+                - button "Remove" [ref=e443] [cursor=pointer]
+            - row "mwcu_b10_6 2027-05-01 00:00 Remove" [ref=e444]:
+              - cell "mwcu_b10_6" [ref=e445]:
+                - textbox "Leg ID" [ref=e446]: mwcu_b10_6
+              - cell "2027-05-01" [ref=e447]:
+                - textbox [ref=e448]: 2027-05-01
+              - cell "00:00" [ref=e449]:
+                - textbox [ref=e450]: 00:00
+              - cell "Remove" [ref=e451]:
+                - button "Remove" [ref=e452] [cursor=pointer]
+            - row "mwcu_a7_6 2027-05-01 00:00 Remove" [ref=e453]:
+              - cell "mwcu_a7_6" [ref=e454]:
+                - textbox "Leg ID" [ref=e455]: mwcu_a7_6
+              - cell "2027-05-01" [ref=e456]:
+                - textbox [ref=e457]: 2027-05-01
+              - cell "00:00" [ref=e458]:
+                - textbox [ref=e459]: 00:00
+              - cell "Remove" [ref=e460]:
+                - button "Remove" [ref=e461] [cursor=pointer]
+            - row "mwcu_b10_2.1 2028-12-15 00:00 Remove" [ref=e462]:
+              - cell "mwcu_b10_2.1" [ref=e463]:
+                - textbox "Leg ID" [ref=e464]: mwcu_b10_2.1
+              - cell "2028-12-15" [ref=e465]:
+                - textbox [ref=e466]: 2028-12-15
+              - cell "00:00" [ref=e467]:
+                - textbox [ref=e468]: 00:00
+              - cell "Remove" [ref=e469]:
+                - button "Remove" [ref=e470] [cursor=pointer]
+            - row "mwcu_a7_2.1 2028-12-15 00:00 Remove" [ref=e471]:
+              - cell "mwcu_a7_2.1" [ref=e472]:
+                - textbox "Leg ID" [ref=e473]: mwcu_a7_2.1
+              - cell "2028-12-15" [ref=e474]:
+                - textbox [ref=e475]: 2028-12-15
+              - cell "00:00" [ref=e476]:
+                - textbox [ref=e477]: 00:00
+              - cell "Remove" [ref=e478]:
+                - button "Remove" [ref=e479] [cursor=pointer]
+            - row "mwcu_b10_2.2 2028-07-01 00:00 Remove" [ref=e480]:
+              - cell "mwcu_b10_2.2" [ref=e481]:
+                - textbox "Leg ID" [ref=e482]: mwcu_b10_2.2
+              - cell "2028-07-01" [ref=e483]:
+                - textbox [ref=e484]: 2028-07-01
+              - cell "00:00" [ref=e485]:
+                - textbox [ref=e486]: 00:00
+              - cell "Remove" [ref=e487]:
+                - button "Remove" [ref=e488] [cursor=pointer]
+            - row "mwcu_a7_2.2 2028-07-01 00:00 Remove" [ref=e489]:
+              - cell "mwcu_a7_2.2" [ref=e490]:
+                - textbox "Leg ID" [ref=e491]: mwcu_a7_2.2
+              - cell "2028-07-01" [ref=e492]:
+                - textbox [ref=e493]: 2028-07-01
+              - cell "00:00" [ref=e494]:
+                - textbox [ref=e495]: 00:00
+              - cell "Remove" [ref=e496]:
+                - button "Remove" [ref=e497] [cursor=pointer]
+            - row "mwcu_b10_3 2028-06-01 00:00 Remove" [ref=e498]:
+              - cell "mwcu_b10_3" [ref=e499]:
+                - textbox "Leg ID" [ref=e500]: mwcu_b10_3
+              - cell "2028-06-01" [ref=e501]:
+                - textbox [ref=e502]: 2028-06-01
+              - cell "00:00" [ref=e503]:
+                - textbox [ref=e504]: 00:00
+              - cell "Remove" [ref=e505]:
+                - button "Remove" [ref=e506] [cursor=pointer]
+            - row "mwcu_a7_3 2028-06-01 00:00 Remove" [ref=e507]:
+              - cell "mwcu_a7_3" [ref=e508]:
+                - textbox "Leg ID" [ref=e509]: mwcu_a7_3
+              - cell "2028-06-01" [ref=e510]:
+                - textbox [ref=e511]: 2028-06-01
+              - cell "00:00" [ref=e512]:
+                - textbox [ref=e513]: 00:00
+              - cell "Remove" [ref=e514]:
+                - button "Remove" [ref=e515] [cursor=pointer]
+            - row "mwcu_b10_4 2027-07-01 00:00 Remove" [ref=e516]:
+              - cell "mwcu_b10_4" [ref=e517]:
+                - textbox "Leg ID" [ref=e518]: mwcu_b10_4
+              - cell "2027-07-01" [ref=e519]:
+                - textbox [ref=e520]: 2027-07-01
+              - cell "00:00" [ref=e521]:
+                - textbox [ref=e522]: 00:00
+              - cell "Remove" [ref=e523]:
+                - button "Remove" [ref=e524] [cursor=pointer]
+            - row "mwcu_a7_4 2027-07-01 00:00 Remove" [ref=e525]:
+              - cell "mwcu_a7_4" [ref=e526]:
+                - textbox "Leg ID" [ref=e527]: mwcu_a7_4
+              - cell "2027-07-01" [ref=e528]:
+                - textbox [ref=e529]: 2027-07-01
+              - cell "00:00" [ref=e530]:
+                - textbox [ref=e531]: 00:00
+              - cell "Remove" [ref=e532]:
+                - button "Remove" [ref=e533] [cursor=pointer]
+            - row "mwcu_b10_5 2027-07-01 00:00 Remove" [ref=e534]:
+              - cell "mwcu_b10_5" [ref=e535]:
+                - textbox "Leg ID" [ref=e536]: mwcu_b10_5
+              - cell "2027-07-01" [ref=e537]:
+                - textbox [ref=e538]: 2027-07-01
+              - cell "00:00" [ref=e539]:
+                - textbox [ref=e540]: 00:00
+              - cell "Remove" [ref=e541]:
+                - button "Remove" [ref=e542] [cursor=pointer]
+            - row "mwcu_a7_5 2027-07-01 00:00 Remove" [ref=e543]:
+              - cell "mwcu_a7_5" [ref=e544]:
+                - textbox "Leg ID" [ref=e545]: mwcu_a7_5
+              - cell "2027-07-01" [ref=e546]:
+                - textbox [ref=e547]: 2027-07-01
+              - cell "00:00" [ref=e548]:
+                - textbox [ref=e549]: 00:00
+              - cell "Remove" [ref=e550]:
+                - button "Remove" [ref=e551] [cursor=pointer]
+            - row "mwcu_b10_5a 2027-07-01 00:00 Remove" [ref=e552]:
+              - cell "mwcu_b10_5a" [ref=e553]:
+                - textbox "Leg ID" [ref=e554]: mwcu_b10_5a
+              - cell "2027-07-01" [ref=e555]:
+                - textbox [ref=e556]: 2027-07-01
+              - cell "00:00" [ref=e557]:
+                - textbox [ref=e558]: 00:00
+              - cell "Remove" [ref=e559]:
+                - button "Remove" [ref=e560] [cursor=pointer]
+            - row "mwcu_a7_5a 2027-07-01 00:00 Remove" [ref=e561]:
+              - cell "mwcu_a7_5a" [ref=e562]:
+                - textbox "Leg ID" [ref=e563]: mwcu_a7_5a
+              - cell "2027-07-01" [ref=e564]:
+                - textbox [ref=e565]: 2027-07-01
+              - cell "00:00" [ref=e566]:
+                - textbox [ref=e567]: 00:00
+              - cell "Remove" [ref=e568]:
+                - button "Remove" [ref=e569] [cursor=pointer]
+            - row "mwcu_b10_5b 2027-07-01 00:00 Remove" [ref=e570]:
+              - cell "mwcu_b10_5b" [ref=e571]:
+                - textbox "Leg ID" [ref=e572]: mwcu_b10_5b
+              - cell "2027-07-01" [ref=e573]:
+                - textbox [ref=e574]: 2027-07-01
+              - cell "00:00" [ref=e575]:
+                - textbox [ref=e576]: 00:00
+              - cell "Remove" [ref=e577]:
+                - button "Remove" [ref=e578] [cursor=pointer]
+            - row "mwcu_a7_5b 2027-07-01 00:00 Remove" [ref=e579]:
+              - cell "mwcu_a7_5b" [ref=e580]:
+                - textbox "Leg ID" [ref=e581]: mwcu_a7_5b
+              - cell "2027-07-01" [ref=e582]:
+                - textbox [ref=e583]: 2027-07-01
+              - cell "00:00" [ref=e584]:
+                - textbox [ref=e585]: 00:00
+              - cell "Remove" [ref=e586]:
+                - button "Remove" [ref=e587] [cursor=pointer]
+            - row "mwcu_b10_7 2028-12-15 00:00 Remove" [ref=e588]:
+              - cell "mwcu_b10_7" [ref=e589]:
+                - textbox "Leg ID" [ref=e590]: mwcu_b10_7
+              - cell "2028-12-15" [ref=e591]:
+                - textbox [ref=e592]: 2028-12-15
+              - cell "00:00" [ref=e593]:
+                - textbox [ref=e594]: 00:00
+              - cell "Remove" [ref=e595]:
+                - button "Remove" [ref=e596] [cursor=pointer]
+            - row "mwcu_a7_7 2028-12-15 00:00 Remove" [ref=e597]:
+              - cell "mwcu_a7_7" [ref=e598]:
+                - textbox "Leg ID" [ref=e599]: mwcu_a7_7
+              - cell "2028-12-15" [ref=e600]:
+                - textbox [ref=e601]: 2028-12-15
+              - cell "00:00" [ref=e602]:
+                - textbox [ref=e603]: 00:00
+              - cell "Remove" [ref=e604]:
+                - button "Remove" [ref=e605] [cursor=pointer]
+      - generic [ref=e606]:
+        - generic [ref=e607]:
+          - heading "Deadline Penalty Settings" [level=3] [ref=e608]
+          - generic [ref=e609]:
+            - checkbox "Enable" [checked] [ref=e610]
+            - text: Enable
+        - generic [ref=e611]:
+          - generic [ref=e612]:
+            - generic [ref=e613]: Deadline Penalty
+            - spinbutton "Deadline Penalty" [ref=e614]: "1000"
+          - generic [ref=e615]:
+            - generic [ref=e616]: Compactness Penalty
+            - spinbutton "Compactness Penalty" [ref=e617]: "500"
+          - generic [ref=e618]:
+            - generic [ref=e619]: Parallel Within Deadlines
+            - spinbutton "Parallel Within Deadlines" [ref=e620]: "100"
+      - generic [ref=e621]:
+        - generic [ref=e622]:
+          - heading "Test Proximity Rules" [level=3] [ref=e623]
+          - generic [ref=e624]:
+            - checkbox "Enable" [checked] [ref=e625]
+            - text: Enable
+          - button "Add Rule" [ref=e626] [cursor=pointer]
+        - table [ref=e628]:
+          - rowgroup [ref=e629]:
+            - row "Pattern Max Gap Days Penalty Per Day Enforce Seq Action" [ref=e630]:
+              - columnheader "Pattern" [ref=e631]
+              - columnheader "Max Gap Days" [ref=e632]
+              - columnheader "Penalty Per Day" [ref=e633]
+              - columnheader "Enforce Seq" [ref=e634]
+              - columnheader "Action" [ref=e635]
+          - rowgroup [ref=e636]:
+            - row "P-02 Remove" [ref=e637]:
+              - cell "P-02" [ref=e638]:
+                - textbox "Pattern" [ref=e639]: P-02
+              - cell [ref=e640]:
+                - spinbutton [ref=e641]: "10"
+              - cell [ref=e642]:
+                - spinbutton [ref=e643]: "50"
+              - cell [ref=e644]:
+                - checkbox [ref=e646]
+              - cell "Remove" [ref=e647]:
+                - button "Remove" [ref=e648] [cursor=pointer]
+            - row "P-03 Remove" [ref=e649]:
+              - cell "P-03" [ref=e650]:
+                - textbox "Pattern" [ref=e651]: P-03
+              - cell [ref=e652]:
+                - spinbutton [ref=e653]: "10"
+              - cell [ref=e654]:
+                - spinbutton [ref=e655]: "50"
+              - cell [ref=e656]:
+                - checkbox [ref=e658]
+              - cell "Remove" [ref=e659]:
+                - button "Remove" [ref=e660] [cursor=pointer]
+            - row "P-04 Remove" [ref=e661]:
+              - cell "P-04" [ref=e662]:
+                - textbox "Pattern" [ref=e663]: P-04
+              - cell [ref=e664]:
+                - spinbutton [ref=e665]: "10"
+              - cell [ref=e666]:
+                - spinbutton [ref=e667]: "50"
+              - cell [ref=e668]:
+                - checkbox [ref=e670]
+              - cell "Remove" [ref=e671]:
+                - button "Remove" [ref=e672] [cursor=pointer]
+            - row "P-03-E Remove" [ref=e673]:
+              - cell "P-03-E" [ref=e674]:
+                - textbox "Pattern" [ref=e675]: P-03-E
+              - cell [ref=e676]:
+                - spinbutton [ref=e677]: "10"
+              - cell [ref=e678]:
+                - spinbutton [ref=e679]: "50"
+              - cell [ref=e680]:
+                - checkbox [checked] [ref=e682]
+              - cell "Remove" [ref=e683]:
+                - button "Remove" [ref=e684] [cursor=pointer]
+            - row "P-02-L Remove" [ref=e685]:
+              - cell "P-02-L" [ref=e686]:
+                - textbox "Pattern" [ref=e687]: P-02-L
+              - cell [ref=e688]:
+                - spinbutton [ref=e689]: "10"
+              - cell [ref=e690]:
+                - spinbutton [ref=e691]: "50"
+              - cell [ref=e692]:
+                - checkbox [ref=e694]
+              - cell "Remove" [ref=e695]:
+                - button "Remove" [ref=e696] [cursor=pointer]
+            - row "Leak Remove" [ref=e697]:
+              - cell "Leak" [ref=e698]:
+                - textbox "Pattern" [ref=e699]: Leak
+              - cell [ref=e700]:
+                - spinbutton [ref=e701]: "10"
+              - cell [ref=e702]:
+                - spinbutton [ref=e703]: "50"
+              - cell [ref=e704]:
+                - checkbox [ref=e706]
+              - cell "Remove" [ref=e707]:
+                - button "Remove" [ref=e708] [cursor=pointer]
+            - row "P-02 Remove" [ref=e709]:
+              - cell "P-02" [ref=e710]:
+                - textbox "Pattern" [ref=e711]: P-02
+              - cell [ref=e712]:
+                - spinbutton [ref=e713]: "10"
+              - cell [ref=e714]:
+                - spinbutton [ref=e715]: "50"
+              - cell [ref=e716]:
+                - checkbox [ref=e718]
+              - cell "Remove" [ref=e719]:
+                - button "Remove" [ref=e720] [cursor=pointer]
+            - row "P-03 Remove" [ref=e721]:
+              - cell "P-03" [ref=e722]:
+                - textbox "Pattern" [ref=e723]: P-03
+              - cell [ref=e724]:
+                - spinbutton [ref=e725]: "10"
+              - cell [ref=e726]:
+                - spinbutton [ref=e727]: "50"
+              - cell [ref=e728]:
+                - checkbox [ref=e730]
+              - cell "Remove" [ref=e731]:
+                - button "Remove" [ref=e732] [cursor=pointer]
+            - row "P-04 Remove" [ref=e733]:
+              - cell "P-04" [ref=e734]:
+                - textbox "Pattern" [ref=e735]: P-04
+              - cell [ref=e736]:
+                - spinbutton [ref=e737]: "10"
+              - cell [ref=e738]:
+                - spinbutton [ref=e739]: "50"
+              - cell [ref=e740]:
+                - checkbox [ref=e742]
+              - cell "Remove" [ref=e743]:
+                - button "Remove" [ref=e744] [cursor=pointer]
+            - row "P-03-E Remove" [ref=e745]:
+              - cell "P-03-E" [ref=e746]:
+                - textbox "Pattern" [ref=e747]: P-03-E
+              - cell [ref=e748]:
+                - spinbutton [ref=e749]: "10"
+              - cell [ref=e750]:
+                - spinbutton [ref=e751]: "50"
+              - cell [ref=e752]:
+                - checkbox [checked] [ref=e754]
+              - cell "Remove" [ref=e755]:
+                - button "Remove" [ref=e756] [cursor=pointer]
+            - row "P-02-L Remove" [ref=e757]:
+              - cell "P-02-L" [ref=e758]:
+                - textbox "Pattern" [ref=e759]: P-02-L
+              - cell [ref=e760]:
+                - spinbutton [ref=e761]: "10"
+              - cell [ref=e762]:
+                - spinbutton [ref=e763]: "50"
+              - cell [ref=e764]:
+                - checkbox [ref=e766]
+              - cell "Remove" [ref=e767]:
+                - button "Remove" [ref=e768] [cursor=pointer]
+            - row "Leak Remove" [ref=e769]:
+              - cell "Leak" [ref=e770]:
+                - textbox "Pattern" [ref=e771]: Leak
+              - cell [ref=e772]:
+                - spinbutton [ref=e773]: "10"
+              - cell [ref=e774]:
+                - spinbutton [ref=e775]: "50"
+              - cell [ref=e776]:
+                - checkbox [ref=e778]
+              - cell "Remove" [ref=e779]:
+                - button "Remove" [ref=e780] [cursor=pointer]
+            - row "P-02 Remove" [ref=e781]:
+              - cell "P-02" [ref=e782]:
+                - textbox "Pattern" [ref=e783]: P-02
+              - cell [ref=e784]:
+                - spinbutton [ref=e785]: "10"
+              - cell [ref=e786]:
+                - spinbutton [ref=e787]: "50"
+              - cell [ref=e788]:
+                - checkbox [ref=e790]
+              - cell "Remove" [ref=e791]:
+                - button "Remove" [ref=e792] [cursor=pointer]
+            - row "P-03 Remove" [ref=e793]:
+              - cell "P-03" [ref=e794]:
+                - textbox "Pattern" [ref=e795]: P-03
+              - cell [ref=e796]:
+                - spinbutton [ref=e797]: "10"
+              - cell [ref=e798]:
+                - spinbutton [ref=e799]: "50"
+              - cell [ref=e800]:
+                - checkbox [ref=e802]
+              - cell "Remove" [ref=e803]:
+                - button "Remove" [ref=e804] [cursor=pointer]
+            - row "P-04 Remove" [ref=e805]:
+              - cell "P-04" [ref=e806]:
+                - textbox "Pattern" [ref=e807]: P-04
+              - cell [ref=e808]:
+                - spinbutton [ref=e809]: "10"
+              - cell [ref=e810]:
+                - spinbutton [ref=e811]: "50"
+              - cell [ref=e812]:
+                - checkbox [ref=e814]
+              - cell "Remove" [ref=e815]:
+                - button "Remove" [ref=e816] [cursor=pointer]
+            - row "P-03-E Remove" [ref=e817]:
+              - cell "P-03-E" [ref=e818]:
+                - textbox "Pattern" [ref=e819]: P-03-E
+              - cell [ref=e820]:
+                - spinbutton [ref=e821]: "10"
+              - cell [ref=e822]:
+                - spinbutton [ref=e823]: "50"
+              - cell [ref=e824]:
+                - checkbox [checked] [ref=e826]
+              - cell "Remove" [ref=e827]:
+                - button "Remove" [ref=e828] [cursor=pointer]
+            - row "P-02-L Remove" [ref=e829]:
+              - cell "P-02-L" [ref=e830]:
+                - textbox "Pattern" [ref=e831]: P-02-L
+              - cell [ref=e832]:
+                - spinbutton [ref=e833]: "10"
+              - cell [ref=e834]:
+                - spinbutton [ref=e835]: "50"
+              - cell [ref=e836]:
+                - checkbox [ref=e838]
+              - cell "Remove" [ref=e839]:
+                - button "Remove" [ref=e840] [cursor=pointer]
+            - row "Leak Remove" [ref=e841]:
+              - cell "Leak" [ref=e842]:
+                - textbox "Pattern" [ref=e843]: Leak
+              - cell [ref=e844]:
+                - spinbutton [ref=e845]: "10"
+              - cell [ref=e846]:
+                - spinbutton [ref=e847]: "50"
+              - cell [ref=e848]:
+                - checkbox [ref=e850]
+              - cell "Remove" [ref=e851]:
+                - button "Remove" [ref=e852] [cursor=pointer]
+      - generic [ref=e853]:
+        - generic [ref=e854]:
+          - heading "Objective Function Weights" [level=3] [ref=e855]
+          - generic [ref=e856]:
+            - checkbox "Enable" [checked] [ref=e857]
+            - text: Enable
+        - generic [ref=e858]:
+          - generic [ref=e859]:
+            - generic [ref=e860]: Makespan Weight
+            - spinbutton "Makespan Weight" [ref=e861]: "0.2"
+          - generic [ref=e862]:
+            - generic [ref=e863]: Priority Weight
+            - spinbutton "Priority Weight" [ref=e864]: "0.8"
+      - generic [ref=e865]:
+        - heading "Priority Configuration Settings (Output)" [level=3] [ref=e866]
+        - generic [ref=e867]:
+          - generic [ref=e868]: "Generated JSON Configuration:"
+          - textbox [ref=e870]: "{ \"mode\": \"leg_end_dates\", \"description\": \"Each leg has a target completion date. Legs can be scheduled in parallel if they don't exceed their deadlines.\", \"weights\": { \"makespan_weight\": 0.2, \"priority_weight\": 0.8 }, \"leg_deadlines\": { \"mwcu_b10_6\": \"2027-05-01\", \"mwcu_a7_6\": \"2027-05-01\", \"mwcu_b10_2.1\": \"2028-12-15\", \"mwcu_a7_2.1\": \"2028-12-15\", \"mwcu_b10_2.2\": \"2028-07-01\", \"mwcu_a7_2.2\": \"2028-07-01\", \"mwcu_b10_3\": \"2028-06-01\", \"mwcu_a7_3\": \"2028-06-01\", \"mwcu_b10_4\": \"2027-07-01\", \"mwcu_a7_4\": \"2027-07-01\", \"mwcu_b10_5\": \"2027-07-01\", \"mwcu_a7_5\": \"2027-07-01\", \"mwcu_b10_5a\": \"2027-07-01\", \"mwcu_a7_5a\": \"2027-07-01\", \"mwcu_b10_5b\": \"2027-07-01\", \"mwcu_a7_5b\": \"2027-07-01\", \"mwcu_b10_7\": \"2028-12-15\", \"mwcu_a7_7\": \"2028-12-15\" }, \"deadline_penalty_per_day\": 1000, \"leg_compactness_penalty_per_day\": 500, \"allow_parallel_within_deadlines\": 100, \"test_proximity_rules\": { \"patterns\": [ \"P-02\", \"P-03\", \"P-04\", \"P-03-E\", \"P-02-L\", \"Leak\" ], \"max_gap_days\": 10, \"proximity_penalty_per_day\": 50, \"enforce_sequence_order\": true } }"
+        - generic [ref=e871]:
+          - button "Copy to Clipboard" [ref=e872] [cursor=pointer]:
+            - img [ref=e873]
+            - text: Copy to Clipboard
+          - button "Reset to Defaults" [ref=e876] [cursor=pointer]
