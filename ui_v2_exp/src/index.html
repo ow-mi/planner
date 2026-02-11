@@ -146,15 +146,7 @@
             >
                 🔄 Reset
             </button>
-            <button
-                type="button"
-                class="theme-toggle"
-                onclick="document.dispatchEvent(new CustomEvent('toggle-theme', { bubbles: true }))"
-                aria-label="Toggle color theme"
-                title="Toggle color theme"
-            >
-                🌙/☀️ Theme
-            </button>
+
         </div>
         <div class="app-content">
             <!-- Main application container -->
@@ -185,7 +177,11 @@
        <script src="js/stores/batchStore.js"></script>
        <script src="js/stores/visualizationStore.js"></script>
        <script src="js/stores/uiStore.js"></script>
-
+       <script src="js/stores/themeStore.js"></script>
+ 
+       <!-- Load components -->
+       <script src="js/components/themeToggleComponent.js"></script>
+ 
        <!-- Load legacy templates (d3-based visualizations) -->
        <script src="js/legacy-templates.js"></script>
 
