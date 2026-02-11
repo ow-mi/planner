@@ -83,60 +83,6 @@
     <div class="app-container">
         <div class="app-header">
             <h1 style="margin: 0;">Priority Configuration Editor v2</h1>
-
-            <!-- Theme Toggle Dropdown -->
-            <div x-data="themeToggle()" x-component="themeToggle" class="theme-toggle-container" style="margin-left: auto;">
-                <div class="dropdown dropdown-end">
-                    <label tabindex="0" class="btn btn-ghost btn-circle" @click="isOpen = !isOpen" title="Change theme">
-                        <!-- Theme Icon -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                        </svg>
-                    </label>
-
-                    <!-- Dropdown Menu -->
-                    <div x-show="isOpen"
-                         @click.away="isOpen = false"
-                         x-transition:enter="transition ease-out duration-200"
-                         x-transition:enter-start="opacity-0 scale-95"
-                         x-transition:enter-end="opacity-100 scale-100"
-                         x-transition:leave="transition ease-in duration-100"
-                         x-transition:leave-start="opacity-100 scale-100"
-                         x-transition:leave-end="opacity-0 scale-95"
-                         tabindex="0"
-                         class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-64 mt-4"
-                         style="max-height: 400px; overflow-y: auto;">
-
-                        <!-- Search -->
-                        <div class="px-2 py-2">
-                            <input type="text"
-                                   x-model="searchQuery"
-                                   placeholder="Search themes..."
-                                   class="input input-bordered input-sm w-full"
-                                   @click.stop>
-                        </div>
-
-                        <!-- Theme Categories -->
-                        <template x-for="(themes, category) in groupedThemes" :key="category">
-                            <div>
-                                <div class="px-2 py-1 text-xs font-semibold text-base-content/60 uppercase" x-text="getCategoryName(category)"></div>
-                                <template x-for="theme in themes" :key="theme.id">
-                                    <button @click="selectTheme(theme.id)"
-                                            class="w-full text-left px-4 py-2 hover:bg-base-200 flex items-center justify-between"
-                                            :class="{ 'bg-primary text-primary-content': isActive(theme.id) }">
-                                        <span x-text="theme.name"></span>
-                                        <span x-show="isActive(theme.id)" class="text-xs">✓</span>
-                                    </button>
-                                </template>
-                            </div>
-                        </template>
-
-                        <div x-show="filteredThemes.length === 0" class="px-4 py-2 text-sm text-base-content/60">
-                            No themes found
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
         <div class="app-content">
             <!-- Main application container -->
