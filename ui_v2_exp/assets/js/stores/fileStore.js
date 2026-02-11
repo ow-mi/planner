@@ -3,6 +3,110 @@
  *
  * Manages uploaded files, CSV parsing, and data storage
  */
+function inferColumnTypeFromValues(values) {
+    const normalizedValues = values
+        .map(value => (value === null || value === undefined ? '' : String(value).trim()))
+        .filter(value => value.length > 0);
+
+    if (normalizedValues.length === 0) {
+        return 'text';
+    }
+
+    const allNumbers = normalizedValues.every(value => /^[-+]?\d*\.?\d+$/.test(value));
+    if (allNumbers) {
+        return 'number';
+    }
+
+    const allDates = normalizedValues.every(value => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            return false;
+        }
+
+        const date = new Date(`${value}T00:00:00Z`);
+        return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+    });
+
+    if (allDates) {
+        return 'date';
+    }
+
+    return 'text';
+}
+
+function inferColumnTypes(csvData) {
+    if (!csvData || !Array.isArray(csvData.headers) || !Array.isArray(csvData.rows)) {
+        return [];
+    }
+
+    return csvData.headers.map((_, colIndex) => {
+        const columnValues = csvData.rows.map(row => (Array.isArray(row) ? row[colIndex] : ''));
+        return inferColumnTypeFromValues(columnValues);
+    });
+}
+
+function validateCellValueByType(value, columnType) {
+    const normalized = value === null || value === undefined ? '' : String(value).trim();
+    if (normalized.length === 0 || columnType === 'text') {
+        return true;
+    }
+
+    if (columnType === 'number') {
+        return /^[-+]?\d*\.?\d+$/.test(normalized);
+    }
+
+    if (columnType === 'date') {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+            return false;
+        }
+
+        const date = new Date(`${normalized}T00:00:00Z`);
+        return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === normalized;
+    }
+
+    return true;
+}
+
+function parseTabularText(rawText) {
+    if (typeof rawText !== 'string' || rawText.length === 0) {
+        return [];
+    }
+
+    return rawText
+        .replace(/\r\n/g, '\n')
+        .split('\n')
+        .filter((line, index, lines) => line.length > 0 || index < lines.length - 1)
+        .map(line => line.split('\t'));
+}
+
+function applyRectangularPaste(rows, startRow, startCol, pastedMatrix, columnCount) {
+    const nextRows = Array.isArray(rows) ? rows.map(row => (Array.isArray(row) ? [...row] : [])) : [];
+    if (!Array.isArray(pastedMatrix) || pastedMatrix.length === 0) {
+        return nextRows;
+    }
+
+    pastedMatrix.forEach((pastedRow, rowOffset) => {
+        const targetRowIndex = startRow + rowOffset;
+        while (nextRows.length <= targetRowIndex) {
+            nextRows.push(Array(columnCount).fill(''));
+        }
+
+        if (!Array.isArray(nextRows[targetRowIndex])) {
+            nextRows[targetRowIndex] = Array(columnCount).fill('');
+        }
+
+        pastedRow.forEach((cellValue, colOffset) => {
+            const targetColIndex = startCol + colOffset;
+            if (targetColIndex >= columnCount) {
+                return;
+            }
+
+            nextRows[targetRowIndex][targetColIndex] = cellValue;
+        });
+    });
+
+    return nextRows;
+}
+
 document.addEventListener('alpine:init', () => {
     Alpine.store('files', {
         // State
@@ -23,14 +127,17 @@ document.addEventListener('alpine:init', () => {
         // Load from localStorage
         loadFromLocalStorage() {
             try {
-                const savedFiles = localStorage.getItem('uploadedFiles');
-                if (savedFiles) {
-                    this.uploadedFiles = JSON.parse(savedFiles);
-                }
-
+                // Note: uploadedFiles contains File objects which cannot be serialized to localStorage.
+                // We reconstruct uploadedFiles from parsedCsvData keys.
                 const savedData = localStorage.getItem('parsedCsvData');
                 if (savedData) {
                     this.parsedCsvData = JSON.parse(savedData);
+                    // Reconstruct uploadedFiles from parsedCsvData keys
+                    this.uploadedFiles = Object.keys(this.parsedCsvData).map(name => ({
+                        name: name,
+                        size: 0, // File size not persisted - file must be re-uploaded for original size
+                        lastModified: Date.now()
+                    }));
                 }
 
                 const savedSelected = localStorage.getItem('selectedCsv');
@@ -49,7 +156,9 @@ document.addEventListener('alpine:init', () => {
         // Save to localStorage
         saveToLocalStorage() {
             try {
-                localStorage.setItem('uploadedFiles', JSON.stringify(this.uploadedFiles));
+                // Note: uploadedFiles contains File objects which cannot be serialized.
+                // We only persist parsedCsvData and selectedCsv.
+                // uploadedFiles will be reconstructed from parsedCsvData on load.
                 localStorage.setItem('parsedCsvData', JSON.stringify(this.parsedCsvData));
                 localStorage.setItem('selectedCsv', this.selectedCsv);
             } catch (error) {
@@ -204,6 +313,32 @@ document.addEventListener('alpine:init', () => {
             }
 
             return csvFiles;
+        },
+
+        inferColumnTypes(csvData) {
+            return inferColumnTypes(csvData);
+        },
+
+        validateCellValueByType(value, columnType) {
+            return validateCellValueByType(value, columnType);
+        },
+
+        parseTabularText(rawText) {
+            return parseTabularText(rawText);
+        },
+
+        applyRectangularPaste(rows, startRow, startCol, pastedMatrix, columnCount) {
+            return applyRectangularPaste(rows, startRow, startCol, pastedMatrix, columnCount);
         }
     });
 });
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        inferColumnTypeFromValues,
+        inferColumnTypes,
+        validateCellValueByType,
+        parseTabularText,
+        applyRectangularPaste
+    };
+}
