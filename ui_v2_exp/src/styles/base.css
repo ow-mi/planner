@@ -119,7 +119,7 @@ h1, h2, h3 {
     align-items: center;
     border-bottom: 2px solid var(--border-color);
     margin-bottom: 1rem;
-    overflow-x: auto;
+    /* Removed overflow-x: auto to prevent scrollbars */
 }
 
 /* Tab button styles */
