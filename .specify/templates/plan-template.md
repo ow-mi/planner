@@ -31,19 +31,7 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Alpine.js Architecture Compliance:**
-- [ ] All UI components use Alpine.js reactive patterns (`x-data`, `x-bind`, `x-on`)
-- [ ] State management follows component-first design (no global mutations)
-- [ ] D3.js visualizations are data-driven from Alpine.js reactive state
-- [ ] Progressive enhancement ensures core functionality without JavaScript
-- [ ] Event-driven architecture with `$dispatch` for component communication
-- [ ] Template-based configuration for all chart parameters
-- [ ] Performance optimization with debounced updates and efficient reactivity
-
-**Complexity Justification:**
-- [ ] Any non-Alpine.js patterns are documented and justified
-- [ ] Performance impact of reactive updates is measured and acceptable
-- [ ] Accessibility requirements for progressive enhancement are met
+[Gates determined based on constitution file]
 
 ## Project Structure
 

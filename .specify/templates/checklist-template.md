@@ -32,24 +32,6 @@
 - [ ] CHK005 Item with specific criteria
 - [ ] CHK006 Final item in this category
 
-## Alpine.js Component Testing
-
-- [ ] CHK001 Component isolation: Each Alpine.js component testable independently
-- [ ] CHK002 Event simulation: Test user interactions through Alpine.js events
-- [ ] CHK003 State verification: Assert reactive data changes propagate correctly
-- [ ] CHK004 Visualization validation: Ensure D3.js charts update with state changes
-- [ ] CHK005 Performance: Chart updates debounced and efficient (60fps target)
-- [ ] CHK006 Accessibility: Progressive enhancement works without JavaScript
-- [ ] CHK007 Cross-component communication: Events use `$dispatch` pattern
-- [ ] CHK008 Template configuration: All chart parameters configurable via `x-data`
-
-## D3.js Integration
-
-- [ ] CHK009 Data binding: D3.js selections bound to Alpine.js reactive state
-- [ ] CHK010 Update lifecycle: Chart redraws triggered by state changes
-- [ ] CHK011 Performance optimization: Large datasets handled efficiently
-- [ ] CHK012 Error handling: Graceful degradation for invalid data
-
 ## Notes
 
 - Check items off as completed: `[x]`
