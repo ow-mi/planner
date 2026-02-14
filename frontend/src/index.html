@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Priority Configuration Editor v2</title>
+
+    <script>
+        (function setInitialTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const initialTheme = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'dark';
+            document.documentElement.setAttribute('data-theme', initialTheme);
+        })();
+    </script>
+
+    <!-- Import Maps for ES Modules -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@codemirror/view": "https://esm.sh/@codemirror/view@6.26.0?external=*",
+            "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.0?external=*",
+            "@codemirror/language": "https://esm.sh/@codemirror/language@6.10.0?external=*",
+            "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.5.0?external=*",
+            "@codemirror/search": "https://esm.sh/@codemirror/search@6.5.5?external=*",
+            "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.11.0?external=*",
+            "@codemirror/lint": "https://esm.sh/@codemirror/lint@6.4.0?external=*",
+            "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6.2.2?external=*",
+            "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.1.2?external=*",
+            "@lezer/common": "https://esm.sh/@lezer/common@1.2.1?external=*",
+            "@lezer/highlight": "https://esm.sh/@lezer/highlight@1.2.0?external=*",
+            "@lezer/lr": "https://esm.sh/@lezer/lr@1.4.0?external=*",
+            "@lezer/javascript": "https://esm.sh/@lezer/javascript@1.4.13?external=*",
+            "style-mod": "https://esm.sh/style-mod@4.1.2?external=*",
+            "w3c-keyname": "https://esm.sh/w3c-keyname@2.2.8?external=*",
+            "crelt": "https://esm.sh/crelt@1.0.6?external=*"
+        }
+    }
+    </script>
+
+     <!-- HTMX - Upgraded to 2.x for improved fragment loading and Alpine.js integration -->
+     <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+      <script>
+          // Configure HTMX to work with Alpine.js
+          document.addEventListener('DOMContentLoaded', function() {
+              // Configure HTMX to use relative URLs
+              htmx.config.useTemplateFragments = true;
+
+              // Re-initialize Alpine.js components in dynamically loaded content (HTMX 2.x pattern)
+              document.body.addEventListener('htmx:afterSwap', function(event) {
+                  if (window.Alpine && event && event.detail && event.detail.target) {
+                      window.Alpine.initTree(event.detail.target);
+                  }
+              });
+          });
+      </script>
+
+      <!-- Alpine.js -->
+      <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js" defer></script>
+
+     <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+
+    <!-- CSS -->
+    <link rel="icon" href="../favicon.ico" sizes="any">
+    <!-- Tailwind CSS (required for DaisyUI) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- DaisyUI Theme CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {},
+            },
+            daisyui: {
+                themes: true, // Enable all themes
+                darkTheme: "dark",
+                base: true,
+                styled: true,
+                utils: true,
+                prefix: "",
+                logs: true,
+            },
+        };
+    </script>
+
+     <!-- Main application logic -->
+     <script>
+            function app() {
+                return {
+                    activeTab: 'data',
+                    theme: localStorage.getItem('theme') || 'dark',
+                   isLoading: false,
+                   error: null,
+
+                  toggleTheme() {
+                      this.theme = this.theme === 'dark' ? 'light' : 'dark';
+                      localStorage.setItem('theme', this.theme);
+                      document.documentElement.setAttribute('data-theme', this.theme);
+                  },
+
+                  getValidTabs() {
+                      return window.VALID_TABS || ['data', 'configuration', 'solver', 'batch', 'visualizer', 'output_data'];
+                  },
+
+                  getTabFromHash() {
+                      const hashTab = window.location.hash.replace('#', '').trim();
+                      const validTabs = this.getValidTabs();
+                      return validTabs.includes(hashTab) ? hashTab : 'data';
+                  },
+
+                 setHashForTab(tabName) {
+                     if (!this.getValidTabs().includes(tabName)) {
+                         return;
+                     }
+
+                     const nextHash = `#${tabName}`;
+                     if (window.location.hash !== nextHash) {
+                         window.location.hash = nextHash;
+                     }
+                 },
+
+                 initApp() {
+                     console.log('Initializing Priority Configuration Editor v2');
+
+                     this.$watch('theme', (value) => {
+                         document.documentElement.setAttribute('data-theme', value);
+                     });
+                     document.documentElement.setAttribute('data-theme', this.theme);
+
+                     // Listen for theme toggle event from child components (using document for dynamic content)
+                     document.addEventListener('toggle-theme', () => {
+                         this.toggleTheme();
+                     });
+
+                     this.activeTab = this.getTabFromHash();
+
+                     window.addEventListener('hashchange', () => {
+                         const hashTab = this.getTabFromHash();
+                         if (hashTab !== this.activeTab) {
+                             this.setActiveTab(hashTab);
+                         }
+                     });
+
+                      // Set up event listeners (these don't depend on stores)
+                      this.setupEventListeners();
+
+                      // Start polling for store availability
+                      this.waitForStores();
+                },
+
+                waitForStores() {
+                    const maxAttempts = 50; // 5 seconds max wait
+                    let attempts = 0;
+
+                    const checkStores = () => {
+                        attempts++;
+
+                        // Check each store individually
+                        const filesReady = this.$store && this.$store.files;
+                        const configReady = this.$store && this.$store.config;
+                         const solverReady = this.$store && this.$store.solver;
+                         const batchReady = this.$store && this.$store.batch;
+                         const vizReady = this.$store && this.$store.visualization;
+
+                         if (filesReady && configReady && solverReady && batchReady && vizReady) {
+                             console.log('All stores detected, initializing...');
+                             this.initializeStores();
+                         } else if (attempts < maxAttempts) {
+                            // Log which stores are missing (for debugging)
+                            if (attempts % 10 === 0) {
+                                console.log(`Waiting for stores... (attempt ${attempts})`);
+                                if (!filesReady) console.log('  - files store not ready');
+                                 if (!configReady) console.log('  - config store not ready');
+                                 if (!solverReady) console.log('  - solver store not ready');
+                                 if (!batchReady) console.log('  - batch store not ready');
+                                 if (!vizReady) console.log('  - visualization store not ready');
+                             }
+                            // Try again in 100ms
+                            setTimeout(checkStores, 100);
+                        } else {
+                            // Timeout - show error
+                            const missing = [];
+                            if (!filesReady) missing.push('files');
+                             if (!configReady) missing.push('config');
+                             if (!solverReady) missing.push('solver');
+                             if (!batchReady) missing.push('batch');
+                             if (!vizReady) missing.push('visualization');
+
+                            console.error(`Timeout waiting for stores: ${missing.join(', ')} not available`);
+                            this.error = `Failed to initialize: ${missing.join(', ')} stores not loaded. Please refresh the page.`;
+                        }
+                    };
+
+                    // Also listen for alpine:init as a backup
+                    document.addEventListener('alpine:init', () => {
+                        this.$nextTick(() => {
+                            checkStores();
+                        });
+                    }, { once: true });
+
+                    // Start polling immediately
+                    checkStores();
+                },
+
+                initializeStores() {
+                    try {
+                        this.$store.files.init();
+                        this.$store.config.init();
+                        this.$store.solver.init();
+                        this.$store.batch.init();
+                        this.$store.visualization.init();
+                        console.log('All stores initialized successfully');
+
+                        // Load initial tab
+                        this.$nextTick(() => {
+                            this.updateTabVisibility(this.activeTab);
+                            this.loadTabContent(this.activeTab);
+                        });
+
+                        // Load tab content on tab switches (only set up once stores are ready)
+                        this.$watch('activeTab', (newTab) => {
+                            this.updateTabVisibility(newTab);
+                            this.loadTabContent(newTab);
+                        });
+                    } catch (error) {
+                        console.error('Failed to initialize stores:', error);
+                        this.error = 'Failed to initialize application stores: ' + error.message;
+                    }
+                },
+
+                updateTabVisibility(tabName) {
+                    document.querySelectorAll('.tab-content').forEach((element) => {
+                        element.classList.remove('active');
+                    });
+
+                    const activeTarget = TAB_TARGETS[tabName];
+                    if (!activeTarget) {
+                        return;
+                    }
+
+                    const activeElement = document.querySelector(activeTarget);
+                    if (activeElement) {
+                        activeElement.classList.add('active');
+                    }
+                },
+
+                loadTabContent(tabName) {
+                    // Use tabLoader.js if available, otherwise use inline logic
+                    if (window.loadTab && window.TAB_CONFIG) {
+                        return window.loadTab(tabName, window.htmx);
+                    }
+
+                    // Fallback to inline logic
+                    const config = window.TAB_CONFIG ? window.TAB_CONFIG[tabName] : null;
+                    if (!config || !window.htmx) {
+                        return;
+                    }
+
+                    const targetElement = document.querySelector(config.target);
+                    if (!targetElement) {
+                        return;
+                    }
+
+                    if (targetElement.getAttribute('data-loaded') === 'true') {
+                        return;
+                    }
+
+                    htmx.ajax('GET', config.url, {
+                        target: config.target,
+                        swap: 'innerHTML'
+                    });
+
+                    targetElement.setAttribute('data-loaded', 'true');
+                },
+
+                resetAllStores() {
+                    if (confirm('Are you sure you want to reset the UI? All imported data and configuration will be lost.')) {
+                        localStorage.clear();
+
+                        if (this.$store && this.$store.files && typeof this.$store.files.clearAllFiles === 'function') {
+                            this.$store.files.clearAllFiles();
+                        }
+                        if (this.$store && this.$store.config && typeof this.$store.config.clearAllConfig === 'function') {
+                            this.$store.config.clearAllConfig();
+                        }
+                        if (this.$store && this.$store.solver && typeof this.$store.solver.clearResults === 'function') {
+                            this.$store.solver.clearResults();
+                        }
+                        if (this.$store && this.$store.batch && typeof this.$store.batch.clearBatch === 'function') {
+                            this.$store.batch.clearBatch();
+                        }
+                        if (this.$store && this.$store.visualization && typeof this.$store.visualization.clearCode === 'function') {
+                            this.$store.visualization.clearCode();
+                        }
+
+                        window.location.reload();
+                    }
+                },
+
+                setupEventListeners() {
+                    // Global error handling
+                    window.addEventListener('error', (event) => {
+                        console.error('Global error:', event.error);
+                        const errorMessage = event?.error?.message || event?.message || 'An unexpected error occurred.';
+                        if (!errorMessage || errorMessage === 'Script error.') {
+                            return;
+                        }
+                        this.showError(`Unexpected error: ${errorMessage}`);
+                    });
+
+                    // HTMX event listeners
+                    document.body.addEventListener('htmx:beforeRequest', (event) => {
+                        console.log('[htmx] beforeRequest', {
+                            path: event?.detail?.pathInfo?.requestPath,
+                            target: event?.detail?.target?.id || event?.detail?.target?.tagName
+                        });
+                        this.isLoading = true;
+                    });
+
+                    document.body.addEventListener('htmx:afterRequest', (event) => {
+                        console.log('[htmx] afterRequest', {
+                            path: event?.detail?.pathInfo?.requestPath,
+                            status: event?.detail?.xhr?.status,
+                            target: event?.detail?.target?.id || event?.detail?.target?.tagName
+                        });
+                        this.isLoading = false;
+                    });
+
+                    document.body.addEventListener('htmx:afterSwap', (event) => {
+                        console.log('[htmx] afterSwap', {
+                            target: event?.detail?.target?.id || event?.detail?.target?.tagName,
+                            childCount: event?.detail?.target?.children?.length || 0
+                        });
+                    });
+
+                    document.body.addEventListener('htmx:responseError', (event) => {
+                        try {
+                            const failedRequest = event.detail.failedRequest;
+                            if (failedRequest && failedRequest.response) {
+                                const errorData = JSON.parse(failedRequest.response);
+                                this.showError(errorData.message || 'Request failed');
+                            } else {
+                                // Handle 404 and other errors where response might not be available
+                                const xhr = event.detail.failedRequest;
+                                if (xhr && xhr.status) {
+                                    if (xhr.status === 404) {
+                                        this.showError('Component not found. Please check the path.');
+                                    } else {
+                                        this.showError(`HTTP Error ${xhr.status}: ${xhr.statusText || 'Unknown error'}`);
+                                    }
+                                } else {
+                                    this.showError('Request failed: Component loading error');
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Error handling HTMX response:', e);
+                            this.showError('Request failed: ' + e.message);
+                        }
+                    });
+                },
+
+                showError(message) {
+                    this.error = message;
+                    console.error('Application error:', message);
+
+                    // Clear error after 10 seconds
+                    setTimeout(() => {
+                        this.error = null;
+                    }, 10000);
+                },
+
+                clearError() {
+                    this.error = null;
+                },
+
+                   setActiveTab(tabName) {
+                       if (!this.getValidTabs().includes(tabName)) {
+                           return;
+                       }
+
+                       this.activeTab = tabName;
+                       this.setHashForTab(tabName);
+                       this.updateTabVisibility(tabName);
+                   },
+
+                   
+
+                  handleTabNavigation(direction) {
+                      // Use tabLoader.js if available, otherwise use inline logic
+                      if (window.handleTabNavigation) {
+                          const newTab = window.handleTabNavigation(direction, this.activeTab);
+                          if (newTab && newTab !== this.activeTab) {
+                              this.setActiveTab(newTab);
+                          }
+                          return;
+                      }
+
+                      // Fallback to inline logic
+                      const tabs = this.getValidTabs();
+
+                      // DOM-AWARE: Find current tab by checking which button has tabindex="0"
+                      // This prevents issues with state out of sync with DOM
+                      const tabButtons = document.querySelectorAll('.tab');
+                      let currentIndex = -1;
+
+                      tabButtons.forEach((btn, idx) => {
+                          if (btn.getAttribute('tabindex') === '0') {
+                              currentIndex = idx;
+                          }
+                      });
+
+                      // Fallback to state-based lookup if DOM method fails
+                      if (currentIndex === -1) {
+                          currentIndex = tabs.indexOf(this.activeTab);
+                      }
+
+                      if (currentIndex === -1) {
+                          console.warn('handleTabNavigation: Could not determine current tab');
+                          return;
+                      }
+
+                      let newIndex = currentIndex;
+
+                      switch (direction) {
+                          case 'left':
+                              newIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
+                              break;
+                          case 'right':
+                              newIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+                              break;
+                          case 'home':
+                              newIndex = 0;
+                              break;
+                          case 'end':
+                              newIndex = tabs.length - 1;
+                              break;
+                      }
+
+                      // Debug logging
+                      console.log(`handleTabNavigation: direction=${direction}, currentIndex=${currentIndex}, newIndex=${newIndex}, tab=${tabs[newIndex]}`);
+
+                      this.setActiveTab(tabs[newIndex]);
+                  }
+             }
+         }
+
+         // Initialize HTMX extensions (HTMX 2.x pattern)
+         document.body.addEventListener('htmx:afterSwap', function(event) {
+             // Re-initialize Alpine.js components in dynamically loaded content
+             if (window.Alpine && event && event.detail && event.detail.target) {
+                 window.Alpine.initTree(event.detail.target);
+             }
+         });
+    </script>
+</body>
+</html>

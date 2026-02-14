@@ -1,0 +1,128 @@
+<div x-data="fileUploadComponent()" x-init="init()">
+    <!-- Folder Input Section -->
+    <div class="section">
+        <h3>Import Inputs From Folder</h3>
+        <p>Provide an absolute folder path containing CSV inputs (and optional <code>priority_config.json</code>).</p>
+
+        <div class="form-group">
+            <label for="folder-path-input">Folder Path</label>
+            <input
+                id="folder-path-input"
+                type="text"
+                x-model="baseFolderPath"
+                @input="setBaseFolderPath(baseFolderPath)"
+                placeholder="/absolute/path/to/input-folder"
+                class="form-control"
+            >
+        </div>
+
+        <div class="form-group" style="margin-top: 0.5rem;">
+            <button @click="importFolder()" class="btn" :disabled="isLoading">Import Folder</button>
+        </div>
+
+        <!-- File List -->
+        <div x-show="uploadedFiles.length > 0">
+            <h3>Discovered Files</h3>
+            <ul class="file-list">
+                <template x-for="(file, fileIndex) in uploadedFiles" :key="`${file.name}-${file.size || 0}-${file.lastModified || 0}`">
+                    <li>
+                        <span x-text="file.name"></span>
+                        <span x-text="helpers.formatFileSize(file.size)" style="margin-left: 10px; color: var(--text-light); font-size: 0.8rem;"></span>
+                        <button @click="removeFile(file.name)" class="btn btn-danger" style="margin-left: 10px; padding: 0.25rem 0.5rem; font-size: 0.8rem;">Remove</button>
+                    </li>
+                </template>
+            </ul>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <button @click="clearAllFiles()" class="btn btn-danger" :disabled="uploadedFiles.length === 0">Clear All Files</button>
+            </div>
+        </div>
+
+        <!-- Error Display -->
+        <div x-show="error" class="validation-error" style="margin-top: 1rem;">
+            <span x-text="error"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+function fileUploadComponent() {
+    return {
+        dragOver: false,
+        helpers: window.helpers,
+
+        get uploadedFiles() {
+            return this.$store.files.uploadedFiles || [];
+        },
+
+        get error() {
+            return this.$store.files.error;
+        },
+
+        get isLoading() {
+            return this.$store.files.isLoading;
+        },
+
+        get baseFolderPath() {
+            return this.$store.files.baseFolderPath || '';
+        },
+
+        set baseFolderPath(value) {
+            this.$store.files.setBaseFolderPath(value);
+        },
+
+        init() {
+            console.log('Folder import component initialized');
+        },
+
+        async importFolder() {
+            const store = Alpine.store('files');
+            if (store && typeof store.importFolder === 'function') {
+                await store.importFolder();
+            }
+        },
+
+        setBaseFolderPath(value) {
+            this.$store.files.setBaseFolderPath(value);
+        },
+
+        removeFile(filename) {
+            const store = Alpine.store('files');
+            if (store && typeof store.removeFile === 'function') {
+                store.removeFile(filename);
+            }
+        },
+
+        clearAllFiles() {
+            try {
+                console.log('[fileUploadComponent] clearAllFiles clicked - START');
+                const store = Alpine.store('files');
+                console.log('[fileUploadComponent] Got store:', !!store);
+                console.log('[fileUploadComponent] Store type:', typeof store);
+                console.log('[fileUploadComponent] clearAllFiles method:', typeof (store && store.clearAllFiles));
+
+                // TEMPORARILY DISABLED: const confirmed = confirm('Are you sure you want to clear all imported files?');
+                // console.log('[fileUploadComponent] Confirm result:', confirmed);
+
+                // if (confirmed) {
+                console.log('[fileUploadComponent] Calling store.clearAllFiles()');
+                if (store && typeof store.clearAllFiles === 'function') {
+                    store.clearAllFiles();
+                    console.log('[fileUploadComponent] After clearAllFiles, uploadedFiles count:', store.uploadedFiles.length);
+                    console.log('[fileUploadComponent] Clear completed successfully');
+                } else {
+                    console.error('[fileUploadComponent] ERROR: Store or clearAllFiles method not available');
+                    console.error('[fileUploadComponent] Store:', store);
+                }
+                // } else {
+                //     console.log('[fileUploadComponent] User cancelled the clear operation');
+                // }
+                console.log('[fileUploadComponent] clearAllFiles clicked - END');
+            } catch (error) {
+                console.error('[fileUploadComponent] ERROR in clearAllFiles:', error);
+                console.error('[fileUploadComponent] Error stack:', error.stack);
+            }
+        }
+    };
+}
+</script>

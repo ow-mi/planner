@@ -1,0 +1,243 @@
+      <div class="tabs-bar relative px-2 pb-2">
+          <!-- Theme toggle floating on top of tab bar -->
+          <div class="theme-toggle-floating" x-data="themeToggle()">
+             <button
+                 type="button"
+                 class="theme-toggle-btn"
+                 @click="isOpen = !isOpen"
+                 :aria-expanded="isOpen ? 'true' : 'false'"
+                 aria-label="Change theme"
+                 aria-haspopup="menu"
+                 title="Change theme"
+             >
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                 </svg>
+                 <span class="theme-name" x-text="$store.theme.getThemeName($store.theme.currentTheme)"></span>
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                 </svg>
+             </button>
+
+             <div
+                 x-show="isOpen"
+                 @click.outside="isOpen = false"
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-100"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="theme-dropdown"
+                 x-cloak
+             >
+                 <div class="theme-dropdown-search">
+                     <input
+                         type="text"
+                         x-model="searchQuery"
+                         placeholder="Search themes..."
+                         class="search-input"
+                     >
+                 </div>
+
+                 <template x-for="(themes, category) in groupedThemes" :key="category">
+                     <div class="theme-category">
+                         <h3 x-text="getCategoryName(category)"></h3>
+                         <div class="theme-list">
+                             <template x-for="theme in themes" :key="theme.id">
+                                 <button
+                                     type="button"
+                                     @click="selectTheme(theme.id)"
+                                     class="theme-item"
+                                     :class="{ 'active': isActive(theme.id) }"
+                                 >
+                                     <span x-text="theme.name"></span>
+                                     <span x-show="isActive(theme.id)" class="text-sm">✓</span>
+                                 </button>
+                             </template>
+                         </div>
+                     </div>
+                 </template>
+
+                 <div x-show="filteredThemes.length === 0" class="no-results">
+                     No themes found
+                 </div>
+             </div>
+         </div>
+
+         <div class="tabs flex-1 min-w-0" role="tablist" aria-label="Application tabs">
+             <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'data' }"
+             role="tab"
+              id="tab-data"
+              aria-controls="data-container"
+              :aria-selected="activeTab === 'data' ? 'true' : 'false'"
+              :tabindex="activeTab === 'data' ? '0' : '-1'"
+             @click="setActiveTab('data')"
+             @keydown.enter.prevent="setActiveTab('data')"
+             @keydown.space.prevent="setActiveTab('data')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Data
+         </button>
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'configuration' }"
+             role="tab"
+             id="tab-configuration"
+             aria-controls="config-editor-container"
+             :aria-selected="activeTab === 'configuration' ? 'true' : 'false'"
+             :tabindex="activeTab === 'configuration' ? '0' : '-1'"
+             @click="setActiveTab('configuration')"
+             @keydown.enter.prevent="setActiveTab('configuration')"
+             @keydown.space.prevent="setActiveTab('configuration')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Configuration
+         </button>
+           <button
+               type="button"
+               class="tab"
+               :class="{ 'active': activeTab === 'solver' }"
+              role="tab"
+              id="tab-solver"
+              aria-controls="solver-controls-container"
+              :aria-selected="activeTab === 'solver' ? 'true' : 'false'"
+              :tabindex="activeTab === 'solver' ? '0' : '-1'"
+              @click="setActiveTab('solver')"
+              @keydown.enter.prevent="setActiveTab('solver')"
+              @keydown.space.prevent="setActiveTab('solver')"
+              @keydown.arrow-left.prevent="handleTabNavigation('left')"
+              @keydown.arrow-right.prevent="handleTabNavigation('right')"
+              @keydown.home.prevent="handleTabNavigation('home')"
+              @keydown.end.prevent="handleTabNavigation('end')"
+           >
+               Solver
+           </button>
+          <button
+              type="button"
+              class="tab"
+             :class="{ 'active': activeTab === 'visualizer' }"
+             role="tab"
+             id="tab-visualizer"
+             aria-controls="visualizer-container"
+             :aria-selected="activeTab === 'visualizer' ? 'true' : 'false'"
+             :tabindex="activeTab === 'visualizer' ? '0' : '-1'"
+             @click="setActiveTab('visualizer')"
+             @keydown.enter.prevent="setActiveTab('visualizer')"
+             @keydown.space.prevent="setActiveTab('visualizer')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Visualizer
+         </button>
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'output_data' }"
+             role="tab"
+             id="tab-output_data"
+             aria-controls="output-viewer-container"
+             :aria-selected="activeTab === 'output_data' ? 'true' : 'false'"
+             :tabindex="activeTab === 'output_data' ? '0' : '-1'"
+             @click="setActiveTab('output_data')"
+             @keydown.enter.prevent="setActiveTab('output_data')"
+             @keydown.space.prevent="setActiveTab('output_data')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+              Output Data
+         </button>
+         </div>
+     </div>
+
+<div x-show="activeTab === 'data'" role="tabpanel" id="data-container" aria-labelledby="tab-data">
+    <div x-data="{ activeDataSubtab: 'upload', init() { console.log('[data-tab] init', { activeDataSubtab: this.activeDataSubtab, hasUploadContainer: !!document.querySelector('#data-upload-fragment-container'), hasEditorContainer: !!document.querySelector('#data-edit-fragment-container') }); this.$watch('activeDataSubtab', (value) => { console.log('[data-tab] activeDataSubtab changed ->', value); }); }, setActiveDataSubtab(subtabName) { console.log('[data-tab] setActiveDataSubtab called', { from: this.activeDataSubtab, to: subtabName }); if (!['upload', 'edit'].includes(subtabName)) { console.warn('[data-tab] invalid subtab requested:', subtabName); return; } this.activeDataSubtab = subtabName; } }" x-init="init()">
+    <div class="subtab-container">
+        <div class="subtab-sidebar" role="tablist" aria-label="Data subtabs">
+            <button
+                type="button"
+                class="subtab-btn"
+                :class="{ 'active': activeDataSubtab === 'upload' }"
+                role="tab"
+                id="tab-data-upload"
+                aria-controls="panel-data-upload"
+                :aria-selected="activeDataSubtab === 'upload' ? 'true' : 'false'"
+                :tabindex="activeDataSubtab === 'upload' ? '0' : '-1'"
+                @click="setActiveDataSubtab('upload')"
+                @keydown.enter.prevent="setActiveDataSubtab('upload')"
+                @keydown.space.prevent="setActiveDataSubtab('upload')"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Upload
+            </button>
+            <button
+                type="button"
+                class="subtab-btn"
+                :class="{ 'active': activeDataSubtab === 'edit' }"
+                role="tab"
+                id="tab-data-edit"
+                aria-controls="panel-data-edit"
+                :aria-selected="activeDataSubtab === 'edit' ? 'true' : 'false'"
+                :tabindex="activeDataSubtab === 'edit' ? '0' : '-1'"
+                @click="setActiveDataSubtab('edit')"
+                @keydown.enter.prevent="setActiveDataSubtab('edit')"
+                @keydown.space.prevent="setActiveDataSubtab('edit')"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9"></path>
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                </svg>
+                Editing
+            </button>
+        </div>
+
+        <div class="subtab-content">
+            <div
+                x-show="activeDataSubtab === 'upload'"
+                class="config-section"
+                role="tabpanel"
+                id="panel-data-upload"
+                aria-labelledby="tab-data-upload"
+            >
+                <div class="section-header">
+                    <h3>Upload Data</h3>
+                    <p>Import source files and validate them before editing.</p>
+                </div>
+                <div id="data-upload-fragment-container" hx-get="src/components/file-upload.html" hx-trigger="load" hx-swap="innerHTML"></div>
+            </div>
+
+            <div
+                x-show="activeDataSubtab === 'edit'"
+                class="config-section"
+                role="tabpanel"
+                id="panel-data-edit"
+                aria-labelledby="tab-data-edit"
+            >
+                <div class="section-header">
+                    <h3>Edit Data</h3>
+                    <p>Review and refine imported tables before running the solver.</p>
+                </div>
+                <div id="data-edit-fragment-container" hx-get="src/components/data-editor.html" hx-trigger="load" hx-swap="innerHTML"></div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>

@@ -1,0 +1,315 @@
+<div x-data="mainAppComponent()" x-init="initComponent()" x-cloak>
+     <!-- Tab Navigation -->
+     <div class="tabs" role="tablist" aria-label="Main application tabs">
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'input_data' }"
+             role="tab"
+              id="tab-main-input_data"
+              aria-controls="panel-main-input_data"
+              :aria-selected="activeTab === 'input_data' ? 'true' : 'false'"
+              :tabindex="activeTab === 'input_data' ? '0' : '-1'"
+             @click="setActiveTab('input_data')"
+             @keydown.enter.prevent="setActiveTab('input_data')"
+             @keydown.space.prevent="setActiveTab('input_data')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Input Data
+         </button>
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'edit_data' }"
+             role="tab"
+             id="tab-main-edit_data"
+             aria-controls="panel-main-edit_data"
+             :aria-selected="activeTab === 'edit_data' ? 'true' : 'false'"
+             :tabindex="activeTab === 'edit_data' ? '0' : '-1'"
+             @click="setActiveTab('edit_data')"
+             @keydown.enter.prevent="setActiveTab('edit_data')"
+             @keydown.space.prevent="setActiveTab('edit_data')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Edit Data
+         </button>
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'configuration' }"
+             role="tab"
+             id="tab-main-configuration"
+             aria-controls="panel-main-configuration"
+             :aria-selected="activeTab === 'configuration' ? 'true' : 'false'"
+             :tabindex="activeTab === 'configuration' ? '0' : '-1'"
+             @click="setActiveTab('configuration')"
+             @keydown.enter.prevent="setActiveTab('configuration')"
+             @keydown.space.prevent="setActiveTab('configuration')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Configuration
+         </button>
+          <button
+              type="button"
+              class="tab"
+              :class="{ 'active': activeTab === 'solver' }"
+             role="tab"
+             id="tab-main-solver"
+             aria-controls="panel-main-solver"
+             :aria-selected="activeTab === 'solver' ? 'true' : 'false'"
+             :tabindex="activeTab === 'solver' ? '0' : '-1'"
+             @click="setActiveTab('solver')"
+             @keydown.enter.prevent="setActiveTab('solver')"
+             @keydown.space.prevent="setActiveTab('solver')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+          >
+              Solver
+          </button>
+          <button
+              type="button"
+              class="tab"
+              :class="{ 'active': activeTab === 'batch' }"
+              role="tab"
+              id="tab-main-batch"
+              aria-controls="panel-main-batch"
+              :aria-selected="activeTab === 'batch' ? 'true' : 'false'"
+              :tabindex="activeTab === 'batch' ? '0' : '-1'"
+              @click="setActiveTab('batch')"
+              @keydown.enter.prevent="setActiveTab('batch')"
+              @keydown.space.prevent="setActiveTab('batch')"
+              @keydown.arrow-left.prevent="handleTabNavigation('left')"
+              @keydown.arrow-right.prevent="handleTabNavigation('right')"
+              @keydown.home.prevent="handleTabNavigation('home')"
+              @keydown.end.prevent="handleTabNavigation('end')"
+          >
+              Batch
+          </button>
+          <button
+              type="button"
+              class="tab"
+             :class="{ 'active': activeTab === 'visualizer' }"
+             role="tab"
+             id="tab-main-visualizer"
+             aria-controls="panel-main-visualizer"
+             :aria-selected="activeTab === 'visualizer' ? 'true' : 'false'"
+             :tabindex="activeTab === 'visualizer' ? '0' : '-1'"
+             @click="setActiveTab('visualizer')"
+             @keydown.enter.prevent="setActiveTab('visualizer')"
+             @keydown.space.prevent="setActiveTab('visualizer')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Visualizer
+         </button>
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'output_data' }"
+             role="tab"
+             id="tab-main-output_data"
+             aria-controls="panel-main-output_data"
+             :aria-selected="activeTab === 'output_data' ? 'true' : 'false'"
+             :tabindex="activeTab === 'output_data' ? '0' : '-1'"
+             @click="setActiveTab('output_data')"
+             @keydown.enter.prevent="setActiveTab('output_data')"
+             @keydown.space.prevent="setActiveTab('output_data')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Output Data
+         </button>
+         <button
+             type="button"
+             class="tab"
+             :class="{ 'active': activeTab === 'save' }"
+             role="tab"
+             id="tab-main-save"
+             aria-controls="panel-main-save"
+             :aria-selected="activeTab === 'save' ? 'true' : 'false'"
+             :tabindex="activeTab === 'save' ? '0' : '-1'"
+             @click="setActiveTab('save')"
+             @keydown.enter.prevent="setActiveTab('save')"
+             @keydown.space.prevent="setActiveTab('save')"
+             @keydown.arrow-left.prevent="handleTabNavigation('left')"
+             @keydown.arrow-right.prevent="handleTabNavigation('right')"
+             @keydown.home.prevent="handleTabNavigation('home')"
+             @keydown.end.prevent="handleTabNavigation('end')"
+         >
+             Save
+         </button>
+     </div>
+
+    <!-- Error Display -->
+    <div x-show="error" class="validation-error" style="margin-bottom: 1rem; padding: 0.75rem; background-color: #fee; border-radius: 4px;">
+        <strong>Error:</strong> <span x-text="error"></span>
+        <button @click="clearError()" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-left: 1rem;">Dismiss</button>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div x-show="isLoading" style="margin-bottom: 1rem; padding: 0.5rem; background-color: #e8f4f8; border-radius: 4px;">
+        <div class="loading-spinner"></div> Processing...
+    </div>
+
+    <!-- Tab Content -->
+    <div
+        x-show="activeTab === 'input_data'"
+        class="tab-content"
+        :class="{'active': activeTab === 'input_data'}"
+        role="tabpanel"
+        id="panel-main-input_data"
+        aria-labelledby="tab-main-input_data"
+    >
+        <h2>Input Data</h2>
+        <div id="file-upload-container">
+            <div class="loading-spinner"></div> Loading file upload component...
+        </div>
+    </div>
+
+    <div
+        x-show="activeTab === 'edit_data'"
+        class="tab-content"
+        :class="{'active': activeTab === 'edit_data'}"
+        role="tabpanel"
+        id="panel-main-edit_data"
+        aria-labelledby="tab-main-edit_data"
+    >
+        <h2>Edit Data</h2>
+        <div id="data-editor-container">
+            <div class="loading-spinner"></div> Loading data editor...
+        </div>
+    </div>
+
+    <div
+        x-show="activeTab === 'configuration'"
+        class="tab-content"
+        :class="{'active': activeTab === 'configuration'}"
+        role="tabpanel"
+        id="panel-main-configuration"
+        aria-labelledby="tab-main-configuration"
+    >
+        <h2>Configuration</h2>
+        <div id="config-editor-container">
+            <div class="loading-spinner"></div> Loading configuration editor...
+        </div>
+    </div>
+
+    <div
+        x-show="activeTab === 'solver'"
+        class="tab-content"
+        :class="{'active': activeTab === 'solver'}"
+        role="tabpanel"
+        id="panel-main-solver"
+        aria-labelledby="tab-main-solver"
+    >
+        <h2>Solver Execution</h2>
+        <div id="solver-controls-container">
+            <div class="loading-spinner"></div> Loading solver controls...
+        </div>
+    </div>
+
+    <div
+        x-show="activeTab === 'batch'"
+        class="tab-content"
+        :class="{'active': activeTab === 'batch'}"
+        role="tabpanel"
+        id="panel-main-batch"
+        aria-labelledby="tab-main-batch"
+    >
+        <h2>Batch</h2>
+        <div id="batch-editor-container">
+            <div class="loading-spinner"></div> Loading batch editor...
+        </div>
+    </div>
+
+    <div
+        x-show="activeTab === 'visualizer'"
+        class="tab-content"
+        :class="{'active': activeTab === 'visualizer'}"
+        role="tabpanel"
+        id="panel-main-visualizer"
+        aria-labelledby="tab-main-visualizer"
+    >
+        <h2>Visualizer</h2>
+        <div id="visualizer-container">
+            <div class="loading-spinner"></div> Loading visualizer...
+        </div>
+    </div>
+
+    <div
+        x-show="activeTab === 'output_data'"
+        class="tab-content"
+        :class="{'active': activeTab === 'output_data'}"
+        role="tabpanel"
+        id="panel-main-output_data"
+        aria-labelledby="tab-main-output_data"
+    >
+        <h2>Output Data</h2>
+        <div id="output-viewer-container">
+            <div class="loading-spinner"></div> Loading output viewer...
+        </div>
+    </div>
+
+     <div
+        x-show="activeTab === 'save'"
+        class="tab-content"
+        :class="{'active': activeTab === 'save'}"
+        role="tabpanel"
+        id="panel-main-save"
+        aria-labelledby="tab-main-save"
+    >
+         <h2>Save & Export</h2>
+         
+         <div class="section">
+             <h3>Export Configuration</h3>
+             <div class="form-group">
+                 <button @click="exportConfiguration()" class="btn">Export to JSON</button>
+                 <button @click="copyToClipboard()" class="btn" style="margin-left: 0.5rem;">Copy to Clipboard</button>
+             </div>
+             <div x-show="exportedConfig && exportedConfig.trim() !== ''" class="form-group" style="margin-top: 1rem;">
+                 <textarea readonly rows="10" x-text="exportedConfig || ''" style="font-family: monospace; font-size: 0.8rem;"></textarea>
+             </div>
+         </div>
+         
+         <div class="section">
+             <h3>Export Session Artifacts</h3>
+             <div class="form-group">
+                 <button @click="exportSession()" class="btn">Export Entire Session (JSON)</button>
+             </div>
+         </div>
+         
+         <div class="section" x-show="$store.solver.hasResults()">
+             <h3>Export Solver Results</h3>
+             <div class="form-group">
+                 <button @click="exportSolverResults()" class="btn">Download Results (ZIP)</button>
+                 <button @click="exportSolverResults('json')" class="btn" style="margin-left: 0.5rem;">Download Individual Files</button>
+             </div>
+             <p x-show="$store.solver.executionId" style="margin-top: 0.5rem;">
+                 Execution ID: <span x-text="$store.solver.executionId"></span>
+             </p>
+         </div>
+         
+         <div class="section">
+             <h3>Session Management</h3>
+             <div class="form-group">
+                 <button @click="importConfiguration()" class="btn">Import Configuration</button>
+                 <button @click="clearSession()" class="btn btn-danger" style="margin-left: 0.5rem;">Clear Session</button>
+             </div>
+         </div>
+     </div>
+ </div>
