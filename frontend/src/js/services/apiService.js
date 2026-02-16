@@ -382,6 +382,93 @@ class ApiService {
         }
         return await this.get(`/batch/jobs/${batchId}/results`);
     }
+
+    /**
+     * Discover available spreadsheets from configured paths and uploaded sessions
+     */
+    async discoverSpreadsheets(configPaths = [], sessionId = null) {
+        return await this.get('/spreadsheets/discover', {
+            config_paths: configPaths,
+            session_id: sessionId
+        });
+    }
+
+    /**
+     * Validate a selected spreadsheet against required schema
+     */
+    async validateSpreadsheet({ spreadsheet_id, file_content }) {
+        if (!spreadsheet_id) {
+            throw new Error('spreadsheet_id is required');
+        }
+        if (!file_content) {
+            throw new Error('file_content is required');
+        }
+        return await this.post('/spreadsheets/validate', {
+            spreadsheet_id,
+            file_content
+        });
+    }
+
+    /**
+     * Check configuration consistency against active spreadsheet entities
+     */
+    async checkConfigConsistency(configJson, spreadsheetEntities) {
+        return await this.post('/config/consistency-check', {
+            config_json: configJson,
+            spreadsheet_entities: spreadsheetEntities
+        });
+    }
+
+    /**
+     * Add scenario to queue
+     */
+    async addScenarioToQueue(runName, spreadsheetId, scenarioName = null, configJson = null) {
+        const payload = {
+            run_name: runName,
+            spreadsheet_id: spreadsheetId
+        };
+        if (scenarioName) {
+            payload.scenario_name = scenarioName;
+        }
+        if (configJson) {
+            payload.config_json = configJson;
+        }
+        return await this.post('/scenarios/queue/add', payload);
+    }
+
+    /**
+     * Get scenario queue status for a run
+     */
+    async getScenarioQueueStatus(runName) {
+        return await this.get('/scenarios/queue/status', { run_name: runName });
+    }
+
+    /**
+     * Run a single scenario from queue
+     */
+    async runSingleScenario(scenarioId) {
+        return await this.post('/scenarios/queue/run-one', {
+            scenario_id: scenarioId
+        });
+    }
+
+    /**
+     * Run all unsolved scenarios in queue
+     */
+    async runAllUnsolved(runName) {
+        return await this.post('/scenarios/queue/run-all-unsolved', {
+            run_name: runName
+        });
+    }
+
+    /**
+     * Stop render for a running scenario
+     */
+    async stopRender(scenarioId) {
+        return await this.post('/scenarios/queue/stop-render', {
+            scenario_id: scenarioId
+        });
+    }
 }
 
 // Create global instance

@@ -180,3 +180,199 @@ class BatchJobResultsResponse(BaseModel):
     status: BatchJobStatusEnum
     items: List[BatchScenarioResultItem]
     summary_artifacts: List[BatchSummaryArtifact] = Field(default_factory=list)
+
+
+# ============================================================================
+# Spreadsheet Discovery and Validation Models
+# ============================================================================
+
+
+class SpreadsheetFileTypeEnum(str, Enum):
+    CSV = "CSV"
+    XLSX = "XLSX"
+    XLS = "XLS"
+
+
+class SpreadsheetFileInfo(BaseModel):
+    filename: str
+    file_type: SpreadsheetFileTypeEnum
+    size_bytes: int
+    modified_at: Optional[str] = None
+    source: Optional[str] = None  # "config_path" or "uploaded_session"
+    session_id: Optional[str] = None
+
+
+class SpreadsheetDiscoveryResponse(BaseModel):
+    spreadsheets: List[SpreadsheetFileInfo]
+    total_count: int
+
+
+class ValidationErrorCategory(str, Enum):
+    MissingRequiredColumn = "MissingRequiredColumn"
+    InvalidColumnType = "InvalidColumnType"
+    InvalidValue = "InvalidValue"
+    FormatError = "FormatError"
+
+
+class ColumnValidationError(BaseModel):
+    row_index: int
+    column_name: str
+    value: Optional[str] = None
+    expected_type: Optional[str] = None
+    error_message: str
+    category: ValidationErrorCategory
+
+
+class HeaderValidationError(BaseModel):
+    column_name: str
+    error_message: str
+    category: ValidationErrorCategory
+
+
+class SpreadsheetValidationResult(BaseModel):
+    is_valid: bool
+    headers_valid: bool
+    header_errors: List[HeaderValidationError]
+    row_errors: List[ColumnValidationError]
+    extracted_entities: Optional["ExtractedEntities"] = None
+
+
+class ExtractedEntities(BaseModel):
+    projects: List[str]
+    leg_types: List[str]
+    leg_names: List[str]
+    test_types: List[str]
+    computed_test_names: List[str]
+
+
+class SpreadsheetValidationResponse(BaseModel):
+    validation: SpreadsheetValidationResult
+    spreadsheet_id: str
+
+
+# ============================================================================
+# Configuration Consistency Models
+# ============================================================================
+
+
+class ConfigReferenceType(str, Enum):
+    Project = "Project"
+    LegType = "LegType"
+    LegName = "LegName"
+    TestType = "TestType"
+    TestName = "TestName"
+    FTE = "FTE"
+    Equipment = "Equipment"
+
+
+class OutOfScopeReference(BaseModel):
+    ref_type: ConfigReferenceType
+    ref_name: str
+    spreadsheet_entities: List[str]
+
+
+class ConsistencyCheckResponse(BaseModel):
+    is_consistent: bool
+    warnings: List[OutOfScopeReference]
+
+
+# ============================================================================
+# Scenario Queue Orchestration Models
+# ============================================================================
+
+
+class ScenarioQueueStatusEnum(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    STOPPED = "STOPPED"
+
+
+class QueuedScenario(BaseModel):
+    scenario_id: str
+    scenario_name: str
+    run_name: str
+    status: ScenarioQueueStatusEnum
+    created_at: str
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    progress_percentage: int = 0
+    current_phase: Optional[str] = None
+
+
+class ScenarioQueueStatusResponse(BaseModel):
+    run_name: str
+    total_queued: int
+    pending_count: int
+    running_count: int
+    completed_count: int
+    failed_count: int
+    stopped_count: int
+    scenarios: List[QueuedScenario]
+
+
+class AddScenarioToQueueRequest(BaseModel):
+    run_name: str = Field(..., min_length=1)
+    spreadsheet_id: str = Field(..., min_length=1)
+    config_json: Optional[str] = Field(None, description="JSON configuration string")
+
+
+class AddScenarioToQueueResponse(BaseModel):
+    scenario_id: str
+    scenario_name: str
+    run_name: str
+    queued_at: str
+
+
+class RunSingleScenarioRequest(BaseModel):
+    scenario_id: str = Field(..., min_length=1)
+
+
+class RunSingleScenarioResponse(BaseModel):
+    scenario_id: str
+    execution_id: str
+    status: ScenarioQueueStatusEnum
+
+
+class RunAllUnsolvedRequest(BaseModel):
+    run_name: str = Field(..., min_length=1)
+
+
+class RunAllUnsolvedResponse(BaseModel):
+    run_name: str
+    scenarios_executed: int
+    started_at: str
+
+
+class StopRenderRequest(BaseModel):
+    scenario_id: str = Field(..., min_length=1)
+
+
+class StopRenderResponse(BaseModel):
+    scenario_id: str
+    status: ScenarioQueueStatusEnum
+    message: str
+
+
+# ============================================================================
+# Run Artifact Persistence Models
+# ============================================================================
+
+
+class RunArtifactType(str, Enum):
+    SPREADSHOT_SNAPSHOT = "spreadsheet_snapshot"
+    CONFIG_JSON = "config_json"
+    SOLVER_OUTPUT = "solver_output"
+    PLOT_ARTIFACT = "plot_artifact"
+
+
+class RunArtifact(BaseModel):
+    artifact_id: str
+    run_name: str
+    scenario_id: str
+    artifact_type: RunArtifactType
+    artifact_name: str
+    artifact_path: str
+    created_at: str
+    content_type: Optional[str] = None

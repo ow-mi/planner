@@ -61,3 +61,51 @@ class BatchJobCreateRequest(BaseModel):
     scenarios: List[BatchScenarioRequest] = Field(
         ..., min_length=1, description="Batch scenarios"
     )
+
+
+# ============================================================================
+# Spreadsheet Discovery and Validation Models
+# ============================================================================
+
+
+class SpreadsheetDiscoveryRequest(BaseModel):
+    config_paths: Optional[List[str]] = Field(
+        None, description="List of configured paths to scan for spreadsheets"
+    )
+    session_id: Optional[str] = Field(None, description="Uploaded session ID to include")
+
+
+class SpreadsheetValidationRequest(BaseModel):
+    spreadsheet_id: str = Field(..., min_length=1, description="Spreadsheet identifier")
+    file_content: str = Field(..., description="CSV/XLSX/XLS file content")
+
+
+class ConfigConsistencyRequest(BaseModel):
+    config_json: str = Field(..., description="JSON configuration to validate")
+    spreadsheet_entities: "ExtractedEntities" = Field(
+        ..., description="Entities extracted from active spreadsheet"
+    )
+
+
+# ============================================================================
+# Scenario Queue Orchestration Models
+# ============================================================================
+
+
+class AddScenarioToQueueRequest(BaseModel):
+    run_name: str = Field(..., min_length=1)
+    spreadsheet_id: str = Field(..., min_length=1)
+    scenario_name: Optional[str] = Field(None, description="Optional scenario name")
+    config_json: Optional[str] = Field(None, description="JSON configuration string")
+
+
+class RunSingleScenarioRequest(BaseModel):
+    scenario_id: str = Field(..., min_length=1)
+
+
+class RunAllUnsolvedRequest(BaseModel):
+    run_name: str = Field(..., min_length=1)
+
+
+class StopRenderRequest(BaseModel):
+    scenario_id: str = Field(..., min_length=1)

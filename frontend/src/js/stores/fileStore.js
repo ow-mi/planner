@@ -329,7 +329,37 @@ document.addEventListener('alpine:init', () => {
             return this.baseFolderPath;
         },
 
-        // Select a CSV file
+        // Select a CSV file as the active spreadsheet (triggers validation)
+        async selectCsvAsActive(filename) {
+            if (this.parsedCsvData[filename]) {
+                // First select locally
+                this.selectedCsv = filename;
+                this.activeCsvData = this.parsedCsvData[filename];
+                
+                // Get CSV content for backend validation
+                const csvContent = Papa.unparse({
+                    fields: this.activeCsvData.headers,
+                    data: this.activeCsvData.rows
+                });
+
+                // Validate via backend
+                const validationStore = Alpine.store('validation');
+                if (validationStore) {
+                    const result = await validationStore.setActiveSpreadsheet(filename, csvContent);
+                    
+                    // If validation fails, keep the file selected but downstream actions are blocked
+                    if (!result.success) {
+                        console.warn('[fileStore] Validation failed for active spreadsheet:', result.errors);
+                    }
+                }
+                
+                this.saveToLocalStorage();
+                return true;
+            }
+            return false;
+        },
+
+        // Select a CSV file (local only, no validation - legacy behavior)
         selectCsv(filename) {
             if (this.parsedCsvData[filename]) {
                 this.selectedCsv = filename;
@@ -358,6 +388,12 @@ document.addEventListener('alpine:init', () => {
             if (this.selectedCsv === filename) {
                 this.selectedCsv = '';
                 this.activeCsvData = { headers: [], rows: [] };
+                
+                // Clear validation when active file is removed
+                const validationStore = Alpine.store('validation');
+                if (validationStore) {
+                    validationStore.clearActiveSpreadsheet();
+                }
             }
 
             delete this.parsedCsvData[filename];
@@ -374,6 +410,12 @@ document.addEventListener('alpine:init', () => {
             this.parsedCsvData = {};
             this.selectedCsv = '';
             this.activeCsvData = { headers: [], rows: [] };
+            
+            // Clear validation
+            const validationStore = Alpine.store('validation');
+            if (validationStore) {
+                validationStore.clearActiveSpreadsheet();
+            }
             
             // Clear localStorage items
             localStorage.removeItem(FILE_STORAGE_KEYS.PARSED_CSV_DATA);
