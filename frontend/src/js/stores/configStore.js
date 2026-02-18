@@ -1981,10 +1981,159 @@ document.addEventListener('alpine:init', () => {
                    }
                }
                
-               return this.testConfig.defaults[field];
-           }
-      });
-  });
+                return this.testConfig.defaults[field];
+            },
+
+            // ==================== Data Migration Methods ====================
+
+            // Migrate old test configuration structures to new unified model
+            migrateTestConfiguration(oldData) {
+                const migrated = {
+                    defaults: { ...this.testConfig.defaults },
+                    projects: {},
+                    legTypes: {},
+                    legs: {},
+                    testTypes: {},
+                    tests: {}
+                };
+
+                // Migrate from testHierarchy structure
+                if (oldData && oldData.testHierarchy) {
+                    // Migrate project defaults to global defaults
+                    if (oldData.testHierarchy.projectDefaults) {
+                        const projDefaults = oldData.testHierarchy.projectDefaults;
+                        migrated.defaults.duration = projDefaults.defaultDuration ?? 5;
+                        migrated.defaults.priority = projDefaults.defaultPriority ?? 5;
+                    }
+
+                    // Migrate leg types
+                    if (oldData.testHierarchy.legTypes) {
+                        Object.entries(oldData.testHierarchy.legTypes).forEach(([id, config]) => {
+                            migrated.legTypes[id] = {
+                                ...config,
+                                overrides: config.overrides || {}
+                            };
+                        });
+                    }
+
+                    // Migrate legs
+                    if (oldData.testHierarchy.legs) {
+                        Object.entries(oldData.testHierarchy.legs).forEach(([id, config]) => {
+                            migrated.legs[id] = config;
+                        });
+                    }
+
+                    // Migrate test types
+                    if (oldData.testHierarchy.testTypes) {
+                        Object.entries(oldData.testHierarchy.testTypes).forEach(([id, config]) => {
+                            migrated.testTypes[id] = config;
+                        });
+                    }
+
+                    // Migrate tests
+                    if (oldData.testHierarchy.tests) {
+                        Object.entries(oldData.testHierarchy.tests).forEach(([id, config]) => {
+                            migrated.tests[id] = config;
+                        });
+                    }
+                }
+
+                // Migrate from testDefaults structure (resource assignments)
+                if (oldData && oldData.testDefaults) {
+                    const projDefaults = oldData.testDefaults.projectDefaults || {};
+                    migrated.defaults.fteResources = projDefaults.fteResources || [];
+                    migrated.defaults.equipmentResources = projDefaults.equipmentResources || [];
+                    migrated.defaults.fteTimePercentage = projDefaults.fteTimePercentage ?? 100;
+                    migrated.defaults.equipmentTimePercentage = projDefaults.equipmentTimePercentage ?? 100;
+                    migrated.defaults.isExternal = projDefaults.isExternal ?? false;
+
+                    // Migrate leg type resource assignments
+                    if (oldData.testDefaults.legTypes) {
+                        Object.entries(oldData.testDefaults.legTypes).forEach(([id, config]) => {
+                            if (!migrated.legTypes[id]) {
+                                migrated.legTypes[id] = {};
+                            }
+                            if (config.fteResources) {
+                                migrated.legTypes[id].fteResources = config.fteResources;
+                            }
+                            if (config.equipmentResources) {
+                                migrated.legTypes[id].equipmentResources = config.equipmentResources;
+                            }
+                            if (config.fteTimePercentage !== undefined) {
+                                migrated.legTypes[id].fteTimePercentage = config.fteTimePercentage;
+                            }
+                            if (config.equipmentTimePercentage !== undefined) {
+                                migrated.legTypes[id].equipmentTimePercentage = config.equipmentTimePercentage;
+                            }
+                            if (config.isExternal !== undefined) {
+                                migrated.legTypes[id].isExternal = config.isExternal;
+                            }
+                        });
+                    }
+
+                    // Migrate leg resource assignments
+                    if (oldData.testDefaults.legs) {
+                        Object.entries(oldData.testDefaults.legs).forEach(([id, config]) => {
+                            if (!migrated.legs[id]) {
+                                migrated.legs[id] = {};
+                            }
+                            if (config.fteResources) {
+                                migrated.legs[id].fteResources = config.fteResources;
+                            }
+                            if (config.equipmentResources) {
+                                migrated.legs[id].equipmentResources = config.equipmentResources;
+                            }
+                            if (config.fteTimePercentage !== undefined) {
+                                migrated.legs[id].fteTimePercentage = config.fteTimePercentage;
+                            }
+                            if (config.equipmentTimePercentage !== undefined) {
+                                migrated.legs[id].equipmentTimePercentage = config.equipmentTimePercentage;
+                            }
+                            if (config.isExternal !== undefined) {
+                                migrated.legs[id].isExternal = config.isExternal;
+                            }
+                        });
+                    }
+
+                    // Migrate test type resource assignments
+                    if (oldData.testDefaults.testTypes) {
+                        Object.entries(oldData.testDefaults.testTypes).forEach(([id, config]) => {
+                            if (!migrated.testTypes[id]) {
+                                migrated.testTypes[id] = {};
+                            }
+                            if (config.fteResources) {
+                                migrated.testTypes[id].fteResources = config.fteResources;
+                            }
+                            if (config.equipmentResources) {
+                                migrated.testTypes[id].equipmentResources = config.equipmentResources;
+                            }
+                            if (config.fteTimePercentage !== undefined) {
+                                migrated.testTypes[id].fteTimePercentage = config.fteTimePercentage;
+                            }
+                            if (config.equipmentTimePercentage !== undefined) {
+                                migrated.testTypes[id].equipmentTimePercentage = config.equipmentTimePercentage;
+                            }
+                            if (config.isExternal !== undefined) {
+                                migrated.testTypes[id].isExternal = config.isExternal;
+                            }
+                        });
+                    }
+                }
+
+                return migrated;
+            },
+
+            // Mark migration as complete to prevent re-running
+            setMigrationComplete() {
+                this.migrationComplete = true;
+            },
+
+            // Check if migration has been completed
+            hasMigrationCompleted() {
+                return this.migrationComplete || false;
+            }
+       });
+   });
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
