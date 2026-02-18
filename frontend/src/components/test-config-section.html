@@ -340,7 +340,7 @@
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Leg Type</label>
                     <select x-model="$store.config.selectedLegType" class="form-control" style="width: auto; min-width: 200px;">
                         <option value="">Choose a leg type...</option>
-                        <template x-for="legType in Object.keys($store.testHierarchy.legTypes || {})" :key="legType">
+                        <template x-for="legType in Object.keys($store.config.testHierarchy.legTypes || {})" :key="legType">
                             <option :value="legType" x-text="legType"></option>
                         </template>
                     </select>
@@ -484,7 +484,7 @@
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Test Type</label>
                     <select x-model="$store.config.selectedTestType" class="form-control" style="width: auto; min-width: 200px;">
                         <option value="">Choose a test type...</option>
-                        <template x-for="testType in Object.keys($store.testHierarchy.testTypes || {})" :key="testType">
+                        <template x-for="testType in Object.keys($store.config.testHierarchy.testTypes || {})" :key="testType">
                             <option :value="testType" x-text="testType"></option>
                         </template>
                     </select>
@@ -557,7 +557,7 @@
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Test</label>
                     <select x-model="$store.config.selectedTest" class="form-control" style="width: auto; min-width: 200px;">
                         <option value="">Choose a test...</option>
-                        <template x-for="test in Object.keys($store.testHierarchy.tests || {})" :key="test">
+                        <template x-for="test in Object.keys($store.config.testHierarchy.tests || {})" :key="test">
                             <option :value="test" x-text="test"></option>
                         </template>
                     </select>
