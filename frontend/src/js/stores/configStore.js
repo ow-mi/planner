@@ -92,6 +92,7 @@ function parseCompositeLegIdentifier(rawValue) {
 }
 
 function normalizeDeadlineEntry(entry) {
+    console.log('[DEBUG] normalizeDeadlineEntry called with:', JSON.parse(JSON.stringify(entry)));
     if (!entry || typeof entry !== 'object') {
         return null;
     }
@@ -108,7 +109,7 @@ function normalizeDeadlineEntry(entry) {
     const startDeadline = normalizeDeadlineValue(entry.startDeadline || entry.startDate || '');
     const endDeadline = normalizeDeadlineValue(entry.endDeadline || entry.deadlineDate || entry.endDate || '');
 
-    return {
+    const result = {
         project,
         legId,
         branch,
@@ -117,6 +118,8 @@ function normalizeDeadlineEntry(entry) {
         startEnabled,
         endEnabled
     };
+    console.log('[DEBUG] normalizeDeadlineEntry result:', JSON.parse(JSON.stringify(result)));
+    return result;
 }
 
 function buildDefaultDeadlines() {
