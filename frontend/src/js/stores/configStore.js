@@ -2131,6 +2131,26 @@ document.addEventListener('alpine:init', () => {
             // Check if migration has been completed
             hasMigrationCompleted() {
                 return this.migrationComplete || false;
+            },
+
+            // ==================== Resource Management Methods ====================
+
+            // Add resource to defaults (fte or equipment)
+            addDefaultResource(resourceType, resourceId) {
+                const resources = resourceType === 'fte' ? 'fteResources' : 'equipmentResources';
+                if (!this.testConfig.defaults[resources].includes(resourceId)) {
+                    this.testConfig.defaults[resources].push(resourceId);
+                }
+                this.updateOutputSettings();
+            },
+
+            // Remove resource from defaults
+            removeDefaultResource(resourceType, resourceId) {
+                const resources = resourceType === 'fte' ? 'fteResources' : 'equipmentResources';
+                if (this.testConfig.defaults[resources]) {
+                    this.testConfig.defaults[resources] = this.testConfig.defaults[resources].filter(r => r !== resourceId);
+                }
+                this.updateOutputSettings();
             }
        });
    });

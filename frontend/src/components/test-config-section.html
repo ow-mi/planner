@@ -1,0 +1,658 @@
+<!-- Test Configuration Section - Hierarchical Redesign -->
+<div x-show="activeSubtab === 'test'" class="config-section" id="section-test">
+    <div class="section-header">
+        <h3>Test Configuration</h3>
+        <p style="margin: 0; font-size: 0.875rem; color: var(--text-light);">Configure test settings across hierarchy levels. More specific levels override more general ones.</p>
+    </div>
+
+    <div class="test-container" x-data="{
+        activeHierarchyLevel: 'all',
+        selectedProject: '',
+        selectedLegType: '',
+        selectedLeg: '',
+        selectedTestType: '',
+        selectedTest: '',
+        showAddProjectModal: false,
+        showAddLegTypeModal: false,
+        showAddLegModal: false,
+        showAddTestTypeModal: false,
+        showAddTestModal: false
+    }">
+        <!-- Inheritance Chain Visualizer -->
+        <div class="inheritance-chain" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+            <h4 style="margin: 0 0 0.75rem 0; font-size: 0.875rem; font-weight: 600;">Inheritance Chain</h4>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <template x-for="(level, index) in $store.config.getTestHierarchyLevels()" :key="level.id">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <button 
+                            type="button"
+                            @click="activeHierarchyLevel = level.id"
+                            :style="activeHierarchyLevel === level.id 
+                                ? 'padding: 0.375rem 0.75rem; background: var(--primary-color); color: white; border: none; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 500; cursor: pointer;' 
+                                : 'padding: 0.375rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer;'
+                            "
+                            :title="level.description"
+                            x-text="level.label">
+                        </button>
+                        <span x-show="index < $store.config.getTestHierarchyLevels().length - 1" style="color: var(--text-light);">→</span>
+                    </div>
+                </template>
+            </div>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem; color: var(--text-light);"
+               x-text="$store.config.getTestHierarchyLevels().find(l => l.id === activeHierarchyLevel)?.description">
+            </p>
+        </div>
+
+        <!-- Level Navigation Tabs -->
+        <div class="hierarchy-level-nav" style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
+            <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem;">
+                <template x-for="level in $store.config.getTestHierarchyLevels()" :key="level.id">
+                    <button 
+                        type="button"
+                        @click="activeHierarchyLevel = level.id"
+                        :class="{ 'active': activeHierarchyLevel === level.id }"
+                        style="padding: 0.75rem 1rem; background: none; border: none; border-bottom: 2px solid transparent; font-size: 0.875rem; cursor: pointer; white-space: nowrap;"
+                        :style="activeHierarchyLevel === level.id 
+                            ? 'border-bottom-color: var(--primary-color); color: var(--primary-color); font-weight: 500;' 
+                            : 'color: var(--text-light);'"
+                        x-text="level.label">
+                    </button>
+                </template>
+            </div>
+        </div>
+
+        <!-- Level Content -->
+        <div class="hierarchy-level-content">
+            <!-- ALL Level (Global Defaults) -->
+            <div x-show="activeHierarchyLevel === 'all'" class="level-content">
+                <div class="config-card" style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                        <span style="font-size: 1.25rem;">🌍</span>
+                        <h4 style="margin: 0; font-size: 1rem; font-weight: 600;">Global Default Settings</h4>
+                        <span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: var(--primary-color-10); color: var(--primary-color); border-radius: 0.25rem;">Default</span>
+                    </div>
+                    
+                    <p style="margin: 0 0 1.5rem 0; font-size: 0.875rem; color: var(--text-light);">
+                        These settings apply to all tests unless overridden at a more specific level.
+                    </p>
+
+                    <!-- Standard Field Grid -->
+                    <div class="config-fields-grid" style="display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+                        
+                        <!-- FTE Resources (Multi-select) -->
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
+                            <div class="resource-selector" x-data="{ open: false }" @click.away="open = false">
+                                <!-- Selected Resources Display -->
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.5rem; min-height: 32px;">
+                                    <template x-for="fte in $store.config.testConfig.defaults.fteResources || []" :key="fte">
+                                        <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: var(--primary-color); color: white; border-radius: 0.25rem; font-size: 0.75rem;">
+                                            <span x-text="fte"></span>
+                                            <button @click.prevent="$store.config.removeDefaultResource('fte', fte)" style="background: none; border: none; color: white; cursor: pointer; padding: 0; font-size: 0.875rem;">×</button>
+                                        </span>
+                                    </template>
+                                    <span x-show="!($store.config.testConfig.defaults.fteResources?.length)" style="font-size: 0.875rem; color: var(--text-muted); font-style: italic;">No FTE resources assigned</span>
+                                </div>
+                                <!-- Dropdown Trigger -->
+                                <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary);">
+                                    <span style="color: var(--text-muted); font-size: 0.875rem;">Add FTE resource...</span>
+                                    <span>▼</span>
+                                </div>
+                                <!-- Dropdown Menu -->
+                                <div x-show="open" 
+                                     style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                    <template x-for="option in $store.config.getFteOptions()" :key="option.id">
+                                        <div @click="$store.config.addDefaultResource('fte', option.id); open = false"
+                                             style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                             :style="($store.config.testConfig.defaults.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
+                                            <span x-text="option.name"></span>
+                                            <span x-show="option.type === 'alias'" style="font-size: 0.7rem; margin-left: 0.5rem; color: var(--text-light);">(alias)</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Equipment Resources (Multi-select) -->
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">Equipment Resources</label>
+                            <div class="resource-selector" x-data="{ open: false }" @click.away="open = false">
+                                <!-- Selected Resources Display -->
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.5rem; min-height: 32px;">
+                                    <template x-for="equip in $store.config.testConfig.defaults.equipmentResources || []" :key="equip">
+                                        <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: var(--success-color, #10b981); color: white; border-radius: 0.25rem; font-size: 0.75rem;">
+                                            <span x-text="equip"></span>
+                                            <button @click.prevent="$store.config.removeDefaultResource('equipment', equip)" style="background: none; border: none; color: white; cursor: pointer; padding: 0; font-size: 0.875rem;">×</button>
+                                        </span>
+                                    </template>
+                                    <span x-show="!($store.config.testConfig.defaults.equipmentResources?.length)" style="font-size: 0.875rem; color: var(--text-muted); font-style: italic;">No equipment resources assigned</span>
+                                </div>
+                                <!-- Dropdown Trigger -->
+                                <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary);">
+                                    <span style="color: var(--text-muted); font-size: 0.875rem;">Add equipment resource...</span>
+                                    <span>▼</span>
+                                </div>
+                                <!-- Dropdown Menu -->
+                                <div x-show="open" 
+                                     style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                    <template x-for="option in $store.config.getEquipmentOptions()" :key="option.id">
+                                        <div @click="$store.config.addDefaultResource('equipment', option.id); open = false"
+                                             style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                             :style="($store.config.testConfig.defaults.equipmentResources || []).includes(option.id) ? 'background: var(--success-color-10);' : ''">
+                                            <span x-text="option.name"></span>
+                                            <span x-show="option.type === 'alias'" style="font-size: 0.7rem; margin-left: 0.5rem; color: var(--text-light);">(alias)</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FTE Time Percentage Slider -->
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Time Allocation</label>
+                                <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color);" 
+                                      x-text="$store.config.testConfig.defaults.fteTimePercentage + '%'"></span>
+                            </div>
+                            <input type="range" min="0" max="100" step="5"
+                                   x-model.number="$store.config.testConfig.defaults.fteTimePercentage"
+                                   style="width: 100%; height: 0.5rem; padding: 0;"
+                                   @input="$store.config.updateTestConfigValue('defaults', null, 'fteTimePercentage', $store.config.testConfig.defaults.fteTimePercentage)">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-light); margin-top: 0.25rem;">
+                                <span>0%</span>
+                                <span>50%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+
+                        <!-- Equipment Time Percentage Slider -->
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Equipment Time Allocation</label>
+                                <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color);" 
+                                      x-text="$store.config.testConfig.defaults.equipmentTimePercentage + '%'"></span>
+                            </div>
+                            <input type="range" min="0" max="100" step="5"
+                                   x-model.number="$store.config.testConfig.defaults.equipmentTimePercentage"
+                                   style="width: 100%; height: 0.5rem; padding: 0;"
+                                   @input="$store.config.updateTestConfigValue('defaults', null, 'equipmentTimePercentage', $store.config.testConfig.defaults.equipmentTimePercentage)">
+                        </div>
+
+                        <!-- External Test Flag -->
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem;">
+                                <input type="checkbox" 
+                                       x-model="$store.config.testConfig.defaults.isExternal"
+                                       @change="$store.config.updateTestConfigValue('defaults', null, 'isExternal', $store.config.testConfig.defaults.isExternal)">
+                                <span>External Test (no FTE/equipment required)</span>
+                            </label>
+                            <p style="margin: 0.25rem 0 0 1.5rem; font-size: 0.75rem; color: var(--text-light);">Tests run externally without consuming internal resources</p>
+                        </div>
+
+                        <!-- Test Duration -->
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">Default Test Duration (days)</label>
+                            <input type="number" min="1" max="365"
+                                   x-model.number="$store.config.testConfig.defaults.duration"
+                                   class="form-control"
+                                   style="width: 100%;"
+                                   @input="$store.config.updateTestConfigValue('defaults', null, 'duration', $store.config.testConfig.defaults.duration)">
+                        </div>
+
+                        <!-- Priority -->
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">Default Priority</label>
+                            <input type="number" min="1" max="10"
+                                   x-model.number="$store.config.testConfig.defaults.priority"
+                                   class="form-control"
+                                   style="width: 100%;"
+                                   @input="$store.config.updateTestConfigValue('defaults', null, 'priority', $store.config.testConfig.defaults.priority)">
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: var(--text-light);">1 = highest, 10 = lowest</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROJECTS Level -->
+            <div x-show="activeHierarchyLevel === 'projects'" class="level-content">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Project</label>
+                    <select x-model="selectedProject" class="form-control" style="width: auto; min-width: 200px;">
+                        <option value="">Choose a project...</option>
+                        <template x-for="project in $store.csvData?.projects || []" :key="project">
+                            <option :value="project" x-text="project"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <template x-if="selectedProject">
+                    <div class="config-card override-card" 
+                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);"
+                         :style="Object.keys($store.config.testConfig.projects[selectedProject] || {}).length > 0 ? 'border-left: 4px solid var(--warning-color);' : ''">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <span style="font-size: 1.25rem;">📁</span>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="selectedProject"></h4>
+                            <span x-show="Object.keys($store.config.testConfig.projects[selectedProject] || {}).length > 0" 
+                                  style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: var(--warning-color-10); color: var(--warning-color); border-radius: 0.25rem;">
+                                Override Active
+                            </span>
+                        </div>
+
+                        <!-- Show Inherited Values -->
+                        <div class="inherited-values" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.25rem;">
+                            <h5 style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">Inherited from Global</h5>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem; font-size: 0.8rem;">
+                                <div><span style="color: var(--text-light);">FTE:</span> <span x-text="$store.config.testConfig.defaults.fteResources?.join(', ') || 'None'"></span></div>
+                                <div><span style="color: var(--text-light);">Equipment:</span> <span x-text="$store.config.testConfig.defaults.equipmentResources?.join(', ') || 'None'"></span></div>
+                                <div><span style="color: var(--text-light);">FTE Time:</span> <span x-text="$store.config.testConfig.defaults.fteTimePercentage + '%'"></span></div>
+                                <div><span style="color: var(--text-light);">External:</span> <span x-text="$store.config.testConfig.defaults.isExternal ? 'Yes' : 'No'"></span></div>
+                            </div>
+                        </div>
+
+                        <!-- Override Fields (Projects only get resources and external flag) -->
+                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                            
+                            <!-- FTE Resources Override -->
+                            <div class="form-group">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <input type="checkbox"
+                                           :checked="!!($store.config.testConfig.projects[selectedProject]?.overrides?.fteResources)"
+                                           @change="$store.config.updateTestConfigOverride('projects', selectedProject, 'fteResources', $event.target.checked)">
+                                    <label style="font-weight: 500; margin: 0;">Override FTE Resources</label>
+                                </div>
+                                <div x-show="$store.config.testConfig.projects[selectedProject]?.overrides?.fteResources">
+                                    <!-- Multi-select for FTE resources -->
+                                    <div style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem;" x-data="{ open: false }" @click.away="open = false">
+                                        <div @click="open = !open" style="padding: 0.25rem; font-size: 0.75rem; cursor: pointer;">
+                                            <span x-text="$store.config.testConfig.projects[selectedProject]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
+                                        </div>
+                                        <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
+                                            <template x-for="option in $store.config.getFteOptions()" :key="option.id">
+                                                <div @click="$store.config.updateTestConfigValue('projects', selectedProject, 'fteResources', [...($store.config.testConfig.projects[selectedProject]?.fteResources || []), option.id]); open = false"
+                                                     style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                                     :style="($store.config.testConfig.projects[selectedProject]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
+                                                    <span x-text="option.name"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Equipment Resources Override -->
+                            <div class="form-group">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <input type="checkbox"
+                                           :checked="!!($store.config.testConfig.projects[selectedProject]?.overrides?.equipmentResources)"
+                                           @change="$store.config.updateTestConfigOverride('projects', selectedProject, 'equipmentResources', $event.target.checked)">
+                                    <label style="font-weight: 500; margin: 0;">Override Equipment Resources</label>
+                                </div>
+                                <div x-show="$store.config.testConfig.projects[selectedProject]?.overrides?.equipmentResources">
+                                    <!-- Multi-select for equipment resources -->
+                                    <div style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem;" x-data="{ open: false }" @click.away="open = false">
+                                        <div @click="open = !open" style="padding: 0.25rem; font-size: 0.75rem; cursor: pointer;">
+                                            <span x-text="$store.config.testConfig.projects[selectedProject]?.equipmentResources?.join(', ') || 'Select equipment resources...'"></span>
+                                        </div>
+                                        <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
+                                            <template x-for="option in $store.config.getEquipmentOptions()" :key="option.id">
+                                                <div @click="$store.config.updateTestConfigValue('projects', selectedProject, 'equipmentResources', [...($store.config.testConfig.projects[selectedProject]?.equipmentResources || []), option.id]); open = false"
+                                                     style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                                     :style="($store.config.testConfig.projects[selectedProject]?.equipmentResources || []).includes(option.id) ? 'background: var(--success-color-10);' : ''">
+                                                    <span x-text="option.name"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- External Flag Override -->
+                            <div class="form-group">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <input type="checkbox"
+                                           :checked="!!($store.config.testConfig.projects[selectedProject]?.overrides?.isExternal)"
+                                           @change="$store.config.updateTestConfigOverride('projects', selectedProject, 'isExternal', $event.target.checked)">
+                                    <label style="font-weight: 500; margin: 0;">Override External Flag</label>
+                                </div>
+                                <div x-show="$store.config.testConfig.projects[selectedProject]?.overrides?.isExternal">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
+                                        <input type="checkbox" 
+                                               x-model="$store.config.testConfig.projects[selectedProject].isExternal"
+                                               @change="$store.config.updateTestConfigValue('projects', selectedProject, 'isExternal', $store.config.testConfig.projects[selectedProject].isExternal)">
+                                        <span>Mark as External Test</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="!selectedProject">
+                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <p style="margin: 0;">Select a project to configure project-specific overrides</p>
+                    </div>
+                </template>
+            </div>
+
+            <!-- LEG TYPES Level -->
+            <div x-show="activeHierarchyLevel === 'legTypes'" class="level-content">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Leg Type</label>
+                    <select x-model="$store.config.selectedLegType" class="form-control" style="width: auto; min-width: 200px;">
+                        <option value="">Choose a leg type...</option>
+                        <template x-for="legType in Object.keys($store.testHierarchy.legTypes || {})" :key="legType">
+                            <option :value="legType" x-text="legType"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <template x-if="$store.config.selectedLegType">
+                    <div class="config-card override-card" 
+                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <span style="font-size: 1.25rem;">🔗</span>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedLegType"></h4>
+                        </div>
+
+                        <!-- Override Fields -->
+                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                            
+                            <!-- FTE Resources Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
+                                <div x-data="{ open: false }" @click.away="open = false">
+                                    <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;">
+                                        <span x-text="$store.config.testConfig.legTypes[$store.config.selectedLegType]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
+                                    </div>
+                                    <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
+                                        <template x-for="option in $store.config.getFteOptions()" :key="option.id">
+                                            <div @click="$store.config.updateTestConfigValue('legTypes', $store.config.selectedLegType, 'fteResources', [...($store.config.testConfig.legTypes[$store.config.selectedLegType]?.fteResources || []), option.id]); open = false"
+                                                 style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                                 :style="($store.config.testConfig.legTypes[$store.config.selectedLegType]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
+                                                <span x-text="option.name"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Duration Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Duration Override (days)</label>
+                                <input type="number" min="1" max="365"
+                                       x-model.number="$store.config.testConfig.legTypes[$store.config.selectedLegType]?.duration"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('legTypes', $store.config.selectedLegType, 'duration', $store.config.testConfig.legTypes[$store.config.selectedLegType]?.duration)">
+                            </div>
+
+                            <!-- Priority Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Priority Override</label>
+                                <input type="number" min="1" max="10"
+                                       x-model.number="$store.config.testConfig.legTypes[$store.config.selectedLegType]?.priority"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('legTypes', $store.config.selectedLegType, 'priority', $store.config.testConfig.legTypes[$store.config.selectedLegType]?.priority)">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="!$store.config.selectedLegType">
+                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <p style="margin: 0;">Select a leg type to configure leg type-specific overrides</p>
+                    </div>
+                </template>
+            </div>
+
+            <!-- LEGS Level -->
+            <div x-show="activeHierarchyLevel === 'legs'" class="level-content">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Leg</label>
+                    <select x-model="$store.config.selectedLeg" class="form-control" style="width: auto; min-width: 200px;">
+                        <option value="">Choose a leg...</option>
+                        <template x-for="leg in $store.legs || []" :key="leg.legId || leg._uiId">
+                            <option :value="leg.legId || leg._uiId" x-text="leg.legId || leg._uiId"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <template x-if="$store.config.selectedLeg">
+                    <div class="config-card override-card" 
+                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <span style="font-size: 1.25rem;">📍</span>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedLeg"></h4>
+                        </div>
+
+                        <!-- Override Fields -->
+                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                            
+                            <!-- FTE Resources Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
+                                <div x-data="{ open: false }" @click.away="open = false">
+                                    <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;">
+                                        <span x-text="$store.config.testConfig.legs[$store.config.selectedLeg]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
+                                    </div>
+                                    <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
+                                        <template x-for="option in $store.config.getFteOptions()" :key="option.id">
+                                            <div @click="$store.config.updateTestConfigValue('legs', $store.config.selectedLeg, 'fteResources', [...($store.config.testConfig.legs[$store.config.selectedLeg]?.fteResources || []), option.id]); open = false"
+                                                 style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                                 :style="($store.config.testConfig.legs[$store.config.selectedLeg]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
+                                                <span x-text="option.name"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Duration Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Duration Override (days)</label>
+                                <input type="number" min="1" max="365"
+                                       x-model.number="$store.config.testConfig.legs[$store.config.selectedLeg]?.duration"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('legs', $store.config.selectedLeg, 'duration', $store.config.testConfig.legs[$store.config.selectedLeg]?.duration)">
+                            </div>
+
+                            <!-- Force Start Week -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Force Start Week</label>
+                                <input type="text" placeholder="YYYY-Www"
+                                       x-model="$store.config.testConfig.legs[$store.config.selectedLeg]?.forceStartWeek"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('legs', $store.config.selectedLeg, 'forceStartWeek', $store.config.testConfig.legs[$store.config.selectedLeg]?.forceStartWeek)">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="!$store.config.selectedLeg">
+                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <p style="margin: 0;">Select a leg to configure leg-specific overrides</p>
+                    </div>
+                </template>
+            </div>
+
+            <!-- TEST TYPES Level -->
+            <div x-show="activeHierarchyLevel === 'testTypes'" class="level-content">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Test Type</label>
+                    <select x-model="$store.config.selectedTestType" class="form-control" style="width: auto; min-width: 200px;">
+                        <option value="">Choose a test type...</option>
+                        <template x-for="testType in Object.keys($store.testHierarchy.testTypes || {})" :key="testType">
+                            <option :value="testType" x-text="testType"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <template x-if="$store.config.selectedTestType">
+                    <div class="config-card override-card" 
+                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <span style="font-size: 1.25rem;">🏷️</span>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedTestType"></h4>
+                        </div>
+
+                        <!-- Override Fields -->
+                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                            
+                            <!-- FTE Resources Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
+                                <div x-data="{ open: false }" @click.away="open = false">
+                                    <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;">
+                                        <span x-text="$store.config.testConfig.testTypes[$store.config.selectedTestType]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
+                                    </div>
+                                    <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
+                                        <template x-for="option in $store.config.getFteOptions()" :key="option.id">
+                                            <div @click="$store.config.updateTestConfigValue('testTypes', $store.config.selectedTestType, 'fteResources', [...($store.config.testConfig.testTypes[$store.config.selectedTestType]?.fteResources || []), option.id]); open = false"
+                                                 style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                                 :style="($store.config.testConfig.testTypes[$store.config.selectedTestType]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
+                                                <span x-text="option.name"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Duration Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Duration Override (days)</label>
+                                <input type="number" min="1" max="365"
+                                       x-model.number="$store.config.testConfig.testTypes[$store.config.selectedTestType]?.duration"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('testTypes', $store.config.selectedTestType, 'duration', $store.config.testConfig.testTypes[$store.config.selectedTestType]?.duration)">
+                            </div>
+
+                            <!-- External Flag Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">External Flag</label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
+                                    <input type="checkbox" 
+                                           x-model="$store.config.testConfig.testTypes[$store.config.selectedTestType]?.isExternal"
+                                           @change="$store.config.updateTestConfigValue('testTypes', $store.config.selectedTestType, 'isExternal', $store.config.testConfig.testTypes[$store.config.selectedTestType]?.isExternal)">
+                                    <span>Mark as External Test</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="!$store.config.selectedTestType">
+                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <p style="margin: 0;">Select a test type to configure test type-specific overrides</p>
+                    </div>
+                </template>
+            </div>
+
+            <!-- TESTS Level -->
+            <div x-show="activeHierarchyLevel === 'tests'" class="level-content">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Test</label>
+                    <select x-model="$store.config.selectedTest" class="form-control" style="width: auto; min-width: 200px;">
+                        <option value="">Choose a test...</option>
+                        <template x-for="test in Object.keys($store.testHierarchy.tests || {})" :key="test">
+                            <option :value="test" x-text="test"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <template x-if="$store.config.selectedTest">
+                    <div class="config-card override-card" 
+                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <span style="font-size: 1.25rem;">📝</span>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedTest"></h4>
+                        </div>
+
+                        <!-- Override Fields -->
+                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                            
+                            <!-- FTE Resources Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
+                                <div x-data="{ open: false }" @click.away="open = false">
+                                    <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;">
+                                        <span x-text="$store.config.testConfig.tests[$store.config.selectedTest]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
+                                    </div>
+                                    <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
+                                        <template x-for="option in $store.config.getFteOptions()" :key="option.id">
+                                            <div @click="$store.config.updateTestConfigValue('tests', $store.config.selectedTest, 'fteResources', [...($store.config.testConfig.tests[$store.config.selectedTest]?.fteResources || []), option.id]); open = false"
+                                                 style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                                 :style="($store.config.testConfig.tests[$store.config.selectedTest]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
+                                                <span x-text="option.name"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Duration Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Duration Override (days)</label>
+                                <input type="number" min="1" max="365"
+                                       x-model.number="$store.config.testConfig.tests[$store.config.selectedTest]?.duration"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('tests', $store.config.selectedTest, 'duration', $store.config.testConfig.tests[$store.config.selectedTest]?.duration)">
+                            </div>
+
+                            <!-- Force Start Week -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Force Start Week</label>
+                                <input type="text" placeholder="YYYY-Www"
+                                       x-model="$store.config.testConfig.tests[$store.config.selectedTest]?.forceStartWeek"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('tests', $store.config.selectedTest, 'forceStartWeek', $store.config.testConfig.tests[$store.config.selectedTest]?.forceStartWeek)">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="!$store.config.selectedTest">
+                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <p style="margin: 0;">Select a test to configure test-specific overrides</p>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Configuration Summary -->
+        <div class="config-summary" style="margin-top: 2rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+            <h4 style="margin: 0 0 1rem 0; font-size: 0.95rem;">Configuration Summary</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; font-size: 0.875rem;">
+                <div>
+                    <span style="color: var(--text-light);">Global:</span>
+                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.defaults || {}).length + ' fields set'"></span>
+                </div>
+                <div>
+                    <span style="color: var(--text-light);">Projects:</span>
+                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.projects || {}).length + ' overrides'"></span>
+                </div>
+                <div>
+                    <span style="color: var(--text-light);">Leg Types:</span>
+                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.legTypes || {}).length + ' overrides'"></span>
+                </div>
+                <div>
+                    <span style="color: var(--text-light);">Legs:</span>
+                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.legs || {}).length + ' overrides'"></span>
+                </div>
+                <div>
+                    <span style="color: var(--text-light);">Test Types:</span>
+                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.testTypes || {}).length + ' overrides'"></span>
+                </div>
+                <div>
+                    <span style="color: var(--text-light);">Tests:</span>
+                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.tests || {}).length + ' overrides'"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
