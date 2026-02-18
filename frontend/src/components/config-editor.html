@@ -1,395 +1,2370 @@
- <div x-data="configEditorComponent()" x-init="init()" x-cloak>
-      <!-- Loading indicator for request operations -->
-      <div class="htmx-indicator" style="display:none;" id="config-loader">
-          <div class="spinner"></div>
-          <span>Processing...</span>
-      </div>
- 
-      <!-- Subtab Navigation Sidebar -->
-      <div class="subtab-container">
-          <div class="subtab-sidebar">
-              <button
-                  type="button"
-                  class="subtab-btn"
-                  :class="{ 'active': activeSubtab === 'import' }"
-                  @click="setActiveSubtab('import')"
-                  @keydown.enter.prevent="setActiveSubtab('import')"
-                  @keydown.space.prevent="setActiveSubtab('import')"
-              >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                      <polyline points="17 8 12 3 7 8"></polyline>
-                      <line x1="12" y1="3" x2="12" y2="15"></line>
-                  </svg>
-                  Import JSON
-              </button>
-              <button
-                  type="button"
-                  class="subtab-btn"
-                  :class="{ 'active': activeSubtab === 'mode' }"
-                  @click="setActiveSubtab('mode')"
-                  @keydown.enter.prevent="setActiveSubtab('mode')"
-                  @keydown.space.prevent="setActiveSubtab('mode')"
-              >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="3" y1="9" x2="21" y2="9"></line>
-                      <line x1="9" y1="21" x2="9" y2="9"></line>
-                  </svg>
-                  Mode & Weight
-              </button>
-              <button
-                  type="button"
-                  class="subtab-btn"
-                  :class="{ 'active': activeSubtab === 'deadlines' }"
-                  @click="setActiveSubtab('deadlines')"
-                  @keydown.enter.prevent="setActiveSubtab('deadlines')"
-                  @keydown.space.prevent="setActiveSubtab('deadlines')"
-              >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M6 2v8h4V2H6zm8 0v8h4V2h-4z"></path>
-                      <path d="M2 16h20v2H2z"></path>
-                  </svg>
-                  Deadlines
-              </button>
-              <button
-                  type="button"
-                  class="subtab-btn"
-                  :class="{ 'active': activeSubtab === 'penalty' }"
-                  @click="setActiveSubtab('penalty')"
-                  @keydown.enter.prevent="setActiveSubtab('penalty')"
-                  @keydown.space.prevent="setActiveSubtab('penalty')"
-              >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                      <line x1="12" y1="9" x2="12" y2="13"></line>
-                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                  </svg>
-                  Penalty
-              </button>
-              <button
-                  type="button"
-                  class="subtab-btn"
-                  :class="{ 'active': activeSubtab === 'proximity' }"
-                  @click="setActiveSubtab('proximity')"
-                  @keydown.enter.prevent="setActiveSubtab('proximity')"
-                  @keydown.space.prevent="setActiveSubtab('proximity')"
-              >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="2" y1="12" x2="22" y2="12"></line>
-                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                  </svg>
-                  Proximity Rules
-              </button>
-              <button
-                  type="button"
-                  class="subtab-btn"
-                  :class="{ 'active': activeSubtab === 'weights' }"
-                  @click="setActiveSubtab('weights')"
-                  @keydown.enter.prevent="setActiveSubtab('weights')"
-                  @keydown.space.prevent="setActiveSubtab('weights')"
-              >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="18" y1="20" x2="18" y2="10"></line>
-                      <line x1="12" y1="20" x2="12" y2="4"></line>
-                      <line x1="6" y1="20" x2="6" y2="14"></line>
-                  </svg>
-                  Weights Slider
-              </button>
-              <button
-                  type="button"
-                  class="subtab-btn"
-                  :class="{ 'active': activeSubtab === 'output' }"
-                  @click="setActiveSubtab('output')"
-                  @keydown.enter.prevent="setActiveSubtab('output')"
-                  @keydown.space.prevent="setActiveSubtab('output')"
-              >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                      <polyline points="14 2 14 8 20 8"></polyline>
-                      <line x1="16" y1="13" x2="8" y2="13"></line>
-                      <line x1="16" y1="17" x2="8" y2="17"></line>
-                      <polyline points="10 9 9 9 8 9"></polyline>
-                  </svg>
-                  Output JSON
-              </button>
-          </div>
-          
-          <div class="subtab-content">
-              <!-- Import JSON Section -->
-              <div x-show="activeSubtab === 'import'" class="config-section" id="section-import">
-                  <div class="section-header">
-                      <h3>Load Configuration JSON</h3>
-                      <p>Paste JSON and apply it to replace the current configuration.</p>
-                  </div>
-                  <div class="form-group">
-                      <label for="config-json-input">JSON</label>
-                      <textarea id="config-json-input" x-model="jsonImportText" rows="6" class="form-control" placeholder='{"mode":"leg_end_dates","weights":{"makespan_weight":0.2,"priority_weight":0.8}}'></textarea>
-                  </div>
-                  <div class="form-group">
-                      <button @click="applyJsonImportText()" class="btn">Apply JSON</button>
-                  </div>
-                  <div x-show="error" class="validation-error">
-                      <span x-text="error"></span>
-                  </div>
-              </div>
- 
-              <!-- Mode & Objective Weights Section -->
-              <div x-show="activeSubtab === 'mode'" class="config-section" id="section-mode">
-                  <div class="section-header">
-                      <div class="flex-container" style="margin-bottom: 1rem;">
-                           <h3 style="margin: 0;">Configuration Mode</h3>
+<div x-data="configEditorComponent()" x-init="init()" x-cloak>
+    <!-- Loading indicator for request operations -->
+    <div class="htmx-indicator" style="display:none;" id="config-loader">
+        <div class="spinner"></div>
+        <span>Processing...</span>
+    </div>
+
+    <!-- Subtab Navigation Sidebar -->
+    <div class="subtab-container">
+        <div class="subtab-sidebar">
+            <!-- Import -->
+            <button
+                type="button"
+                class="subtab-btn"
+                :class="{ 'active': activeSubtab === 'import' }"
+                @click="setActiveSubtab('import')"
+                @keydown.enter.prevent="setActiveSubtab('import')"
+                @keydown.space.prevent="setActiveSubtab('import')"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Import
+            </button>
+            <!-- Weights -->
+            <button
+                type="button"
+                class="subtab-btn"
+                :class="{ 'active': activeSubtab === 'weights' }"
+                @click="setActiveSubtab('weights')"
+                @keydown.enter.prevent="setActiveSubtab('weights')"
+                @keydown.space.prevent="setActiveSubtab('weights')"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                    <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+                Weights
+            </button>
+            <!-- Legs -->
+            <button
+                type="button"
+                class="subtab-btn"
+                :class="{ 'active': activeSubtab === 'legs' }"
+                @click="setActiveSubtab('legs')"
+                @keydown.enter.prevent="setActiveSubtab('legs')"
+                @keydown.space.prevent="setActiveSubtab('legs')"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+                Legs
+            </button>
+            <!-- FTE -->
+            <button
+                type="button"
+                class="subtab-btn"
+                :class="{ 'active': activeSubtab === 'fte' }"
+                @click="setActiveSubtab('fte')"
+                @keydown.enter.prevent="setActiveSubtab('fte')"
+                @keydown.space.prevent="setActiveSubtab('fte')"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                FTE
+            </button>
+            <!-- Equipment -->
+            <button
+                type="button"
+                class="subtab-btn"
+                :class="{ 'active': activeSubtab === 'equipment' }"
+                @click="setActiveSubtab('equipment')"
+                @keydown.enter.prevent="setActiveSubtab('equipment')"
+                @keydown.space.prevent="setActiveSubtab('equipment')"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                    <rect x="9" y="9" width="6" height="6"></rect>
+                    <line x1="9" y1="1" x2="9" y2="4"></line>
+                    <line x1="15" y1="1" x2="15" y2="4"></line>
+                    <line x1="9" y1="20" x2="9" y2="23"></line>
+                    <line x1="15" y1="20" x2="15" y2="23"></line>
+                    <line x1="20" y1="9" x2="23" y2="9"></line>
+                    <line x1="20" y1="14" x2="23" y2="14"></line>
+                    <line x1="1" y1="9" x2="4" y2="9"></line>
+                    <line x1="1" y1="14" x2="4" y2="14"></line>
+                </svg>
+                Equipment
+            </button>
+            <!-- Test -->
+            <button
+                type="button"
+                class="subtab-btn"
+                :class="{ 'active': activeSubtab === 'test' }"
+                @click="setActiveSubtab('test')"
+                @keydown.enter.prevent="setActiveSubtab('test')"
+                @keydown.space.prevent="setActiveSubtab('test')"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                Test
+            </button>
+        </div>
+        
+        <div class="subtab-content">
+            <!-- Import Section -->
+            <div x-show="activeSubtab === 'import'" class="config-section" id="section-import">
+                <div class="section-header">
+                    <h3>Import Configuration</h3>
+                    <p>Load a saved configuration from JSON file or paste JSON directly.</p>
+                </div>
+                
+                <!-- File Upload Section -->
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label>Upload JSON File</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input 
+                            type="file" 
+                            id="json-file-input" 
+                            accept=".json"
+                            style="display: none;"
+                            @change="handleJsonFileSelect($event)"
+                        >
+                        <button 
+                            @click="triggerJsonFileInput()" 
+                            class="btn"
+                            :disabled="isUploadingConfig"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem;">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            Browse...
+                        </button>
+                        <span x-show="selectedJsonFileName" style="font-size: 0.875rem; color: var(--text-light);" x-text="selectedJsonFileName"></span>
+                    </div>
+                    
+                    <!-- Loading State -->
+                    <div x-show="isUploadingConfig" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <div class="spinner-small"></div>
+                        <span style="font-size: 0.875rem; color: var(--text-light);">Loading configuration...</span>
+                    </div>
+                </div>
+                
+                <!-- Divider -->
+                <div style="display: flex; align-items: center; gap: 1rem; margin: 1.5rem 0;">
+                    <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+                    <span style="color: var(--text-light); font-size: 0.875rem;">OR</span>
+                    <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="config-json-input">Paste JSON Configuration</label>
+                    <textarea id="config-json-input" x-model="jsonImportText" rows="6" class="form-control" placeholder='{"mode":"leg_end_dates","weights":{"makespan_weight":0.2,"priority_weight":0.8}}'></textarea>
+                </div>
+                <div class="form-group">
+                    <button @click="applyJsonImportText()" class="btn">Apply JSON</button>
+                </div>
+                
+                <!-- Phase 6: Validation Warnings Panel -->
+                <div x-show="importWarnings" class="validation-warnings-panel" style="margin-top: 1.5rem; border: 1px solid #f0ad4e; border-radius: 0.375rem; background: #fffbe6;">
+                    <div style="padding: 1rem; background: #fcf8e3; border-bottom: 1px solid #f0ad4e; border-radius: 0.375rem 0.375rem 0 0; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f0ad4e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                            <strong style="color: #8a6d3b;">Import Validation Warnings</strong>
+                            <span style="background: #f0ad4e; color: white; padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem;" x-text="importWarnings?.totalErrors || 0 + ' mismatch' + (importWarnings?.totalErrors === 1 ? '' : 'es')"></span>
+                        </div>
+                        <button @click="clearImportWarnings()" class="btn btn-sm" style="background: transparent; border: none; color: #8a6d3b; cursor: pointer; padding: 0.25rem 0.5rem;">×</button>
+                    </div>
+                    <div style="padding: 1rem;">
+                        <p style="margin: 0 0 0.75rem 0; color: #8a6d3b; font-size: 0.875rem;">The following entities are referenced in your JSON configuration but not found in loaded CSV data:</p>
+                        
+                        <!-- Legs Mismatches -->
+                        <div x-show="importWarnings?.mismatches?.legs?.length" style="margin-bottom: 0.75rem;">
+                            <details>
+                                <summary style="cursor: pointer; color: #8a6d3b; font-weight: 600; font-size: 0.875rem;">
+                                    Legs (<span x-text="importWarnings?.mismatches?.legs?.length || 0"></span>)
+                                </summary>
+                                <ul style="margin: 0.5rem 0 0 1.25rem; color: #8a6d3b; font-size: 0.8125rem;">
+                                    <template x-for="leg in importWarnings?.mismatches?.legs || []" :key="leg">
+                                        <li x-text="'• ' + leg"></li>
+                                    </template>
+                                </ul>
+                            </details>
+                        </div>
+                        
+                        <!-- Test Types Mismatches -->
+                        <div x-show="importWarnings?.mismatches?.testTypes?.length" style="margin-bottom: 0.75rem;">
+                            <details>
+                                <summary style="cursor: pointer; color: #8a6d3b; font-weight: 600; font-size: 0.875rem;">
+                                    Test/Leg Types (<span x-text="importWarnings?.mismatches?.testTypes?.length || 0"></span>)
+                                </summary>
+                                <ul style="margin: 0.5rem 0 0 1.25rem; color: #8a6d3b; font-size: 0.8125rem;">
+                                    <template x-for="tt in importWarnings?.mismatches?.testTypes || []" :key="tt">
+                                        <li x-text="'• ' + tt"></li>
+                                    </template>
+                                </ul>
+                            </details>
+                        </div>
+                        
+                        <!-- FTE Resources Mismatches -->
+                        <div x-show="importWarnings?.mismatches?.fteResources?.length" style="margin-bottom: 0.75rem;">
+                            <details>
+                                <summary style="cursor: pointer; color: #8a6d3b; font-weight: 600; font-size: 0.875rem;">
+                                    FTE Resources (<span x-text="importWarnings?.mismatches?.fteResources?.length || 0"></span>)
+                                </summary>
+                                <ul style="margin: 0.5rem 0 0 1.25rem; color: #8a6d3b; font-size: 0.8125rem;">
+                                    <template x-for="fte in importWarnings?.mismatches?.fteResources || []" :key="fte">
+                                        <li x-text="'• ' + fte"></li>
+                                    </template>
+                                </ul>
+                            </details>
+                        </div>
+                        
+                        <!-- Equipment Resources Mismatches -->
+                        <div x-show="importWarnings?.mismatches?.equipmentResources?.length" style="margin-bottom: 0.75rem;">
+                            <details>
+                                <summary style="cursor: pointer; color: #8a6d3b; font-weight: 600; font-size: 0.875rem;">
+                                    Equipment Resources (<span x-text="importWarnings?.mismatches?.equipmentResources?.length || 0"></span>)
+                                </summary>
+                                <ul style="margin: 0.5rem 0 0 1.25rem; color: #8a6d3b; font-size: 0.8125rem;">
+                                    <template x-for="eq in importWarnings?.mismatches?.equipmentResources || []" :key="eq">
+                                        <li x-text="'• ' + eq"></li>
+                                    </template>
+                                </ul>
+                            </details>
+                        </div>
+                        
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f0ad4e; display: flex; gap: 0.5rem; align-items: center;">
+                            <span style="font-size: 0.8125rem; color: #8a6d3b;">You can still import, but these entities will not match CSV data.</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div x-show="error" class="validation-error">
+                    <span x-text="error"></span>
+                </div>
+            </div>
+
+            <!-- Weights Section - Consolidated Mode, Penalty, and Weights Slider -->
+            <div x-show="activeSubtab === 'weights'" class="config-section" id="section-weights">
+                <!-- Mode & Objective Weights Sub-section -->
+                <div class="subsection">
+                    <div class="section-header">
+                        <div class="flex-container" style="margin-bottom: 1rem;">
+                            <h3 style="margin: 0;">Configuration Mode</h3>
                             <label class="checkbox-label">
                                 <input type="checkbox" x-model="sectionEnabled.modeEnabled" @change="queueOutputUpdate(true)">
                                 Enable
                             </label>
-                      </div>
-                  </div>
-                  <div class="form-group">
-                      <label for="mode">Scheduling Mode</label>
-                      <select id="mode" x-model="config.mode" :disabled="!sectionEnabled.modeEnabled" class="form-control">
-                          <option value="leg_end_dates">Leg End Dates</option>
-                          <option value="leg_priority">Leg Priority</option>
-                          <option value="end_date_priority">End Date Priority</option>
-                          <option value="end_date_sticky">End Date Sticky</option>
-                          <option value="resource_bottleneck">Resource Bottleneck</option>
-                      </select>
-                  </div>
-                  <div class="form-group">
-                      <label for="description">Description</label>
-                      <textarea id="description" x-model="config.description" :disabled="!sectionEnabled.modeEnabled"
-                                placeholder="A human-readable description of what this configuration does."
-                                class="form-control" rows="3"></textarea>
-                  </div>
-              </div>
- 
-              <!-- Leg Deadlines Section -->
-              <div x-show="activeSubtab === 'deadlines'" class="config-section" id="section-deadlines">
-                  <div class="section-header">
-                      <div class="flex-container" style="margin-bottom: 1rem;">
-                           <h3 style="margin: 0;">Leg Deadlines</h3>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="mode">Scheduling Mode</label>
+                        <select id="mode" x-model="config.mode" :disabled="!sectionEnabled.modeEnabled" class="form-control">
+                            <option value="leg_end_dates">Leg End Dates</option>
+                            <option value="leg_priority">Leg Priority</option>
+                            <option value="end_date_priority">End Date Priority</option>
+                            <option value="end_date_sticky">End Date Sticky</option>
+                            <option value="resource_bottleneck">Resource Bottleneck</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" x-model="config.description" :disabled="!sectionEnabled.modeEnabled"
+                                  placeholder="A human-readable description of what this configuration does."
+                                  class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <hr style="margin: 2rem 0;">
+
+                <!-- Weights Slider Sub-section -->
+                <div class="subsection">
+                    <div class="section-header">
+                        <div class="flex-container" style="margin-bottom: 1rem;">
+                            <h3 style="margin: 0;">Objective Function Weights</h3>
                             <label class="checkbox-label">
-                                <input type="checkbox" x-model="sectionEnabled.deadlinesEnabled" @change="queueOutputUpdate(true)">
+                                <input type="checkbox" x-model="sectionEnabled.modeEnabled" x-on:change="$store.config.updateOutputSettings()">
                                 Enable
                             </label>
-                      </div>
-                  </div>
-                  <div x-show="config.deadlines.length > 0" style="overflow-x: auto;">
-                      <table>
-                          <thead>
-                              <tr>
-                                  <th style="width: 30%;">Leg ID</th>
-                                  <th style="width: 25%;">Start Deadline</th>
-                                  <th style="width: 10%;">Start Enabled</th>
-                                  <th style="width: 25%;">End Deadline</th>
-                                  <th style="width: 10%;">End Enabled</th>
-                              </tr>
-                          </thead>
-                          <tbody>
-                              <template x-for="(deadline, index) in config.deadlines" :key="`${index}-${deadline.legId}`">
-                                  <tr>
-                                      <td>
-                                          <input type="text" x-model="deadline.legId" :disabled="!sectionEnabled.deadlinesEnabled" class="form-control" placeholder="Leg ID">
-                                      </td>
-                                      <td>
-                                          <input type="text"
-                                                 x-model="deadline.startDeadline"
-                                                 :disabled="!sectionEnabled.deadlinesEnabled"
-                                                 :class="{ 'input-invalid': getDeadlineError(deadline.startDeadline, deadline.startEnabled) }"
-                                                 class="form-control"
-                                                 placeholder="YYYY-WWW.N">
-                                          <div class="validation-error" x-show="getDeadlineError(deadline.startDeadline, deadline.startEnabled)" x-text="getDeadlineError(deadline.startDeadline, deadline.startEnabled)"></div>
-                                      </td>
-                                      <td>
-                                          <label class="checkbox-label" style="justify-content: center;">
-                                              <input type="checkbox" x-model="deadline.startEnabled" :disabled="!sectionEnabled.deadlinesEnabled">
-                                          </label>
-                                      </td>
-                                      <td>
-                                          <input type="text"
-                                                 x-model="deadline.endDeadline"
-                                                 :disabled="!sectionEnabled.deadlinesEnabled"
-                                                 :class="{ 'input-invalid': getDeadlineError(deadline.endDeadline, deadline.endEnabled) }"
-                                                 class="form-control"
-                                                 placeholder="YYYY-WWW.N">
-                                          <div class="validation-error" x-show="getDeadlineError(deadline.endDeadline, deadline.endEnabled)" x-text="getDeadlineError(deadline.endDeadline, deadline.endEnabled)"></div>
-                                      </td>
-                                      <td>
-                                          <label class="checkbox-label" style="justify-content: center;">
-                                              <input type="checkbox" x-model="deadline.endEnabled" :disabled="!sectionEnabled.deadlinesEnabled">
-                                          </label>
-                                      </td>
-                                  </tr>
-                              </template>
-                          </tbody>
-                      </table>
-                  </div>
-                  <div x-show="config.deadlines.length === 0" class="validation-error">
-                      No leg deadlines defined.
-                  </div>
-              </div>
- 
-              <!-- Penalty Settings Section -->
-              <div x-show="activeSubtab === 'penalty'" class="config-section" id="section-penalty">
-                  <div class="section-header">
-                      <div class="flex-container" style="margin-bottom: 1rem;">
-                           <h3 style="margin: 0;">Deadline Penalty Settings</h3>
-                            <label class="checkbox-label">
-                                <input type="checkbox" x-model="sectionEnabled.penaltyEnabled" @change="queueOutputUpdate(true)">
-                                Enable
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-weight: 600;">
+                            <span :style="{ color: weightsPercent == 0 ? 'var(--primary-color)' : 'var(--text-light)' }">Makespan (0%)</span>
+                            <span :style="{ color: weightsPercent == 50 ? 'var(--primary-color)' : 'var(--text-light)' }">Balanced (50%)</span>
+                            <span :style="{ color: weightsPercent == 100 ? 'var(--primary-color)' : 'var(--text-light)' }">Priority (100%)</span>
+                        </div>
+                        <input type="range" id="makespan_priority_slider" x-model.number="weightsPercent"
+                               :disabled="!sectionEnabled.modeEnabled" min="0" max="100" step="1" class="form-control"
+                               @input="syncWeightsToConfig()"
+                               style="width: 100%;">
+                        <div style="margin-top: 0.5rem; text-align: center; color: var(--text-light); font-size: 0.9rem;">
+                            <span x-show="weightsPercent < 50">
+                                <strong>Makespan:</strong> <span x-text="Math.round((100 - weightsPercent) / 100 * 100)"></span>%,
+                                <strong>Priority:</strong> <span x-text="Math.round(weightsPercent / 100 * 100)"></span>%
+                            </span>
+                            <span x-show="weightsPercent == 50">
+                                <strong>Balanced:</strong> Makespan 50%, Priority 50%
+                            </span>
+                            <span x-show="weightsPercent > 50">
+                                <strong>Priority:</strong> <span x-text="Math.round(weightsPercent / 100 * 100)"></span>%,
+                                <strong>Makespan:</strong> <span x-text="Math.round((100 - weightsPercent) / 100 * 100)"></span>%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legs Section - Leg Ordering and Week Configuration -->
+            <div x-show="activeSubtab === 'legs'" class="config-section" id="section-legs">
+                <div class="section-header">
+                    <div class="flex-container" style="margin-bottom: 1rem; align-items: center; justify-content: space-between;">
+                        <div>
+                            <h3 style="margin: 0;">Leg Scheduling Order</h3>
+                            <p style="margin: 0.25rem 0 0 0; color: var(--text-light); font-size: 0.9rem;">Define leg priorities and deadlines. Drag to reorder.</p>
+                        </div>
+                        <label class="checkbox-label">
+                            <input type="checkbox" x-model="sectionEnabled.deadlinesEnabled" @change="queueOutputUpdate(true)">
+                            Enable
+                        </label>
+                    </div>
+                </div>
+
+                <div x-show="!sectionEnabled.deadlinesEnabled" class="disabled-section-notice" style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem; text-align: center; color: var(--text-light);">
+                    <p style="margin: 0;">Leg scheduling is disabled. Enable to configure leg order and deadlines.</p>
+                </div>
+
+                <div x-show="sectionEnabled.deadlinesEnabled" class="legs-container">
+                    <div class="subsection" style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <div class="section-header">
+                            <div class="flex-container" style="margin-bottom: 0.75rem;">
+                                <h3 style="margin: 0;">Deadline Penalty Settings</h3>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" x-model="sectionEnabled.penaltyEnabled" @change="queueOutputUpdate(true)">
+                                    Enable
+                                </label>
+                            </div>
+                        </div>
+                        <div class="flex-container">
+                            <div class="form-group flex-item">
+                                <label for="deadline_penalty">Deadline Penalty</label>
+                                <p style="margin: 0.25rem 0 0.5rem 0; color: var(--text-light); font-size: 0.8rem;">Penalty for finishing a leg late.</p>
+                                <input type="number" id="deadline_penalty" x-model.number="config.penaltySettings.deadlinePenalty"
+                                       :disabled="!sectionEnabled.penaltyEnabled" min="0" step="0.01" class="form-control">
+                            </div>
+                            <div class="form-group flex-item">
+                                <label for="compactness_penalty">Compactness</label>
+                                <p style="margin: 0.25rem 0 0.5rem 0; color: var(--text-light); font-size: 0.8rem;">Penalty for gaps inside a leg schedule.</p>
+                                <input type="number" id="compactness_penalty" x-model.number="config.penaltySettings.compactnessPenalty"
+                                       :disabled="!sectionEnabled.penaltyEnabled" min="0" step="0.01" class="form-control">
+                            </div>
+                            <div class="form-group flex-item">
+                                <label for="parallel_within_deadlines">Parallel Within Deadlines</label>
+                                <input type="number" id="parallel_within_deadlines" x-model.number="config.penaltySettings.parallelWithinDeadlines"
+                                       :disabled="!sectionEnabled.penaltyEnabled" min="0" step="1" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="legs-table-wrapper">
+                        <table class="legs-table">
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                                <col style="width: 190px;">
+                                <col style="width: 190px;">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Leg</th>
+                                    <th>Branch</th>
+                                    <th style="width: 160px;">Start <span style="font-weight: normal; color: var(--text-muted);">(YYYY-Www.d)</span></th>
+                                    <th style="width: 160px;">End <span style="font-weight: normal; color: var(--text-muted);">(optional)</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="(leg, index) in legs" :key="leg._uiId || ((leg.project || '') + '-' + leg.legId + '-' + (leg.branch || '') + '-' + index)">
+                                    <tr class="leg-row">
+                                        <td>
+                                            <input
+                                                type="text"
+                                                x-model="leg.project"
+                                                @blur="updateLegProject(index, leg.project)"
+                                                class="form-control leg-input"
+                                                placeholder="e.g., gen3_pv"
+                                            >
+                                        </td>
+                                        <td>
+                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <input
+                                                    :id="'legIdInput-' + index"
+                                                    x-model="leg.legId"
+                                                    @blur="updateLegId(index, leg.legId)"
+                                                    @keydown.enter.prevent="updateLegId(index, leg.legId)"
+                                                    type="text"
+                                                    class="form-control leg-input"
+                                                    placeholder="e.g., 2"
+                                                >
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm"
+                                                    style="padding: 0.2rem 0.35rem; font-size: 0.75rem;"
+                                                    title="Move up"
+                                                    @click="moveLegUp(index)"
+                                                    :disabled="index === 0"
+                                                >↑</button>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm"
+                                                    style="padding: 0.2rem 0.35rem; font-size: 0.75rem;"
+                                                    title="Move down"
+                                                    @click="moveLegDown(index)"
+                                                    :disabled="index === legs.length - 1"
+                                                >↓</button>
+                                                <button
+                                                    type="button"
+                                                    @click="removeLeg(index)"
+                                                    class="btn btn-sm btn-danger"
+                                                    style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: transparent; border: none; color: var(--danger); cursor: pointer;"
+                                                    title="Remove leg"
+                                                    tabindex="0"
+                                                    :aria-label="'Remove leg ' + (leg.legId || 'unnamed')"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                x-model="leg.branch"
+                                                @blur="updateLegBranch(index, leg.branch)"
+                                                class="form-control leg-input"
+                                                placeholder="e.g., main"
+                                            >
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                x-model="leg.startDeadline"
+                                                @blur="validateAndUpdateLeg(index, 'startDeadline', leg.startDeadline)"
+                                                @input="leg.startDeadlineError = validateWeekFormat(leg.startDeadline) ? '' : 'Invalid format. Use YYYY-Www.f (e.g., 2027-W18.6)'"
+                                                class="form-control leg-input"
+                                                :class="{ 'is-invalid': leg.startDeadlineError }"
+                                                placeholder="2027-W18.6"
+                                                :aria-invalid="leg.startDeadlineError ? 'true' : 'false'"
+                                                :aria-describedby="leg.startDeadlineError ? 'start-error-' + index : null"
+                                            >
+                                            <div
+                                                :id="'start-error-' + index"
+                                                x-show="leg.startDeadlineError"
+                                                x-text="leg.startDeadlineError"
+                                                class="leg-error"
+                                                role="alert"
+                                            ></div>
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                x-model="leg.endDeadline"
+                                                @blur="validateAndUpdateLeg(index, 'endDeadline', leg.endDeadline)"
+                                                @input="leg.endDeadlineError = leg.endDeadline && !validateWeekFormat(leg.endDeadline) ? 'Invalid format' : ''"
+                                                class="form-control leg-input"
+                                                :class="{ 'is-invalid': leg.endDeadlineError }"
+                                                placeholder=""
+                                                :aria-invalid="leg.endDeadlineError ? 'true' : 'false'"
+                                                :aria-describedby="leg.endDeadlineError ? 'end-error-' + index : null"
+                                            >
+                                            <div
+                                                :id="'end-error-' + index"
+                                                x-show="leg.endDeadlineError"
+                                                x-text="leg.endDeadlineError"
+                                                class="leg-error"
+                                                role="alert"
+                                            ></div>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="legs.length === 0">
+                                    <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-light);">
+                                        <p style="margin: 0 0 0.5rem 0;">No legs configured yet.</p>
+                                        <p style="margin: 0; font-size: 0.875rem; color: var(--text-muted);">Add a leg to get started with scheduling.</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Add Leg Button -->
+                    <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button
+                                type="button"
+                                @click="addLeg()"
+                                class="btn btn-primary"
+                                style="display: inline-flex; align-items: center; gap: 0.5rem;"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add Leg
+                            </button>
+                        </div>
+
+                        <div x-show="legs.length > 0" style="font-size: 0.875rem; color: var(--text-light);">
+                            <span x-text="legs.length"></span> leg<span x-show="legs.length !== 1">s</span>
+                        </div>
+                    </div>
+
+                    <!-- Format Help -->
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.375rem; font-size: 0.875rem;">
+                        <p style="margin: 0 0 0.5rem 0; font-weight: 600;">📅 Week Format Guide</p>
+                        <p style="margin: 0 0 0.5rem 0; color: var(--text-light);">Use <code>YYYY-Www.f</code> format where:</p>
+                        <ul style="margin: 0; padding-left: 1.25rem; color: var(--text-light);">
+                            <li><code>YYYY</code> = 4-digit year (e.g., 2027)</li>
+                            <li><code>ww</code> = 2-digit ISO week (01-53)</li>
+                            <li><code>f</code> = day of week (1=Mon, 7=Sun)</li>
+                        </ul>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--text-muted);">Example: <code>2027-W18.6</code> = Friday of week 18, 2027</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FTE Section - Resource Availability and Alias Management -->
+            <div x-show="activeSubtab === 'fte'" class="config-section" id="section-fte">
+                <div class="section-header">
+                    <div class="flex-container" style="margin-bottom: 1rem; align-items: center; justify-content: space-between;">
+                        <div>
+                            <h3 style="margin: 0;">FTE Resource Configuration</h3>
+                            <p style="margin: 0.25rem 0 0 0; color: var(--text-light); font-size: 0.9rem;">Manage FTE availability calendars, holidays, and alias groups.</p>
+                        </div>
+                        <label class="checkbox-label">
+                            <input type="checkbox" x-model="fteEnabled" @change="$store.config.updateOutputSettings()">
+                            Enable
+                        </label>
+                    </div>
+                </div>
+
+                <div x-show="!fteEnabled" class="disabled-section-notice" style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem; text-align: center; color: var(--text-light);">
+                    <p style="margin: 0;">FTE configuration is disabled. Enable to configure resource availability.</p>
+                </div>
+
+                <div x-show="fteEnabled" class="fte-container" x-data="{ activeFteTab: 'resources', showBulkPanel: false, showHolidayForm: false, holidayStart: '', holidayEnd: '', holidayName: '', editingAliasName: '' }">
+                    
+                    <!-- FTE Sub-tabs -->
+                    <div class="config-subtabs fte-tabs" role="tablist" aria-label="FTE configuration tabs">
+                        <button 
+                            type="button"
+                            class="config-subtab-btn fte-tab-btn"
+                            :class="{ 'active': activeFteTab === 'resources' }"
+                            @click="activeFteTab = 'resources'"
+                            role="tab"
+                            :aria-selected="activeFteTab === 'resources'"
+                            :tabindex="activeFteTab === 'resources' ? '0' : '-1'"
+                        >
+                            Resources
+                        </button>
+                        <button 
+                            type="button"
+                            class="config-subtab-btn fte-tab-btn"
+                            :class="{ 'active': activeFteTab === 'holidays' }"
+                            @click="activeFteTab = 'holidays'"
+                            role="tab"
+                            :aria-selected="activeFteTab === 'holidays'"
+                            :tabindex="activeFteTab === 'holidays' ? '0' : '-1'"
+                        >
+                            Holidays
+                        </button>
+                        <button 
+                            type="button"
+                            class="config-subtab-btn fte-tab-btn"
+                            :class="{ 'active': activeFteTab === 'calendar' }"
+                            @click="activeFteTab = 'calendar'"
+                            role="tab"
+                            :aria-selected="activeFteTab === 'calendar'"
+                            :tabindex="activeFteTab === 'calendar' ? '0' : '-1'"
+                        >
+                            Calendar
+                        </button>
+                        <button 
+                            type="button"
+                            class="config-subtab-btn fte-tab-btn"
+                            :class="{ 'active': activeFteTab === 'groups' }"
+                            @click="activeFteTab = 'groups'"
+                            role="tab"
+                            :aria-selected="activeFteTab === 'groups'"
+                            :tabindex="activeFteTab === 'groups' ? '0' : '-1'"
+                        >
+                            Groups
+                        </button>
+                    </div>
+
+                    <!-- Resources Tab - Add/Remove FTE Resources -->
+                    <div x-show="activeFteTab === 'resources'" class="fte-resources-tab">
+                        <div class="form-group" style="margin-bottom: 1.5rem;">
+                            <h4 style="margin: 0 0 1rem 0; font-size: 1rem;">Add New FTE Resource</h4>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input 
+                                    type="text" 
+                                    x-model="newFteName" 
+                                    @keydown.enter="addFteResource()"
+                                    placeholder="Enter resource name..."
+                                    class="form-control"
+                                    style="flex: 1;"
+                                >
+                                <button @click="addFteResource()" class="btn btn-primary" type="button">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem;">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+
+                        <h4 style="margin: 0 0 1rem 0; font-size: 1rem;">FTE Resources (<span x-text="fteResources.length"></span>)</h4>
+                        <div x-show="fteResources.length === 0" style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem; text-align: center; color: var(--text-light);">
+                            <p style="margin: 0;">No FTE resources configured yet.</p>
+                        </div>
+                        <div class="fte-resources-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <template x-for="(fte, index) in fteResources" :key="fte.id">
+                                <div class="fte-resource-item" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.375rem; background: var(--bg-primary);">
+                                    <div style="flex: 1; display: grid; grid-template-columns: minmax(180px, 1fr) auto; gap: 0.75rem; align-items: center;">
+                                        <input type="text" class="form-control" x-model="fte.name" @blur="updateFteName(index, fte.name)" @keydown.enter.prevent="updateFteName(index, fte.name)" placeholder="Resource name">
+                                        <span style="font-size: 0.75rem; color: var(--text-light);" x-text="fte.id"></span>
+                                    </div>
+                                    <button 
+                                        @click="removeFteResource(fte.id)" 
+                                        class="btn btn-danger btn-sm"
+                                        type="button"
+                                        title="Remove resource"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Calendar Tab -->
+                    <div x-show="activeFteTab === 'calendar'" class="fte-calendar-tab">
+                        <!-- Controls -->
+                        <div class="fte-controls" style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; align-items: end;">
+                            <div class="form-group" style="flex: 0 0 auto;">
+                                <label>Year</label>
+                                <select x-model="selectedFteYear" class="form-control" style="min-width: 100px;">
+                                    <template x-for="year in availableFteYears" :key="year">
+                                        <option :value="year" x-text="year"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex: 1 1 200px;">
+                                <label>FTE Resource</label>
+                                <select x-model="selectedFteId" class="form-control">
+                                    <option value="">Select resource...</option>
+                                    <template x-for="(fte, index) in fteResources" :key="fte.id">
+                                        <option :value="fte.id" x-text="fte.name || 'Unnamed Resource'"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <button @click="showBulkPanel = !showBulkPanel" class="btn btn-secondary" type="button" :style="showBulkPanel ? 'background: var(--primary-color); color: white;' : ''">
+                                <span x-text="showBulkPanel ? 'Hide Bulk' : 'Bulk Toggle'"></span>
+                            </button>
+                        </div>
+
+                        <!-- Bulk Toggle Panel -->
+                        <div x-show="showBulkPanel && selectedFteId" class="bulk-panel" style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                            <h4 style="margin: 0 0 1rem 0; font-size: 1rem;">Bulk Availability Toggle</h4>
+                            <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: end;">
+                                <div class="form-group" style="flex: 0 1 180px;">
+                                    <label>Start Date</label>
+                                    <input type="date" x-model="bulkStartDate" class="form-control">
+                                </div>
+                                <div class="form-group" style="flex: 0 1 180px;">
+                                    <label>End Date</label>
+                                    <input type="date" x-model="bulkEndDate" class="form-control">
+                                </div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button @click="applyBulkToggle(true)" class="btn btn-success" type="button" :disabled="!bulkStartDate || !bulkEndDate">
+                                        Mark Available
+                                    </button>
+                                    <button @click="applyBulkToggle(false)" class="btn btn-danger" type="button" :disabled="!bulkStartDate || !bulkEndDate">
+                                        Mark Unavailable
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem; font-size: 0.8125rem; color: var(--text-light);">
+                            <span style="display: inline-flex; align-items: center; gap: 0.35rem;"><span style="width: 12px; height: 12px; border-radius: 2px; border: 1px solid var(--success); background: var(--success-bg, rgba(25, 135, 84, 0.1));"></span>Available</span>
+                            <span style="display: inline-flex; align-items: center; gap: 0.35rem;"><span style="width: 12px; height: 12px; border-radius: 2px; border: 1px solid var(--danger); background: var(--danger-bg, rgba(220, 53, 69, 0.1));"></span>Unavailable</span>
+                            <span style="display: inline-flex; align-items: center; gap: 0.35rem;"><span style="width: 12px; height: 12px; border-radius: 2px; border: 1px solid #d97706; background: repeating-linear-gradient(135deg, rgba(217,119,6,0.18), rgba(217,119,6,0.18) 4px, rgba(217,119,6,0.08) 4px, rgba(217,119,6,0.08) 8px);"></span>Holiday (locked)</span>
+                        </div>
+
+                        <!-- Calendar Grid -->
+                        <div x-show="selectedFteId" class="fte-calendar-grid">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+                                <template x-for="month in [0,1,2,3,4,5,6,7,8,9,10,11]" :key="month">
+                                    <div class="fte-month" style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem;">
+                                        <h4 style="margin: 0 0 0.75rem 0; text-align: center; font-size: 1rem; color: var(--text-color);">
+                                            <span x-text="['January','February','March','April','May','June','July','August','September','October','November','December'][month]"></span>
+                                            <span x-text="selectedFteYear"></span>
+                                        </h4>
+                                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 0.5rem;">
+                                            <template x-for="day in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']" :key="day">
+                                                <div style="text-align: center; font-size: 0.75rem; color: var(--text-light); font-weight: 600;" x-text="day"></div>
+                                            </template>
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+                                            <template x-for="(day, index) in getMonthDays(selectedFteYear, month)" :key="day?.dateKey || 'empty-' + month + '-' + index">
+                                                <div x-show="day" style="aspect-ratio: 1;">
+                                                    <button type="button" class="fte-day-cell" :class="{ 'available': day && isCalendarDateAvailable('fte', selectedFteYear, selectedFteId, day.dateKey), 'unavailable': day && !isCalendarDateAvailable('fte', selectedFteYear, selectedFteId, day.dateKey), 'holiday': day && isCalendarHoliday('fte', day.dateKey) }" style="width: 100%; height: 100%; border: 1px solid var(--border-color); border-radius: 0.25rem; font-size: 0.75rem; transition: all 0.15s; position: relative;" :style="day && isCalendarHoliday('fte', day.dateKey) ? 'background: repeating-linear-gradient(135deg, rgba(217,119,6,0.18), rgba(217,119,6,0.18) 4px, rgba(217,119,6,0.08) 4px, rgba(217,119,6,0.08) 8px); border-color: #d97706; color: #b45309; cursor: not-allowed;' : (day && !isCalendarDateAvailable('fte', selectedFteYear, selectedFteId, day.dateKey) ? 'background: var(--danger-bg, rgba(220, 53, 69, 0.1)); border-color: var(--danger); color: var(--danger); cursor: pointer;' : 'background: var(--success-bg, rgba(25, 135, 84, 0.1)); border-color: var(--success); color: var(--success); cursor: pointer;')" @click="day && toggleCalendarDate('fte', selectedFteYear, selectedFteId, day.dateKey)" :disabled="day && isCalendarHoliday('fte', day.dateKey)" :title="day ? day.dateKey + (isCalendarHoliday('fte', day.dateKey) ? ' - ' + getCalendarHolidayName('fte', day.dateKey) + ' (holiday)' : '') : ''">
+                                                        <span x-text="day?.day"></span>
+                                                        <span x-show="day && isCalendarHoliday('fte', day.dateKey)" style="position: absolute; top: 0px; right: 0px; font-size: 8px; color: #b45309;">★</span>
+                                                    </button>
+                                                </div>
+                                                <div x-show="!day" style="aspect-ratio: 1;"></div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div x-show="!selectedFteId && fteResources.length > 0" style="text-align: center; padding: 2rem; background: var(--bg-secondary); border-radius: 0.5rem; color: var(--text-light);">
+                            <p>Select an FTE resource to view their availability calendar.</p>
+                        </div>
+                    </div>
+
+                    <!-- Holidays Tab -->
+                    <div x-show="activeFteTab === 'holidays'" class="fte-holidays-tab">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="margin: 0;">Holiday Ranges</h4>
+                            <button @click="showHolidayForm = !showHolidayForm" class="btn btn-primary" type="button">
+                                <span x-text="showHolidayForm ? 'Cancel' : 'Add Holiday'"></span>
+                            </button>
+                        </div>
+
+                        <!-- Add Holiday Form -->
+                        <div x-show="showHolidayForm" style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                            <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: end;">
+                                <div class="form-group" style="flex: 1 1 180px;">
+                                    <label>Holiday Name</label>
+                                    <input type="text" x-model="holidayName" placeholder="e.g., Christmas Break" class="form-control">
+                                </div>
+                                <div class="form-group" style="flex: 0 1 160px;">
+                                    <label>Start Date</label>
+                                    <input type="date" x-model="holidayStart" class="form-control">
+                                </div>
+                                <div class="form-group" style="flex: 0 1 160px;">
+                                    <label>End Date</label>
+                                    <input type="date" x-model="holidayEnd" class="form-control">
+                                </div>
+                                <button @click="if(holidayStart && holidayEnd && holidayName) { addHolidayRange(holidayStart, holidayEnd, holidayName); holidayStart = ''; holidayEnd = ''; holidayName = ''; showHolidayForm = false; }" class="btn btn-success" type="button" :disabled="!holidayStart || !holidayEnd || !holidayName">
+                                    Add Holiday
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Holidays List -->
+                        <div x-show="fteHolidays.length === 0" style="text-align: center; padding: 2rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                            <p>No holidays configured. Add holiday ranges to automatically mark days as unavailable.</p>
+                        </div>
+
+                        <div x-show="fteHolidays.length > 0" class="holidays-list" style="border: 1px solid var(--border-color); border-radius: 0.5rem; overflow: hidden;">
+                            <div style="display: grid; grid-template-columns: 1fr auto auto 50px; background: var(--bg-tertiary); padding: 0.75rem 1rem; font-weight: 600; font-size: 0.875rem; color: var(--text-light);">
+                                <div>Name</div>
+                                <div>Start</div>
+                                <div>End</div>
+                                <div></div>
+                            </div>
+                            <template x-for="(holiday, index) in fteHolidays" :key="holiday.id">
+                                <div style="display: grid; grid-template-columns: 1fr auto auto 50px; padding: 0.75rem 1rem; border-top: 1px solid var(--border-color); align-items: center;">
+                                    <div x-text="holiday.name" style="font-weight: 500;"></div>
+                                    <div x-text="holiday.startDate" style="font-family: monospace; color: var(--text-light);"></div>
+                                    <div x-text="holiday.endDate" style="font-family: monospace; color: var(--text-light);"></div>
+                                    <div style="text-align: center;">
+                                        <button @click="removeHoliday(index)" class="btn btn-sm btn-danger" type="button" style="background: transparent; border: none; color: var(--danger); cursor: pointer;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Groups Tab -->
+                    <div x-show="activeFteTab === 'groups'" class="fte-groups-tab">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="margin: 0;">Resource Groups</h4>
+                            <p style="margin: 0; color: var(--text-light); font-size: 0.9rem;">Map group names to underlying resources</p>
+                        </div>
+
+                        <!-- Create Group Form -->
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <label>New Group Name</label>
+                                <input type="text" x-model="newAliasName" @keydown.enter="createNewAlias()" placeholder="e.g., engineering-team, shift-a" class="form-control">
+                            </div>
+                            <template x-if="newAliasName.trim()">
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label style="font-size: 0.875rem; color: var(--text-light); margin-bottom: 0.5rem; display: block;">Select Resources</label>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                        <template x-for="fte in fteResources" :key="fte.id">
+                                            <label style="display: flex; align-items: center; gap: 0.25rem; padding: 0.375rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;" :style="isAliasResourceSelected(newAliasName, fte.id) ? 'border-color: var(--primary-color); background: var(--primary-color-10, rgba(59,130,246,0.1));' : ''">
+                                                <input type="checkbox" :checked="isAliasResourceSelected(newAliasName, fte.id)" @change="toggleAliasResource(newAliasName, fte.id)" style="margin: 0;">
+                                                <span x-text="fte.name || fte.id"></span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                            <button @click="createNewAlias()" class="btn btn-primary" type="button" :disabled="!newAliasName.trim() || (aliasResourceSelections[newAliasName.trim()] || []).length === 0">
+                                Create Group
+                            </button>
+                        </div>
+
+                        <!-- Groups List -->
+                        <div x-show="Object.keys(fteAliases).length === 0" style="text-align: center; padding: 2rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                            <p>No resource groups configured. Create groups to map logical names to multiple resources.</p>
+                        </div>
+
+                        <div x-show="Object.keys(fteAliases).length > 0" style="display: grid; gap: 1rem;">
+                            <template x-for="(resources, aliasName) in fteAliases" :key="aliasName">
+                                <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                        <h5 style="margin: 0; font-size: 1.1rem;" x-text="aliasName"></h5>
+                                        <button @click="removeAliasGroup(aliasName)" class="btn btn-sm btn-danger" type="button" style="background: transparent; border: none; color: var(--danger); cursor: pointer;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                        <template x-for="resName in resources" :key="resName">
+                                            <span style="padding: 0.25rem 0.625rem; background: var(--primary-color); color: white; border-radius: 0.25rem; font-size: 0.875rem;" x-text="resName"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equipment Section - Equipment Resource Availability and Alias Management -->
+            <div x-show="activeSubtab === 'equipment'" class="config-section" id="section-equipment">
+                <div class="section-header">
+                    <div class="flex-container" style="margin-bottom: 1rem; align-items: center; justify-content: space-between;">
+                        <div>
+                            <h3 style="margin: 0;">Equipment Configuration</h3>
+                            <p style="margin: 0.25rem 0 0 0; color: var(--text-light); font-size: 0.9rem;">Manage equipment availability calendars, holidays, and alias groups.</p>
+                        </div>
+                        <label class="checkbox-label">
+                            <input type="checkbox" x-model="equipmentEnabled" @change="$store.config.updateOutputSettings()">
+                            Enable
+                        </label>
+                    </div>
+                </div>
+
+                <div x-show="!equipmentEnabled" class="disabled-section-notice" style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem; text-align: center; color: var(--text-light);">
+                    <p style="margin: 0;">Equipment configuration is disabled. Enable to configure resource availability.</p>
+                </div>
+
+                <div x-show="equipmentEnabled" class="equipment-container" x-data="{ activeEquipmentTab: 'resources', showEquipmentBulkPanel: false }">
+                    
+                    <!-- Equipment Sub-tabs -->
+                    <div class="config-subtabs equipment-tabs" role="tablist" aria-label="Equipment configuration tabs">
+                        <button 
+                            type="button"
+                            class="config-subtab-btn equipment-tab-btn"
+                            :class="{ 'active': activeEquipmentTab === 'resources' }"
+                            @click="activeEquipmentTab = 'resources'"
+                            role="tab"
+                            :aria-selected="activeEquipmentTab === 'resources'"
+                            :tabindex="activeEquipmentTab === 'resources' ? '0' : '-1'"
+                        >
+                            Resources
+                        </button>
+                        <button 
+                            type="button"
+                            class="config-subtab-btn equipment-tab-btn"
+                            :class="{ 'active': activeEquipmentTab === 'holidays' }"
+                            @click="activeEquipmentTab = 'holidays'"
+                            role="tab"
+                            :aria-selected="activeEquipmentTab === 'holidays'"
+                            :tabindex="activeEquipmentTab === 'holidays' ? '0' : '-1'"
+                        >
+                            Holidays
+                        </button>
+                        <button 
+                            type="button"
+                            class="config-subtab-btn equipment-tab-btn"
+                            :class="{ 'active': activeEquipmentTab === 'calendar' }"
+                            @click="activeEquipmentTab = 'calendar'"
+                            role="tab"
+                            :aria-selected="activeEquipmentTab === 'calendar'"
+                            :tabindex="activeEquipmentTab === 'calendar' ? '0' : '-1'"
+                        >
+                            Calendar
+                        </button>
+                        <button 
+                            type="button"
+                            class="config-subtab-btn equipment-tab-btn"
+                            :class="{ 'active': activeEquipmentTab === 'groups' }"
+                            @click="activeEquipmentTab = 'groups'"
+                            role="tab"
+                            :aria-selected="activeEquipmentTab === 'groups'"
+                            :tabindex="activeEquipmentTab === 'groups' ? '0' : '-1'"
+                        >
+                            Groups
+                        </button>
+                    </div>
+
+                    <!-- Resources Tab - Add/Remove Equipment Resources -->
+                    <div x-show="activeEquipmentTab === 'resources'" class="equipment-resources-tab">
+                        <div class="form-group" style="margin-bottom: 1.5rem;">
+                            <h4 style="margin: 0 0 1rem 0; font-size: 1rem;">Add New Equipment Resource</h4>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input 
+                                    type="text" 
+                                    x-model="newEquipmentName" 
+                                    @keydown.enter="addEquipmentResource()"
+                                    placeholder="Enter resource name..."
+                                    class="form-control"
+                                    style="flex: 1;"
+                                >
+                                <button @click="addEquipmentResource()" class="btn btn-primary" type="button">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem;">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+
+                        <h4 style="margin: 0 0 1rem 0; font-size: 1rem;">Equipment Resources (<span x-text="equipmentResources.length"></span>)</h4>
+                        <div x-show="equipmentResources.length === 0" style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem; text-align: center; color: var(--text-light);">
+                            <p style="margin: 0;">No equipment resources configured yet.</p>
+                        </div>
+                        <div class="equipment-resources-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <template x-for="(equipment, index) in equipmentResources" :key="equipment.id">
+                                <div class="equipment-resource-item" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.375rem; background: var(--bg-primary);">
+                                    <div style="flex: 1; display: grid; grid-template-columns: minmax(180px, 1fr) auto; gap: 0.75rem; align-items: center;">
+                                        <input type="text" class="form-control" x-model="equipment.name" @blur="updateEquipmentName(index, equipment.name)" @keydown.enter.prevent="updateEquipmentName(index, equipment.name)" placeholder="Resource name">
+                                        <span style="font-size: 0.75rem; color: var(--text-light);" x-text="equipment.id"></span>
+                                    </div>
+                                    <button 
+                                        @click="removeEquipmentResource(equipment.id)" 
+                                        class="btn btn-danger btn-sm"
+                                        type="button"
+                                        title="Remove resource"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Calendar Tab -->
+                    <div x-show="activeEquipmentTab === 'calendar'" class="equipment-calendar-tab">
+                        <!-- Controls -->
+                        <div class="equipment-controls" style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; align-items: end;">
+                            <div class="form-group" style="flex: 0 0 auto;">
+                                <label>Year</label>
+                                <select x-model="selectedEquipmentYear" class="form-control" style="min-width: 100px;">
+                                    <template x-for="year in availableEquipmentYears" :key="year">
+                                        <option :value="year" x-text="year"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex: 1 1 200px;">
+                                <label>Equipment Resource</label>
+                                <select x-model="selectedEquipmentId" class="form-control">
+                                    <option value="">Select equipment...</option>
+                                    <template x-for="(equipment, index) in equipmentResources" :key="equipment.id">
+                                        <option :value="equipment.id" x-text="equipment.name || 'Unnamed Equipment'"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <button @click="showEquipmentBulkPanel = !showEquipmentBulkPanel" class="btn btn-secondary" type="button" :style="showEquipmentBulkPanel ? 'background: var(--primary-color); color: white;' : ''">
+                                <span x-text="showEquipmentBulkPanel ? 'Hide Bulk' : 'Bulk Toggle'"></span>
+                            </button>
+                        </div>
+
+                        <!-- Bulk Toggle Panel -->
+                        <div x-show="showEquipmentBulkPanel && selectedEquipmentId" class="bulk-panel" style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                            <h4 style="margin: 0 0 1rem 0; font-size: 1rem;">Bulk Availability Toggle</h4>
+                            <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: end;">
+                                <div class="form-group" style="flex: 0 1 180px;">
+                                    <label>Start Date</label>
+                                    <input type="date" x-model="equipmentBulkStartDate" class="form-control">
+                                </div>
+                                <div class="form-group" style="flex: 0 1 180px;">
+                                    <label>End Date</label>
+                                    <input type="date" x-model="equipmentBulkEndDate" class="form-control">
+                                </div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button @click="applyEquipmentBulkToggle(true)" class="btn btn-success" type="button" :disabled="!equipmentBulkStartDate || !equipmentBulkEndDate">
+                                        Mark Available
+                                    </button>
+                                    <button @click="applyEquipmentBulkToggle(false)" class="btn btn-danger" type="button" :disabled="!equipmentBulkStartDate || !equipmentBulkEndDate">
+                                        Mark Unavailable
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem; font-size: 0.8125rem; color: var(--text-light);">
+                            <span style="display: inline-flex; align-items: center; gap: 0.35rem;"><span style="width: 12px; height: 12px; border-radius: 2px; border: 1px solid var(--success); background: var(--success-bg, rgba(25, 135, 84, 0.1));"></span>Available</span>
+                            <span style="display: inline-flex; align-items: center; gap: 0.35rem;"><span style="width: 12px; height: 12px; border-radius: 2px; border: 1px solid var(--danger); background: var(--danger-bg, rgba(220, 53, 69, 0.1));"></span>Unavailable</span>
+                            <span style="display: inline-flex; align-items: center; gap: 0.35rem;"><span style="width: 12px; height: 12px; border-radius: 2px; border: 1px solid #d97706; background: repeating-linear-gradient(135deg, rgba(217,119,6,0.18), rgba(217,119,6,0.18) 4px, rgba(217,119,6,0.08) 4px, rgba(217,119,6,0.08) 8px);"></span>Holiday (locked)</span>
+                        </div>
+
+                        <!-- Calendar Grid -->
+                        <div x-show="selectedEquipmentId" class="equipment-calendar-grid">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+                                <template x-for="month in [0,1,2,3,4,5,6,7,8,9,10,11]" :key="month">
+                                    <div class="equipment-month" style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem;">
+                                        <h4 style="margin: 0 0 0.75rem 0; text-align: center; font-size: 1rem; color: var(--text-color);">
+                                            <span x-text="['January','February','March','April','May','June','July','August','September','October','November','December'][month]"></span>
+                                            <span x-text="selectedEquipmentYear"></span>
+                                        </h4>
+                                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 0.5rem;">
+                                            <template x-for="day in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']" :key="day">
+                                                <div style="text-align: center; font-size: 0.75rem; color: var(--text-light); font-weight: 600;" x-text="day"></div>
+                                            </template>
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+                                            <template x-for="(day, index) in getMonthDays(selectedEquipmentYear, month)" :key="day?.dateKey || 'empty-' + month + '-' + index">
+                                                <div x-show="day" style="aspect-ratio: 1;">
+                                                    <button type="button" class="equipment-day-cell" :class="{ 'available': day && isCalendarDateAvailable('equipment', selectedEquipmentYear, selectedEquipmentId, day.dateKey), 'unavailable': day && !isCalendarDateAvailable('equipment', selectedEquipmentYear, selectedEquipmentId, day.dateKey), 'holiday': day && isCalendarHoliday('equipment', day.dateKey) }" style="width: 100%; height: 100%; border: 1px solid var(--border-color); border-radius: 0.25rem; font-size: 0.75rem; transition: all 0.15s; position: relative;" :style="day && isCalendarHoliday('equipment', day.dateKey) ? 'background: repeating-linear-gradient(135deg, rgba(217,119,6,0.18), rgba(217,119,6,0.18) 4px, rgba(217,119,6,0.08) 4px, rgba(217,119,6,0.08) 8px); border-color: #d97706; color: #b45309; cursor: not-allowed;' : (day && !isCalendarDateAvailable('equipment', selectedEquipmentYear, selectedEquipmentId, day.dateKey) ? 'background: var(--danger-bg, rgba(220, 53, 69, 0.1)); border-color: var(--danger); color: var(--danger); cursor: pointer;' : 'background: var(--success-bg, rgba(25, 135, 84, 0.1)); border-color: var(--success); color: var(--success); cursor: pointer;')" @click="day && toggleCalendarDate('equipment', selectedEquipmentYear, selectedEquipmentId, day.dateKey)" :disabled="day && isCalendarHoliday('equipment', day.dateKey)" :title="day ? day.dateKey + (isCalendarHoliday('equipment', day.dateKey) ? ' - ' + getCalendarHolidayName('equipment', day.dateKey) + ' (holiday)' : '') : ''">
+                                                        <span x-text="day?.day"></span>
+                                                        <span x-show="day && isCalendarHoliday('equipment', day.dateKey)" style="position: absolute; top: 0px; right: 0px; font-size: 8px; color: #b45309;">★</span>
+                                                    </button>
+                                                </div>
+                                                <div x-show="!day" style="aspect-ratio: 1;"></div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div x-show="!selectedEquipmentId && equipmentResources.length > 0" style="text-align: center; padding: 2rem; background: var(--bg-secondary); border-radius: 0.5rem; color: var(--text-light);">
+                            <p>Select an equipment resource to view their availability calendar.</p>
+                        </div>
+                    </div>
+
+                    <!-- Holidays Tab -->
+                    <div x-show="activeEquipmentTab === 'holidays'" class="equipment-holidays-tab">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="margin: 0;">Holiday Ranges</h4>
+                            <button @click="showEquipmentHolidayForm = !showEquipmentHolidayForm" class="btn btn-primary" type="button">
+                                <span x-text="showEquipmentHolidayForm ? 'Cancel' : 'Add Holiday'"></span>
+                            </button>
+                        </div>
+
+                        <!-- Add Holiday Form -->
+                        <div x-show="showEquipmentHolidayForm" style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                            <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: end;">
+                                <div class="form-group" style="flex: 1 1 180px;">
+                                    <label>Holiday Name</label>
+                                    <input type="text" x-model="equipmentHolidayName" placeholder="e.g., Maintenance Period" class="form-control">
+                                </div>
+                                <div class="form-group" style="flex: 0 1 160px;">
+                                    <label>Start Date</label>
+                                    <input type="date" x-model="equipmentHolidayStart" class="form-control">
+                                </div>
+                                <div class="form-group" style="flex: 0 1 160px;">
+                                    <label>End Date</label>
+                                    <input type="date" x-model="equipmentHolidayEnd" class="form-control">
+                                </div>
+                                <button @click="if(equipmentHolidayStart && equipmentHolidayEnd && equipmentHolidayName) { addEquipmentHolidayRange(equipmentHolidayStart, equipmentHolidayEnd, equipmentHolidayName); equipmentHolidayStart = ''; equipmentHolidayEnd = ''; equipmentHolidayName = ''; showEquipmentHolidayForm = false; }" class="btn btn-success" type="button" :disabled="!equipmentHolidayStart || !equipmentHolidayEnd || !equipmentHolidayName">
+                                    Add Holiday
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Holidays List -->
+                        <div x-show="equipmentHolidays.length === 0" style="text-align: center; padding: 2rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                            <p>No holidays configured. Add holiday ranges to automatically mark days as unavailable.</p>
+                        </div>
+
+                        <div x-show="equipmentHolidays.length > 0" class="holidays-list" style="border: 1px solid var(--border-color); border-radius: 0.5rem; overflow: hidden;">
+                            <div style="display: grid; grid-template-columns: 1fr auto auto 50px; background: var(--bg-tertiary); padding: 0.75rem 1rem; font-weight: 600; font-size: 0.875rem; color: var(--text-light);">
+                                <div>Name</div>
+                                <div>Start</div>
+                                <div>End</div>
+                                <div></div>
+                            </div>
+                            <template x-for="(holiday, index) in equipmentHolidays" :key="holiday.id">
+                                <div style="display: grid; grid-template-columns: 1fr auto auto 50px; padding: 0.75rem 1rem; border-top: 1px solid var(--border-color); align-items: center;">
+                                    <div x-text="holiday.name" style="font-weight: 500;"></div>
+                                    <div x-text="holiday.startDate" style="font-family: monospace; color: var(--text-light);"></div>
+                                    <div x-text="holiday.endDate" style="font-family: monospace; color: var(--text-light);"></div>
+                                    <div style="text-align: center;">
+                                        <button @click="removeEquipmentHoliday(index)" class="btn btn-sm btn-danger" type="button" style="background: transparent; border: none; color: var(--danger); cursor: pointer;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Groups Tab -->
+                    <div x-show="activeEquipmentTab === 'groups'" class="equipment-groups-tab">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="margin: 0;">Equipment Groups</h4>
+                            <p style="margin: 0; color: var(--text-light); font-size: 0.9rem;">Map group names to underlying equipment</p>
+                        </div>
+
+                        <!-- Create Group Form -->
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                            <div class="form-group" style="margin-bottom: 0.75rem;">
+                                <label>New Group Name</label>
+                                <input type="text" x-model="newEquipmentAliasName" @keydown.enter="createNewEquipmentAlias()" placeholder="e.g., test-benches, lab-equipment" class="form-control">
+                            </div>
+                            <template x-if="newEquipmentAliasName.trim()">
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label style="font-size: 0.875rem; color: var(--text-light); margin-bottom: 0.5rem; display: block;">Select Equipment</label>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                        <template x-for="equipment in equipmentResources" :key="equipment.id">
+                                            <label style="display: flex; align-items: center; gap: 0.25rem; padding: 0.375rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;" :style="isEquipmentAliasResourceSelected(newEquipmentAliasName, equipment.id) ? 'border-color: var(--primary-color); background: var(--primary-color-10, rgba(59,130,246,0.1));' : ''">
+                                                <input type="checkbox" :checked="isEquipmentAliasResourceSelected(newEquipmentAliasName, equipment.id)" @change="toggleEquipmentAliasResource(newEquipmentAliasName, equipment.id)" style="margin: 0;">
+                                                <span x-text="equipment.name || equipment.id"></span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                            <button @click="createNewEquipmentAlias()" class="btn btn-primary" type="button" :disabled="!newEquipmentAliasName.trim() || (equipmentAliasResourceSelections[newEquipmentAliasName.trim()] || []).length === 0">
+                                Create Group
+                            </button>
+                        </div>
+
+                        <!-- Groups List -->
+                        <div x-show="Object.keys(equipmentAliases).length === 0" style="text-align: center; padding: 2rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                            <p>No equipment groups configured. Create groups to map logical names to multiple equipment resources.</p>
+                        </div>
+
+                        <div x-show="Object.keys(equipmentAliases).length > 0" style="display: grid; gap: 1rem;">
+                            <template x-for="(resources, aliasName) in equipmentAliases" :key="aliasName">
+                                <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                        <h5 style="margin: 0; font-size: 1.1rem;" x-text="aliasName"></h5>
+                                        <button @click="removeEquipmentAliasGroup(aliasName)" class="btn btn-sm btn-danger" type="button" style="background: transparent; border: none; color: var(--danger); cursor: pointer;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                        <template x-for="resName in resources" :key="resName">
+                                            <span style="padding: 0.25rem 0.625rem; background: var(--success); color: white; border-radius: 0.25rem; font-size: 0.875rem;" x-text="resName"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+<!-- Test Configuration Section - Hierarchical Redesign -->
+<div x-show="activeSubtab === 'test'" class="config-section" id="section-test">
+    <div class="section-header">
+        <h3>Test Configuration</h3>
+        <p style="margin: 0; font-size: 0.875rem; color: var(--text-light);">Configure test settings across hierarchy levels. More specific levels override more general ones.</p>
+    </div>
+
+    <div class="test-container" x-data="{
+        activeHierarchyLevel: 'all',
+        showAddProjectModal: false,
+        showAddLegTypeModal: false,
+        showAddLegModal: false,
+        showAddTestTypeModal: false,
+        showAddTestModal: false
+    }">
+        <!-- Inheritance Chain Visualizer -->
+        <div class="inheritance-chain" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+            <h4 style="margin: 0 0 0.75rem 0; font-size: 0.875rem; font-weight: 600;">Inheritance Chain</h4>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <template x-for="(level, index) in $store.config.getTestHierarchyLevels()" :key="level.id">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <button 
+                            type="button"
+                            @click="activeHierarchyLevel = level.id"
+                            :style="activeHierarchyLevel === level.id 
+                                ? 'padding: 0.375rem 0.75rem; background: var(--primary-color); color: white; border: none; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 500; cursor: pointer;' 
+                                : 'padding: 0.375rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer;'
+                            "
+                            :title="level.description"
+                            x-text="level.label">
+                        </button>
+                        <span x-show="index < $store.config.getTestHierarchyLevels().length - 1" style="color: var(--text-light);">→</span>
+                    </div>
+                </template>
+            </div>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem; color: var(--text-light);"
+               x-text="$store.config.getTestHierarchyLevels().find(l => l.id === activeHierarchyLevel)?.description">
+            </p>
+        </div>
+
+        <!-- Level Navigation Tabs -->
+        <div class="hierarchy-level-nav" style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
+            <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem;">
+                <template x-for="level in $store.config.getTestHierarchyLevels()" :key="level.id">
+                    <button 
+                        type="button"
+                        @click="activeHierarchyLevel = level.id"
+                        :class="{ 'active': activeHierarchyLevel === level.id }"
+                        style="padding: 0.75rem 1rem; background: none; border: none; border-bottom: 2px solid transparent; font-size: 0.875rem; cursor: pointer; white-space: nowrap;"
+                        :style="activeHierarchyLevel === level.id 
+                            ? 'border-bottom-color: var(--primary-color); color: var(--primary-color); font-weight: 500;' 
+                            : 'color: var(--text-light);'"
+                        x-text="level.label">
+                    </button>
+                </template>
+            </div>
+        </div>
+
+        <!-- Level Content -->
+        <div class="hierarchy-level-content">
+            <!-- ALL Level (Global Defaults) -->
+            <div x-show="activeHierarchyLevel === 'all'" class="level-content">
+                <div class="config-card" style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                        <span style="font-size: 1.25rem;">🌍</span>
+                        <h4 style="margin: 0; font-size: 1rem; font-weight: 600;">Global Default Settings</h4>
+                        <span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: var(--primary-color-10); color: var(--primary-color); border-radius: 0.25rem;">Default</span>
+                    </div>
+                    
+                    <p style="margin: 0 0 1.5rem 0; font-size: 0.875rem; color: var(--text-light);">
+                        These settings apply to all tests unless overridden at a more specific level.
+                    </p>
+
+                    <!-- Standard Field Grid -->
+                    <div class="config-fields-grid" style="display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+                        
+                        <!-- FTE Resources (Multi-select) -->
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
+                            <div class="resource-selector" x-data="{ open: false }" @click.away="open = false">
+                                <!-- Selected Resources Display -->
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.5rem; min-height: 32px;">
+                                    <template x-for="fte in $store.config.testConfig.defaults.fteResources || []" :key="fte">
+                                        <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: var(--primary-color); color: white; border-radius: 0.25rem; font-size: 0.75rem;">
+                                            <span x-text="fte"></span>
+                                            <button @click.prevent="$store.config.removeDefaultResource('fte', fte)" style="background: none; border: none; color: white; cursor: pointer; padding: 0; font-size: 0.875rem;">×</button>
+                                        </span>
+                                    </template>
+                                    <span x-show="!($store.config.testConfig.defaults.fteResources?.length)" style="font-size: 0.875rem; color: var(--text-muted); font-style: italic;">No FTE resources assigned</span>
+                                </div>
+                                <!-- Dropdown Trigger -->
+                                <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary);">
+                                    <span style="color: var(--text-muted); font-size: 0.875rem;">Add FTE resource...</span>
+                                    <span>▼</span>
+                                </div>
+                                <!-- Dropdown Menu -->
+                                <div x-show="open" 
+                                     style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                    <template x-for="option in $store.config.getFteOptions()" :key="option.id">
+                                        <div @click="$store.config.addDefaultResource('fte', option.id); open = false"
+                                             style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                             :style="($store.config.testConfig.defaults.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
+                                            <span x-text="option.name"></span>
+                                            <span x-show="option.type === 'alias'" style="font-size: 0.7rem; margin-left: 0.5rem; color: var(--text-light);">(alias)</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Equipment Resources (Multi-select) -->
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">Equipment Resources</label>
+                            <div class="resource-selector" x-data="{ open: false }" @click.away="open = false">
+                                <!-- Selected Resources Display -->
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.5rem; min-height: 32px;">
+                                    <template x-for="equip in $store.config.testConfig.defaults.equipmentResources || []" :key="equip">
+                                        <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: var(--success-color, #10b981); color: white; border-radius: 0.25rem; font-size: 0.75rem;">
+                                            <span x-text="equip"></span>
+                                            <button @click.prevent="$store.config.removeDefaultResource('equipment', equip)" style="background: none; border: none; color: white; cursor: pointer; padding: 0; font-size: 0.875rem;">×</button>
+                                        </span>
+                                    </template>
+                                    <span x-show="!($store.config.testConfig.defaults.equipmentResources?.length)" style="font-size: 0.875rem; color: var(--text-muted); font-style: italic;">No equipment resources assigned</span>
+                                </div>
+                                <!-- Dropdown Trigger -->
+                                <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary);">
+                                    <span style="color: var(--text-muted); font-size: 0.875rem;">Add equipment resource...</span>
+                                    <span>▼</span>
+                                </div>
+                                <!-- Dropdown Menu -->
+                                <div x-show="open" 
+                                     style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                    <template x-for="option in $store.config.getEquipmentOptions()" :key="option.id">
+                                        <div @click="$store.config.addDefaultResource('equipment', option.id); open = false"
+                                             style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                             :style="($store.config.testConfig.defaults.equipmentResources || []).includes(option.id) ? 'background: var(--success-color-10);' : ''">
+                                            <span x-text="option.name"></span>
+                                            <span x-show="option.type === 'alias'" style="font-size: 0.7rem; margin-left: 0.5rem; color: var(--text-light);">(alias)</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FTE Time Percentage Slider -->
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Time Allocation</label>
+                                <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color);" 
+                                      x-text="$store.config.testConfig.defaults.fteTimePercentage + '%'"></span>
+                            </div>
+                            <input type="range" min="0" max="100" step="5"
+                                   x-model.number="$store.config.testConfig.defaults.fteTimePercentage"
+                                   style="width: 100%; height: 0.5rem; padding: 0;"
+                                   @input="$store.config.updateTestConfigValue('defaults', null, 'fteTimePercentage', $store.config.testConfig.defaults.fteTimePercentage)">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-light); margin-top: 0.25rem;">
+                                <span>0%</span>
+                                <span>50%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+
+                        <!-- Equipment Time Percentage Slider -->
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Equipment Time Allocation</label>
+                                <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color);" 
+                                      x-text="$store.config.testConfig.defaults.equipmentTimePercentage + '%'"></span>
+                            </div>
+                            <input type="range" min="0" max="100" step="5"
+                                   x-model.number="$store.config.testConfig.defaults.equipmentTimePercentage"
+                                   style="width: 100%; height: 0.5rem; padding: 0;"
+                                   @input="$store.config.updateTestConfigValue('defaults', null, 'equipmentTimePercentage', $store.config.testConfig.defaults.equipmentTimePercentage)">
+                        </div>
+
+                        <!-- External Test Flag -->
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem;">
+                                <input type="checkbox" 
+                                       x-model="$store.config.testConfig.defaults.isExternal"
+                                       @change="$store.config.updateTestConfigValue('defaults', null, 'isExternal', $store.config.testConfig.defaults.isExternal)">
+                                <span>External Test (no FTE/equipment required)</span>
                             </label>
-                      </div>
-                  </div>
-                  <div class="flex-container">
-                      <div class="form-group flex-item">
-                          <label for="deadline_penalty">Deadline Penalty</label>
-                          <input type="number" id="deadline_penalty" x-model.number="config.penaltySettings.deadline_penalty"
-                                 :disabled="!sectionEnabled.penaltyEnabled" min="0" step="0.01" class="form-control">
-                      </div>
-                      <div class="form-group flex-item">
-                          <label for="compactness_penalty">Compactness Penalty</label>
-                          <input type="number" id="compactness_penalty" x-model.number="config.penaltySettings.compactness_penalty"
-                                 :disabled="!sectionEnabled.penaltyEnabled" min="0" step="0.01" class="form-control">
-                      </div>
-                      <div class="form-group flex-item">
-                          <label for="parallel_within_deadlines">Parallel Within Deadlines</label>
-                          <input type="number" id="parallel_within_deadlines" x-model.number="config.penaltySettings.parallel_within_deadlines"
-                                 :disabled="!sectionEnabled.penaltyEnabled" min="0" step="1" class="form-control">
-                      </div>
-                  </div>
-              </div>
- 
-              <!-- Proximity Rules Section -->
-              <div x-show="activeSubtab === 'proximity'" class="config-section" id="section-proximity">
-                  <div class="section-header">
-                      <div class="flex-container" style="margin-bottom: 1rem;">
-                           <h3 style="margin: 0;">Test Proximity Rules</h3>
-                            <label class="checkbox-label">
-                                <input type="checkbox" x-model="sectionEnabled.proximityEnabled" @change="queueOutputUpdate(true)">
-                                Enable
-                            </label>
-                      </div>
-                  </div>
-                  <div x-show="dedupedProximityRules.length > 0" style="overflow-x: auto;">
-                      <table>
-                          <thead>
-                              <tr>
-                                  <th style="width: 30%;">Pattern</th>
-                                  <th style="width: 15%;">Max Gap Days</th>
-                                  <th style="width: 20%;">Penalty Per Day</th>
-                                  <th style="width: 15%;">Enforce Seq</th>
-                              </tr>
-                          </thead>
-                          <tbody>
-                              <template x-for="item in dedupedProximityRules" :key="item.key">
-                                  <tr>
-                                      <td>
-                                          <input type="text" x-model="item.rule.pattern" :disabled="!sectionEnabled.proximityEnabled" class="form-control" placeholder="Pattern">
-                                      </td>
-                                      <td>
-                                          <input type="number" x-model.number="item.rule.maxgapdays" :disabled="!sectionEnabled.proximityEnabled" min="1" step="1" class="form-control">
-                                      </td>
-                                      <td>
-                                          <input type="number" x-model.number="item.rule.proximitypenaltyperday" :disabled="!sectionEnabled.proximityEnabled" min="0" step="0.01" class="form-control">
-                                      </td>
-                                      <td>
-                                          <label class="checkbox-label">
-                                              <input type="checkbox" x-model="item.rule.enforce_sequence_order" :disabled="!sectionEnabled.proximityEnabled">
-                                          </label>
-                                      </td>
-                                  </tr>
-                              </template>
-                          </tbody>
-                      </table>
-                  </div>
-                  <div x-show="dedupedProximityRules.length === 0" class="validation-error">
-                      No proximity rules defined.
-                  </div>
-              </div>
- 
-              <!-- Objective Function Weights - Single Slider -->
-              <div x-show="activeSubtab === 'weights'" class="config-section" id="section-weights">
-                  <div class="section-header">
-                      <div class="flex-container" style="margin-bottom: 1rem;">
-                          <h3 style="margin: 0;">Objective Function Weights</h3>
-                          <label class="checkbox-label">
-                              <input type="checkbox" x-model="sectionEnabled.modeEnabled" x-on:change="$store.config.updateOutputSettings()">
-                              Enable
-                          </label>
-                      </div>
-                  </div>
-                  <div class="form-group">
-                      <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-weight: 600;">
-                          <span :style="{ color: weightsPercent == 0 ? 'var(--primary-color)' : 'var(--text-light)' }">Makespan (0%)</span>
-                          <span :style="{ color: weightsPercent == 50 ? 'var(--primary-color)' : 'var(--text-light)' }">Balanced (50%)</span>
-                          <span :style="{ color: weightsPercent == 100 ? 'var(--primary-color)' : 'var(--text-light)' }">Priority (100%)</span>
-                      </div>
-                      <input type="range" id="makespan_priority_slider" x-model.number="weightsPercent"
-                             :disabled="!sectionEnabled.modeEnabled" min="0" max="100" step="1" class="form-control"
-                             @input="syncWeightsToConfig()"
-                             style="width: 100%;">
-                      <div style="margin-top: 0.5rem; text-align: center; color: var(--text-light); font-size: 0.9rem;">
-                          <span x-show="weightsPercent < 50">
-                              <strong>Makespan:</strong> <span x-text="Math.round((100 - weightsPercent) / 100 * 100)"></span>%,
-                              <strong>Priority:</strong> <span x-text="Math.round(weightsPercent / 100 * 100)"></span>%
-                          </span>
-                          <span x-show="weightsPercent == 50">
-                              <strong>Balanced:</strong> Makespan 50%, Priority 50%
-                          </span>
-                          <span x-show="weightsPercent > 50">
-                              <strong>Priority:</strong> <span x-text="Math.round(weightsPercent / 100 * 100)"></span>%,
-                              <strong>Makespan:</strong> <span x-text="Math.round((100 - weightsPercent) / 100 * 100)"></span>%
-                          </span>
-                      </div>
-                  </div>
-              </div>
- 
-              <!-- Priority Config Settings Output -->
-              <div x-show="activeSubtab === 'output'" class="config-section" id="section-output">
-                  <div class="section-header">
-                      <h3>Priority Configuration Settings (Output)</h3>
-                  </div>
-                  <div class="form-group">
-                      <label>Generated JSON Configuration:</label>
-                      <div class="json-preview-container" style="position: relative;">
-                          <textarea readonly rows="10" 
-                                    x-text="JSON.stringify(priority_config_settings || {}, null, 2)"
-                                    class="form-control" 
-                                    style="font-family: monospace; font-size: 0.8rem; background-color: #f8f9fa;"></textarea>
-                          <div x-show="successMessage && !showSuccess" x-data="{ message: successMessage }"
-                               class="copy-success-badge" style="position: absolute; top: 10px; right: 10px; background: #28a745; color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.75rem; pointer-events: none; animation: fadeIn 0.3s ease;">
-                              <span x-text="message"></span>
-                          </div>
-                      </div>
-                  </div>
-                  <div class="form-group" style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-                      <button @click="copyToClipboard(); $nextTick(() => showSuccess = true)" 
-                              class="btn" 
-                              :class="{'btn-success': successMessage}"
-                              style="position: relative;">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                          </svg>
-                          Copy to Clipboard
-                      </button>
-                      <button @click="resetToDefaults()" class="btn btn-danger" style="margin-left: auto;">Reset to Defaults</button>
-                      <span x-show="successMessage" x-transition.opacity style="color: #28a745; font-size: 0.9rem; margin-left: 0.5rem;">
-                          ✓ Copied!
-                      </span>
-                  </div>
-              </div>
-          </div>
-      </div>
-  </div>
- 
-  <style>
-      .copy-success-badge {
-          animation: fadeIn 0.3s ease;
-      }
-      @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-5px); }
-          to { opacity: 1; transform: translateY(0); }
-      }
-  </style>
+                            <p style="margin: 0.25rem 0 0 1.5rem; font-size: 0.75rem; color: var(--text-light);">Tests run externally without consuming internal resources</p>
+                        </div>
+
+                        <!-- Test Duration -->
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">Default Test Duration (days)</label>
+                            <input type="number" min="1" max="365"
+                                   x-model.number="$store.config.testConfig.defaults.duration"
+                                   class="form-control"
+                                   style="width: 100%;"
+                                   @input="$store.config.updateTestConfigValue('defaults', null, 'duration', $store.config.testConfig.defaults.duration)">
+                        </div>
+
+                        <!-- Priority -->
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">Default Priority</label>
+                            <input type="number" min="1" max="10"
+                                   x-model.number="$store.config.testConfig.defaults.priority"
+                                   class="form-control"
+                                   style="width: 100%;"
+                                   @input="$store.config.updateTestConfigValue('defaults', null, 'priority', $store.config.testConfig.defaults.priority)">
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: var(--text-light);">1 = highest, 10 = lowest</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROJECTS Level -->
+            <div x-show="activeHierarchyLevel === 'projects'" class="level-content">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Project</label>
+                    <select x-model="$store.config.selectedProject" class="form-control" style="width: auto; min-width: 200px;">
+                        <option value="">Choose a project...</option>
+                        <template x-for="project in $store.csvData?.projects || []" :key="project">
+                            <option :value="project" x-text="project"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <template x-if="$store.config.selectedProject">
+                    <div class="config-card override-card" 
+                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);"
+                         :style="Object.keys($store.config.testConfig.projects[$store.config.selectedProject] || {}).length > 0 ? 'border-left: 4px solid var(--warning-color);' : ''">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <span style="font-size: 1.25rem;">📁</span>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedProject"></h4>
+                            <span x-show="Object.keys($store.config.testConfig.projects[$store.config.selectedProject] || {}).length > 0" 
+                                  style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: var(--warning-color-10); color: var(--warning-color); border-radius: 0.25rem;">
+                                Override Active
+                            </span>
+                        </div>
+
+                        <!-- Show Inherited Values -->
+                        <div class="inherited-values" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.25rem;">
+                            <h5 style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">Inherited from Global</h5>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem; font-size: 0.8rem;">
+                                <div><span style="color: var(--text-light);">FTE:</span> <span x-text="$store.config.testConfig.defaults.fteResources?.join(', ') || 'None'"></span></div>
+                                <div><span style="color: var(--text-light);">Equipment:</span> <span x-text="$store.config.testConfig.defaults.equipmentResources?.join(', ') || 'None'"></span></div>
+                                <div><span style="color: var(--text-light);">FTE Time:</span> <span x-text="$store.config.testConfig.defaults.fteTimePercentage + '%'"></span></div>
+                                <div><span style="color: var(--text-light);">External:</span> <span x-text="$store.config.testConfig.defaults.isExternal ? 'Yes' : 'No'"></span></div>
+                            </div>
+                        </div>
+
+                        <!-- Override Fields (Projects only get resources and external flag) -->
+                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                            
+                            <!-- FTE Resources Override -->
+                            <div class="form-group">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <input type="checkbox"
+                                           :checked="!!($store.config.testConfig.projects[$store.config.selectedProject]?.overrides?.fteResources)"
+                                           @change="$store.config.updateTestConfigOverride('projects', $store.config.selectedProject, 'fteResources', $event.target.checked)">
+                                    <label style="font-weight: 500; margin: 0;">Override FTE Resources</label>
+                                </div>
+                                <div x-show="$store.config.testConfig.projects[$store.config.selectedProject]?.overrides?.fteResources">
+                                    <!-- Multi-select for FTE resources -->
+                                    <div style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem;" x-data="{ open: false }" @click.away="open = false">
+                                        <div @click="open = !open" style="padding: 0.25rem; font-size: 0.75rem; cursor: pointer;">
+                                            <span x-text="$store.config.testConfig.projects[$store.config.selectedProject]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
+                                        </div>
+                                        <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
+                                            <template x-for="option in $store.config.getFteOptions()" :key="option.id">
+                                                <div @click="$store.config.updateTestConfigValue('projects', $store.config.selectedProject, 'fteResources', [...($store.config.testConfig.projects[$store.config.selectedProject]?.fteResources || []), option.id]); open = false"
+                                                     style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                                     :style="($store.config.testConfig.projects[$store.config.selectedProject]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
+                                                    <span x-text="option.name"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Equipment Resources Override -->
+                            <div class="form-group">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <input type="checkbox"
+                                           :checked="!!($store.config.testConfig.projects[$store.config.selectedProject]?.overrides?.equipmentResources)"
+                                           @change="$store.config.updateTestConfigOverride('projects', $store.config.selectedProject, 'equipmentResources', $event.target.checked)">
+                                    <label style="font-weight: 500; margin: 0;">Override Equipment Resources</label>
+                                </div>
+                                <div x-show="$store.config.testConfig.projects[$store.config.selectedProject]?.overrides?.equipmentResources">
+                                    <!-- Multi-select for equipment resources -->
+                                    <div style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem;" x-data="{ open: false }" @click.away="open = false">
+                                        <div @click="open = !open" style="padding: 0.25rem; font-size: 0.75rem; cursor: pointer;">
+                                            <span x-text="$store.config.testConfig.projects[$store.config.selectedProject]?.equipmentResources?.join(', ') || 'Select equipment resources...'"></span>
+                                        </div>
+                                        <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
+                                            <template x-for="option in $store.config.getEquipmentOptions()" :key="option.id">
+                                                <div @click="$store.config.updateTestConfigValue('projects', $store.config.selectedProject, 'equipmentResources', [...($store.config.testConfig.projects[$store.config.selectedProject]?.equipmentResources || []), option.id]); open = false"
+                                                     style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                                     :style="($store.config.testConfig.projects[$store.config.selectedProject]?.equipmentResources || []).includes(option.id) ? 'background: var(--success-color-10);' : ''">
+                                                    <span x-text="option.name"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- External Flag Override -->
+                            <div class="form-group">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <input type="checkbox"
+                                           :checked="!!($store.config.testConfig.projects[$store.config.selectedProject]?.overrides?.isExternal)"
+                                           @change="$store.config.updateTestConfigOverride('projects', $store.config.selectedProject, 'isExternal', $event.target.checked)">
+                                    <label style="font-weight: 500; margin: 0;">Override External Flag</label>
+                                </div>
+                                <div x-show="$store.config.testConfig.projects[$store.config.selectedProject]?.overrides?.isExternal">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
+                                        <input type="checkbox" 
+                                               x-model="$store.config.testConfig.projects[$store.config.selectedProject].isExternal"
+                                               @change="$store.config.updateTestConfigValue('projects', $store.config.selectedProject, 'isExternal', $store.config.testConfig.projects[$store.config.selectedProject].isExternal)">
+                                        <span>Mark as External Test</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="!$store.config.selectedProject">
+                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <p style="margin: 0;">Select a project to configure project-specific overrides</p>
+                    </div>
+                </template>
+            </div>
+
+            <!-- LEG TYPES Level -->
+            <div x-show="activeHierarchyLevel === 'legTypes'" class="level-content">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Leg Type</label>
+                    <select x-model="$store.config.selectedLegType" class="form-control" style="width: auto; min-width: 200px;">
+                        <option value="">Choose a leg type...</option>
+                        <template x-for="legType in Object.keys($store.testHierarchy.legTypes || {})" :key="legType">
+                            <option :value="legType" x-text="legType"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <template x-if="$store.config.selectedLegType">
+                    <div class="config-card override-card" 
+                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <span style="font-size: 1.25rem;">🔗</span>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedLegType"></h4>
+                        </div>
+
+                        <!-- Override Fields -->
+                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                            
+                            <!-- FTE Resources Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
+                                <div x-data="{ open: false }" @click.away="open = false">
+                                    <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;">
+                                        <span x-text="$store.config.testConfig.legTypes[$store.config.selectedLegType]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
+                                    </div>
+                                    <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
+                                        <template x-for="option in $store.config.getFteOptions()" :key="option.id">
+                                            <div @click="$store.config.updateTestConfigValue('legTypes', $store.config.selectedLegType, 'fteResources', [...($store.config.testConfig.legTypes[$store.config.selectedLegType]?.fteResources || []), option.id]); open = false"
+                                                 style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                                 :style="($store.config.testConfig.legTypes[$store.config.selectedLegType]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
+                                                <span x-text="option.name"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Duration Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Duration Override (days)</label>
+                                <input type="number" min="1" max="365"
+                                       x-model.number="$store.config.testConfig.legTypes[$store.config.selectedLegType]?.duration"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('legTypes', $store.config.selectedLegType, 'duration', $store.config.testConfig.legTypes[$store.config.selectedLegType]?.duration)">
+                            </div>
+
+                            <!-- Priority Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Priority Override</label>
+                                <input type="number" min="1" max="10"
+                                       x-model.number="$store.config.testConfig.legTypes[$store.config.selectedLegType]?.priority"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('legTypes', $store.config.selectedLegType, 'priority', $store.config.testConfig.legTypes[$store.config.selectedLegType]?.priority)">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="!$store.config.selectedLegType">
+                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <p style="margin: 0;">Select a leg type to configure leg type-specific overrides</p>
+                    </div>
+                </template>
+            </div>
+
+            <!-- LEGS Level -->
+            <div x-show="activeHierarchyLevel === 'legs'" class="level-content">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Leg</label>
+                    <select x-model="$store.config.selectedLeg" class="form-control" style="width: auto; min-width: 200px;">
+                        <option value="">Choose a leg...</option>
+                        <template x-for="leg in $store.legs || []" :key="leg.legId || leg._uiId">
+                            <option :value="leg.legId || leg._uiId" x-text="leg.legId || leg._uiId"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <template x-if="$store.config.selectedLeg">
+                    <div class="config-card override-card" 
+                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <span style="font-size: 1.25rem;">📍</span>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedLeg"></h4>
+                        </div>
+
+                        <!-- Override Fields -->
+                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                            
+                            <!-- FTE Resources Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
+                                <div x-data="{ open: false }" @click.away="open = false">
+                                    <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;">
+                                        <span x-text="$store.config.testConfig.legs[$store.config.selectedLeg]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
+                                    </div>
+                                    <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
+                                        <template x-for="option in $store.config.getFteOptions()" :key="option.id">
+                                            <div @click="$store.config.updateTestConfigValue('legs', $store.config.selectedLeg, 'fteResources', [...($store.config.testConfig.legs[$store.config.selectedLeg]?.fteResources || []), option.id]); open = false"
+                                                 style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                                 :style="($store.config.testConfig.legs[$store.config.selectedLeg]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
+                                                <span x-text="option.name"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Duration Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Duration Override (days)</label>
+                                <input type="number" min="1" max="365"
+                                       x-model.number="$store.config.testConfig.legs[$store.config.selectedLeg]?.duration"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('legs', $store.config.selectedLeg, 'duration', $store.config.testConfig.legs[$store.config.selectedLeg]?.duration)">
+                            </div>
+
+                            <!-- Force Start Week -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Force Start Week</label>
+                                <input type="text" placeholder="YYYY-Www"
+                                       x-model="$store.config.testConfig.legs[$store.config.selectedLeg]?.forceStartWeek"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('legs', $store.config.selectedLeg, 'forceStartWeek', $store.config.testConfig.legs[$store.config.selectedLeg]?.forceStartWeek)">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="!$store.config.selectedLeg">
+                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <p style="margin: 0;">Select a leg to configure leg-specific overrides</p>
+                    </div>
+                </template>
+            </div>
+
+            <!-- TEST TYPES Level -->
+            <div x-show="activeHierarchyLevel === 'testTypes'" class="level-content">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Test Type</label>
+                    <select x-model="$store.config.selectedTestType" class="form-control" style="width: auto; min-width: 200px;">
+                        <option value="">Choose a test type...</option>
+                        <template x-for="testType in Object.keys($store.testHierarchy.testTypes || {})" :key="testType">
+                            <option :value="testType" x-text="testType"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <template x-if="$store.config.selectedTestType">
+                    <div class="config-card override-card" 
+                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <span style="font-size: 1.25rem;">🏷️</span>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedTestType"></h4>
+                        </div>
+
+                        <!-- Override Fields -->
+                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                            
+                            <!-- FTE Resources Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
+                                <div x-data="{ open: false }" @click.away="open = false">
+                                    <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;">
+                                        <span x-text="$store.config.testConfig.testTypes[$store.config.selectedTestType]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
+                                    </div>
+                                    <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
+                                        <template x-for="option in $store.config.getFteOptions()" :key="option.id">
+                                            <div @click="$store.config.updateTestConfigValue('testTypes', $store.config.selectedTestType, 'fteResources', [...($store.config.testConfig.testTypes[$store.config.selectedTestType]?.fteResources || []), option.id]); open = false"
+                                                 style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                                 :style="($store.config.testConfig.testTypes[$store.config.selectedTestType]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
+                                                <span x-text="option.name"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Duration Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Duration Override (days)</label>
+                                <input type="number" min="1" max="365"
+                                       x-model.number="$store.config.testConfig.testTypes[$store.config.selectedTestType]?.duration"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('testTypes', $store.config.selectedTestType, 'duration', $store.config.testConfig.testTypes[$store.config.selectedTestType]?.duration)">
+                            </div>
+
+                            <!-- External Flag Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">External Flag</label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
+                                    <input type="checkbox" 
+                                           x-model="$store.config.testConfig.testTypes[$store.config.selectedTestType]?.isExternal"
+                                           @change="$store.config.updateTestConfigValue('testTypes', $store.config.selectedTestType, 'isExternal', $store.config.testConfig.testTypes[$store.config.selectedTestType]?.isExternal)">
+                                    <span>Mark as External Test</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="!$store.config.selectedTestType">
+                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <p style="margin: 0;">Select a test type to configure test type-specific overrides</p>
+                    </div>
+                </template>
+            </div>
+
+            <!-- TESTS Level -->
+            <div x-show="activeHierarchyLevel === 'tests'" class="level-content">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Test</label>
+                    <select x-model="$store.config.selectedTest" class="form-control" style="width: auto; min-width: 200px;">
+                        <option value="">Choose a test...</option>
+                        <template x-for="test in Object.keys($store.testHierarchy.tests || {})" :key="test">
+                            <option :value="test" x-text="test"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <template x-if="$store.config.selectedTest">
+                    <div class="config-card override-card" 
+                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <span style="font-size: 1.25rem;">📝</span>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedTest"></h4>
+                        </div>
+
+                        <!-- Override Fields -->
+                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                            
+                            <!-- FTE Resources Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
+                                <div x-data="{ open: false }" @click.away="open = false">
+                                    <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;">
+                                        <span x-text="$store.config.testConfig.tests[$store.config.selectedTest]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
+                                    </div>
+                                    <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
+                                        <template x-for="option in $store.config.getFteOptions()" :key="option.id">
+                                            <div @click="$store.config.updateTestConfigValue('tests', $store.config.selectedTest, 'fteResources', [...($store.config.testConfig.tests[$store.config.selectedTest]?.fteResources || []), option.id]); open = false"
+                                                 style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
+                                                 :style="($store.config.testConfig.tests[$store.config.selectedTest]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
+                                                <span x-text="option.name"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Duration Override -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Duration Override (days)</label>
+                                <input type="number" min="1" max="365"
+                                       x-model.number="$store.config.testConfig.tests[$store.config.selectedTest]?.duration"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('tests', $store.config.selectedTest, 'duration', $store.config.testConfig.tests[$store.config.selectedTest]?.duration)">
+                            </div>
+
+                            <!-- Force Start Week -->
+                            <div class="form-group">
+                                <label style="font-weight: 500; font-size: 0.875rem;">Force Start Week</label>
+                                <input type="text" placeholder="YYYY-Www"
+                                       x-model="$store.config.testConfig.tests[$store.config.selectedTest]?.forceStartWeek"
+                                       class="form-control"
+                                       style="width: 100%;"
+                                       @input="$store.config.updateTestConfigValue('tests', $store.config.selectedTest, 'forceStartWeek', $store.config.testConfig.tests[$store.config.selectedTest]?.forceStartWeek)">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="!$store.config.selectedTest">
+                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <p style="margin: 0;">Select a test to configure test-specific overrides</p>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Configuration Summary -->
+        <div class="config-summary" style="margin-top: 2rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+            <h4 style="margin: 0 0 1rem 0; font-size: 0.95rem;">Configuration Summary</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; font-size: 0.875rem;">
+                <div>
+                    <span style="color: var(--text-light);">Global:</span>
+                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.defaults || {}).length + ' fields set'"></span>
+                </div>
+                <div>
+                    <span style="color: var(--text-light);">Projects:</span>
+                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.projects || {}).length + ' overrides'"></span>
+                </div>
+                <div>
+                    <span style="color: var(--text-light);">Leg Types:</span>
+                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.legTypes || {}).length + ' overrides'"></span>
+                </div>
+                <div>
+                    <span style="color: var(--text-light);">Legs:</span>
+                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.legs || {}).length + ' overrides'"></span>
+                </div>
+                <div>
+                    <span style="color: var(--text-light);">Test Types:</span>
+                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.testTypes || {}).length + ' overrides'"></span>
+                </div>
+                <div>
+                    <span style="color: var(--text-light);">Tests:</span>
+                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.tests || {}).length + ' overrides'"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    </div>
+</div>
+
+<style>
+    .copy-success-badge {
+        animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .subsection {
+        margin-bottom: 1rem;
+    }
+    
+    .subsection:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Legs Subtab Styles */
+    .legs-container {
+        margin-top: 1rem;
+    }
+
+    .legs-table-wrapper {
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        background: var(--bg-primary);
+        overflow-x: auto;
+    }
+
+    .legs-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 820px;
+    }
+
+    .legs-table thead th {
+        padding: 0.625rem 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: var(--text-light);
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    .legs-table tbody td {
+        padding: 0.625rem 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: top;
+        background: var(--bg-primary);
+    }
+
+    .legs-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .drag-cell {
+        text-align: center;
+        vertical-align: middle !important;
+        padding-top: 0.5rem !important;
+    }
+
+    .leg-row:hover {
+        background: var(--bg-secondary);
+    }
+
+    .leg-row:hover td {
+        background: var(--bg-secondary);
+    }
+
+    .leg-row.dragging {
+        opacity: 0.7;
+    }
+
+    .leg-row.dragging td {
+        background: var(--bg-tertiary);
+    }
+
+    .leg-row.drag-over {
+    }
+
+    .leg-row.drag-over td {
+        background: var(--bg-secondary);
+        border-top: 2px solid var(--primary-color);
+    }
+
+    .leg-row.drag-over * {
+        pointer-events: none;
+    }
+
+    .leg-row[data-keyboard-drag="true"] {
+        outline: 2px solid var(--primary-color);
+        outline-offset: -2px;
+    }
+
+    .drag-handle {
+        opacity: 0.6;
+        transition: opacity 0.15s, background-color 0.15s;
+    }
+
+    .drag-handle:hover {
+        opacity: 1;
+        background: var(--bg-tertiary);
+    }
+
+    .drag-handle:focus {
+        opacity: 1;
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+    }
+
+    .leg-id-display:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--border-color-hover, var(--border-color));
+    }
+
+    .leg-id-display:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+    }
+
+    .leg-id-display:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+    }
+
+    .leg-input {
+        width: 100%;
+    }
+
+    .leg-error {
+        margin-top: 0.25rem;
+        font-size: 0.75rem;
+        color: var(--danger);
+        line-height: 1.2;
+    }
+
+    /* Validation styles */
+    .form-control.is-invalid {
+        border-color: var(--danger);
+        background-color: rgba(var(--danger-rgb, 220, 53, 69), 0.05);
+    }
+
+    .form-control.is-invalid:focus {
+        border-color: var(--danger);
+        box-shadow: 0 0 0 0.2rem rgba(var(--danger-rgb, 220, 53, 69), 0.25);
+    }
+
+    /* Disabled section */
+    .disabled-section-notice {
+        border: 1px dashed var(--border-color);
+    }
+
+    /* Code styling for format help */
+    code {
+        background: var(--bg-tertiary);
+        padding: 0.125rem 0.375rem;
+        border-radius: 0.25rem;
+        font-family: ui-monospace, SFMono-Regular, Monaco, Consolas, monospace;
+        font-size: 0.875em;
+    }
+
+    /* Button styles */
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .btn-danger {
+        opacity: 0.7;
+        transition: opacity 0.15s;
+    }
+
+    .btn-danger:hover {
+        opacity: 1;
+        background: rgba(var(--danger-rgb, 220, 53, 69), 0.1) !important;
+    }
+
+    .btn-danger:focus-visible {
+        outline: 2px solid var(--danger);
+        outline-offset: 2px;
+    }
+
+    /* Shared subtab styles for nested configuration sections */
+    .config-subtabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        margin-bottom: 1.5rem;
+        padding: 0.375rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.625rem;
+        background: var(--bg-secondary);
+    }
+
+    .config-subtab-btn {
+        padding: 0.5rem 0.875rem;
+        border: 1px solid transparent;
+        border-radius: 0.5rem;
+        background: transparent;
+        color: var(--text-light);
+        cursor: pointer;
+        font-weight: 600;
+        line-height: 1.2;
+        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .config-subtab-btn:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-color);
+    }
+
+    .config-subtab-btn.active {
+        border-color: var(--primary-color);
+        background: var(--bg-primary);
+        color: var(--primary-color);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+
+    .config-subtab-btn:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 1px;
+    }
+
+    /* FTE Subtab Styles */
+    .fte-container {
+        padding: 0;
+    }
+
+    .fte-tabs {
+        margin-bottom: 1.5rem;
+    }
+
+    .fte-tab-btn {
+        position: relative;
+    }
+
+    .fte-resource-card {
+        transition: all 0.15s ease;
+    }
+
+    .fte-resource-card:hover {
+        border-color: var(--border-color-hover, var(--border-color));
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .fte-resource-card.selected {
+        border-color: var(--primary-color);
+        background: var(--primary-color-10, rgba(59, 130, 246, 0.1));
+    }
+
+    .fte-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+    }
+
+    .fte-day-cell {
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .fte-day-cell:hover {
+        transform: scale(1.1);
+        z-index: 1;
+    }
+
+    .fte-day-cell:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: -1px;
+        z-index: 2;
+    }
+
+    .fte-day-cell.available {
+        background: var(--success-bg, rgba(25, 135, 84, 0.1));
+        border-color: var(--success);
+        color: var(--success);
+    }
+
+    .fte-day-cell.unavailable {
+        background: var(--danger-bg, rgba(220, 53, 69, 0.1));
+        border-color: var(--danger);
+        color: var(--danger);
+    }
+
+    .fte-day-cell.holiday::after {
+        content: '★';
+        position: absolute;
+        top: 0;
+        right: 1px;
+        font-size: 8px;
+        color: var(--danger);
+    }
+
+    .fte-month {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .fte-month h4 {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .bulk-panel {
+        border: 1px dashed var(--border-color);
+    }
+
+    .holidays-list {
+        background: var(--bg-primary);
+    }
+
+    .holidays-list > div:first-child {
+        border-top: none;
+    }
+
+    .fte-aliases-tab .form-group {
+        margin-bottom: 0.75rem;
+    }
+
+    .fte-aliases-tab label {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+    }
+
+    /* Checkbox labels in alias form */
+    .fte-aliases-tab label:has(input[type="checkbox"]) {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        padding: 0.375rem 0.75rem;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+        transition: all 0.15s ease;
+    }
+
+    .fte-aliases-tab label:has(input[type="checkbox"]:checked) {
+        border-color: var(--primary-color);
+        background: var(--primary-color-10, rgba(59, 130, 246, 0.1));
+    }
+
+    .fte-aliases-tab input[type="checkbox"] {
+        margin: 0;
+    }
+
+    .fte-holidays-tab .form-group {
+        margin-bottom: 0;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .legs-table {
+            min-width: 760px;
+        }
+
+        .fte-controls {
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+
+        .fte-controls .form-group {
+            flex: 1 1 100% !important;
+        }
+
+        .fte-controls button {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 992px) {
+        .fte-calendar-grid > div {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+        }
+    }
+
+    /* Equipment Subtab Styles - mirrors FTE styles */
+    .equipment-container {
+        padding: 0;
+    }
+
+    .equipment-tabs {
+        margin-bottom: 1.5rem;
+    }
+
+    .equipment-tab-btn {
+        position: relative;
+    }
+
+    .equipment-resource-card {
+        transition: all 0.15s ease;
+    }
+
+    .equipment-resource-card:hover {
+        border-color: var(--border-color-hover, var(--border-color));
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .equipment-resource-card.selected {
+        border-color: var(--primary-color);
+        background: var(--primary-color-10, rgba(59, 130, 246, 0.1));
+    }
+
+    .equipment-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+    }
+
+    .equipment-day-cell {
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .equipment-day-cell:hover {
+        transform: scale(1.1);
+        z-index: 1;
+    }
+
+    .equipment-day-cell:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: -1px;
+        z-index: 2;
+    }
+
+    .equipment-day-cell.available {
+        background: var(--success-bg, rgba(25, 135, 84, 0.1));
+        border-color: var(--success);
+        color: var(--success);
+    }
+
+    .equipment-day-cell.unavailable {
+        background: var(--danger-bg, rgba(220, 53, 69, 0.1));
+        border-color: var(--danger);
+        color: var(--danger);
+    }
+
+    .equipment-day-cell.holiday::after {
+        content: '★';
+        position: absolute;
+        top: 0;
+        right: 1px;
+        font-size: 8px;
+        color: var(--danger);
+    }
+
+    .equipment-month {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .equipment-month h4 {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .equipment-holidays-tab .form-group {
+        margin-bottom: 0;
+    }
+
+    .equipment-aliases-tab .form-group {
+        margin-bottom: 0.75rem;
+    }
+
+    .equipment-aliases-tab label {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+    }
+
+    .equipment-controls {
+        flex-direction: row;
+    }
+
+    @media (max-width: 768px) {
+        .equipment-controls {
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+
+        .equipment-controls .form-group {
+            flex: 1 1 100% !important;
+        }
+
+        .equipment-controls button {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 992px) {
+        .equipment-calendar-grid > div {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+        }
+    }
+</style>
