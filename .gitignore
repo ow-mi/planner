@@ -37,6 +37,7 @@ coverage.xml
 .pytest_cache/
 
 # Virtual environments
+.venv/
 .env
 env/
 venv/
@@ -112,6 +113,7 @@ build/Release
 
 # Dependency directories
 jspm_packages/
+frontend/deps/
 
 # TypeScript cache
 *.tsbuildinfo
