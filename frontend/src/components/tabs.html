@@ -1,71 +1,5 @@
       <div class="tabs-bar relative px-2 pb-2">
-          <!-- Theme toggle floating on top of tab bar -->
-          <div class="theme-toggle-floating" x-data="themeToggle()">
-             <button
-                 type="button"
-                 class="theme-toggle-btn"
-                 @click="isOpen = !isOpen"
-                 :aria-expanded="isOpen ? 'true' : 'false'"
-                 aria-label="Change theme"
-                 aria-haspopup="menu"
-                 title="Change theme"
-             >
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                 </svg>
-                 <span class="theme-name" x-text="$store.theme.getThemeName($store.theme.currentTheme)"></span>
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                 </svg>
-             </button>
-
-             <div
-                 x-show="isOpen"
-                 @click.outside="isOpen = false"
-                 x-transition:enter="transition ease-out duration-150"
-                 x-transition:enter-start="opacity-0 scale-95"
-                 x-transition:enter-end="opacity-100 scale-100"
-                 x-transition:leave="transition ease-in duration-100"
-                 x-transition:leave-start="opacity-100 scale-100"
-                 x-transition:leave-end="opacity-0 scale-95"
-                 class="theme-dropdown"
-                 x-cloak
-             >
-                 <div class="theme-dropdown-search">
-                     <input
-                         type="text"
-                         x-model="searchQuery"
-                         placeholder="Search themes..."
-                         class="search-input"
-                     >
-                 </div>
-
-                 <template x-for="(themes, category) in groupedThemes" :key="category">
-                     <div class="theme-category">
-                         <h3 x-text="getCategoryName(category)"></h3>
-                         <div class="theme-list">
-                             <template x-for="theme in themes" :key="theme.id">
-                                 <button
-                                     type="button"
-                                     @click="selectTheme(theme.id)"
-                                     class="theme-item"
-                                     :class="{ 'active': isActive(theme.id) }"
-                                 >
-                                     <span x-text="theme.name"></span>
-                                     <span x-show="isActive(theme.id)" class="text-sm">✓</span>
-                                 </button>
-                             </template>
-                         </div>
-                     </div>
-                 </template>
-
-                 <div x-show="filteredThemes.length === 0" class="no-results">
-                     No themes found
-                 </div>
-             </div>
-         </div>
-
-         <div class="tabs flex-1 min-w-0" role="tablist" aria-label="Application tabs">
+          <div class="tabs flex-1 min-w-0" role="tablist" aria-label="Application tabs">
              <button
              type="button"
              class="tab"
@@ -165,7 +99,7 @@
      </div>
 
 <div x-show="activeTab === 'data'" role="tabpanel" id="data-container" aria-labelledby="tab-data">
-    <div x-data="{ activeDataSubtab: 'upload', init() { console.log('[data-tab] init', { activeDataSubtab: this.activeDataSubtab, hasUploadContainer: !!document.querySelector('#data-upload-fragment-container'), hasEditorContainer: !!document.querySelector('#data-edit-fragment-container') }); this.$watch('activeDataSubtab', (value) => { console.log('[data-tab] activeDataSubtab changed ->', value); }); }, setActiveDataSubtab(subtabName) { console.log('[data-tab] setActiveDataSubtab called', { from: this.activeDataSubtab, to: subtabName }); if (!['upload', 'edit'].includes(subtabName)) { console.warn('[data-tab] invalid subtab requested:', subtabName); return; } this.activeDataSubtab = subtabName; } }" x-init="init()">
+    <div x-data="{ activeDataSubtab: 'upload', init() { console.log('[data-tab] init', { activeDataSubtab: this.activeDataSubtab, hasUploadContainer: !!document.querySelector('#data-upload-fragment-container'), hasEditorContainer: !!document.querySelector('#data-edit-fragment-container') }); this.$watch('activeDataSubtab', (value) => { console.log('[data-tab] activeDataSubtab changed ->', value); }); }, setActiveDataSubtab(subtabName) { console.log('[data-tab] setActiveDataSubtab called', { from: this.activeDataSubtab, to: subtabName }); if (!['upload', 'edit'].includes(subtabName)) { console.warn('[data-tab] invalid subtab requested:', subtabName); return; } this.activeDataSubtab = subtabName; } }">
     <div class="subtab-container">
         <div class="subtab-sidebar" role="tablist" aria-label="Data subtabs">
             <button

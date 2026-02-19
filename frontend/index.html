@@ -9,28 +9,29 @@
     <script type="importmap">
     {
         "imports": {
-            "@codemirror/view": "https://esm.sh/@codemirror/view@6.26.0?external=*",
-            "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.0?external=*",
-            "@codemirror/language": "https://esm.sh/@codemirror/language@6.10.0?external=*",
-            "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.5.0?external=*",
-            "@codemirror/search": "https://esm.sh/@codemirror/search@6.5.5?external=*",
-            "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.11.0?external=*",
-            "@codemirror/lint": "https://esm.sh/@codemirror/lint@6.4.0?external=*",
-            "@codemirror/lang-javascript": "https://esm.sh/@codemirror/lang-javascript@6.2.2?external=*",
-            "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.1.2?external=*",
-            "@lezer/common": "https://esm.sh/@lezer/common@1.2.1?external=*",
-            "@lezer/highlight": "https://esm.sh/@lezer/highlight@1.2.0?external=*",
-            "@lezer/lr": "https://esm.sh/@lezer/lr@1.4.0?external=*",
-            "@lezer/javascript": "https://esm.sh/@lezer/javascript@1.4.13?external=*",
-            "style-mod": "https://esm.sh/style-mod@4.1.2?external=*",
-            "w3c-keyname": "https://esm.sh/w3c-keyname@2.2.8?external=*",
-            "crelt": "https://esm.sh/crelt@1.0.6?external=*"
+            "@codemirror/view": "./node_modules/@codemirror/view/dist/index.js",
+            "@codemirror/state": "./node_modules/@codemirror/state/dist/index.js",
+            "@codemirror/language": "./node_modules/@codemirror/language/dist/index.js",
+            "@codemirror/commands": "./node_modules/@codemirror/commands/dist/index.js",
+            "@codemirror/search": "./node_modules/@codemirror/search/dist/index.js",
+            "@codemirror/autocomplete": "./node_modules/@codemirror/autocomplete/dist/index.js",
+            "@codemirror/lint": "./node_modules/@codemirror/lint/dist/index.js",
+            "@codemirror/lang-javascript": "./node_modules/@codemirror/lang-javascript/dist/index.js",
+            "@codemirror/theme-one-dark": "./node_modules/@codemirror/theme-one-dark/dist/index.js",
+            "@lezer/common": "./node_modules/@lezer/common/dist/index.js",
+            "@lezer/highlight": "./node_modules/@lezer/highlight/dist/index.js",
+            "@lezer/lr": "./node_modules/@lezer/lr/dist/index.js",
+            "@lezer/javascript": "./node_modules/@lezer/javascript/dist/index.js",
+            "@marijn/find-cluster-break": "./node_modules/@marijn/find-cluster-break/src/index.js",
+            "style-mod": "./node_modules/style-mod/src/style-mod.js",
+            "w3c-keyname": "./node_modules/w3c-keyname/index.js",
+            "crelt": "./node_modules/crelt/index.js"
         }
     }
     </script>
 
      <!-- HTMX - Upgraded to 2.x for improved fragment loading and Alpine.js integration -->
-     <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+     <script src="./deps/htmx.min.js"></script>
      <script type="module" src="src/js/core/htmx-config.js"></script>
 
      <!-- Component definitions - MUST be loaded BEFORE Alpine.js initializes -->
@@ -42,38 +43,31 @@
       <script type="module" src="src/js/core/app.js"></script>
 
       <!-- Alpine.js -->
-      <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js" defer></script>
+      <script src="./deps/alpinejs.min.js" defer></script>
 
      <!-- External Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <script src="./deps/jszip.min.js"></script>
+    <script src="./deps/d3.v7.min.js"></script>
+    <script src="./deps/papaparse.min.js"></script>
 
     <!-- CSS -->
     <link rel="icon" href="favicon.ico" sizes="any">
     <!-- Tailwind CSS (required for DaisyUI) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- DaisyUI Plugin (must be loaded before Tailwind config) -->
-    <script src="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/umd.js"></script>
-    <!-- DaisyUI Theme CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" rel="stylesheet" type="text/css" />
-    <!-- Tailwind Configuration for DaisyUI -->
+    <script src="./deps/tailwindcss.js"></script>
+    <!-- DaisyUI Theme CSS (includes styles and JS plugin when used via CDN) -->
+    <link href="./deps/daisyui.css" rel="stylesheet" type="text/css" />
+    <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {},
             },
-            plugins: [
-                typeof daisyui !== 'undefined' ? daisyui : function() {}
-            ],
             daisyui: {
-                themes: true, // Enable all themes
+                themes: true,
                 darkTheme: "dark",
                 base: true,
                 styled: true,
                 utils: true,
-                prefix: "",
-                logs: true,
             },
         };
     </script>
@@ -85,6 +79,8 @@
     <div class="app-container">
         <div class="app-header">
             <h1 style="margin: 0;">Priority Configuration Editor v2</h1>
+            <!-- Global theme selector - visible on all pages -->
+            <div id="theme-selector-container" hx-get="src/components/theme-selector.html" hx-trigger="load" hx-swap="innerHTML"></div>
         </div>
         <div class="app-content">
             <!-- Main application container -->

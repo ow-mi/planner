@@ -1,0 +1,8 @@
+{
+  "mode": "leg_end_dates",
+  "description": "Each leg has a target completion date. Legs can be scheduled in parallel if they don't exceed their deadlines.",
+  "weights": {
+    "makespan_weight": 0.2,
+    "priority_weight": 0.8
+  }
+}

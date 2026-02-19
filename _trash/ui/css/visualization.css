@@ -1,0 +1,162 @@
+/* Visualization Component Styles */
+
+.vis-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.vis-toolbar {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    align-items: center;
+    background: #f9f9f9;
+    flex-wrap: wrap;
+}
+
+.vis-toolbar select,
+.vis-toolbar button {
+    padding: 6px 12px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+}
+
+.vis-toolbar button:hover {
+    background: #f0f0f0;
+}
+
+.vis-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+}
+
+.vis-editor {
+    flex: 0 0 350px;
+    min-width: 300px;
+    max-width: 350px;
+    border-right: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    background: #fafafa;
+    transition: flex-basis 0.3s ease;
+    overflow: hidden;
+}
+
+.vis-editor.collapsed {
+    flex: 0 0 0;
+    min-width: 0;
+    overflow: hidden;
+    border-right: none;
+}
+
+.vis-editor-header {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+}
+
+.vis-editor-header h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.vis-editor-content {
+    flex: 1;
+    overflow: auto;
+}
+
+#cm-editor {
+    height: 100%;
+    width: 100%;
+}
+
+.vis-output {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+    background: white;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.vis-error {
+    padding: 10px;
+    margin: 10px;
+    background: #fee;
+    border: 1px solid #fcc;
+    border-radius: 4px;
+    color: #c33;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.vis-error pre {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 768px) {
+    .vis-layout {
+        flex-direction: column;
+    }
+    
+    .vis-editor {
+        flex: 0 0 100%;
+        max-height: 50vh;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .vis-editor.collapsed {
+        flex: 0 0 0;
+        max-height: 0;
+        border-bottom: none;
+    }
+    
+    .vis-output {
+        min-width: 100%;
+        min-height: 50vh;
+    }
+    
+    .vis-toolbar {
+        padding: 8px;
+        gap: 8px;
+    }
+    
+    .vis-toolbar select,
+    .vis-toolbar button {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .vis-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .vis-toolbar > * {
+        width: 100%;
+    }
+}
+
+
+

@@ -89,36 +89,49 @@ def generate_schedule_csv(solution: SolutionResult, output_folder: str) -> str:
         The CSV file is always named "tests_schedule.csv" in the output folder.
     """
     output_path = os.path.join(output_folder, "tests_schedule.csv")
-    
-    with open(output_path, 'w', newline='') as f:
+
+    with open(output_path, "w", newline="") as f:
         writer = csv.writer(f)
-        
+
         # Header
-        writer.writerow([
-            "test_id", "project_leg_id", "test_name", 
-            "start_date", "start_time", "end_date", "end_time", "duration_days",
-            "assigned_fte", "assigned_equipment"
-        ])
-        
+        writer.writerow(
+            [
+                "test_id",
+                "project_leg_id",
+                "test_name",
+                "start_date",
+                "start_time",
+                "end_date",
+                "end_time",
+                "duration_days",
+                "assigned_fte",
+                "assigned_equipment",
+            ]
+        )
+
         # Data rows
         for schedule in solution.test_schedules:
-            writer.writerow([
-                schedule.test_id,
-                schedule.project_leg_id,
-                schedule.test_name,
-                schedule.start_date.strftime("%Y-%m-%d"),
-                schedule.start_date.strftime("%H:%M:%S"),
-                schedule.end_date.strftime("%Y-%m-%d"),
-                schedule.end_date.strftime("%H:%M:%S"),
-                schedule.duration_days,
-                ";".join(schedule.assigned_fte),
-                ";".join(schedule.assigned_equipment)
-            ])
-    
+            writer.writerow(
+                [
+                    schedule.test_id,
+                    schedule.project_leg_id,
+                    schedule.test_name,
+                    schedule.start_date.strftime("%Y-%m-%d"),
+                    schedule.start_date.strftime("%H:%M:%S"),
+                    schedule.end_date.strftime("%Y-%m-%d"),
+                    schedule.end_date.strftime("%H:%M:%S"),
+                    schedule.duration_days,
+                    ";".join(schedule.assigned_fte),
+                    ";".join(schedule.assigned_equipment),
+                ]
+            )
+
     return output_path
 
 
-def generate_resource_utilization_csv(solution: SolutionResult, output_folder: str) -> str:
+def generate_resource_utilization_csv(
+    solution: SolutionResult, output_folder: str
+) -> str:
     """
     Generate resource utilization summary CSV report.
 
@@ -158,182 +171,197 @@ def generate_resource_utilization_csv(solution: SolutionResult, output_folder: s
         Low utilization (<30%) may indicate under-utilized resources.
     """
     output_path = os.path.join(output_folder, "resource_utilization.csv")
-    
-    with open(output_path, 'w', newline='') as f:
+
+    with open(output_path, "w", newline="") as f:
         writer = csv.writer(f)
-        
+
         # Header
         writer.writerow(["resource_id", "utilization_percent"])
-        
+
         # Data rows
         for resource_id, utilization in solution.resource_utilization.items():
             writer.writerow([resource_id, f"{utilization:.2f}"])
-    
+
     return output_path
 
 
 def generate_fte_usage_csv(
-    solution: SolutionResult, 
-    data: PlanningData, 
-    start_date: date, 
-    output_folder: str
+    solution: SolutionResult, data: PlanningData, start_date: date, output_folder: str
 ) -> str:
     """Generate FTE usage CSV file with detailed resource assignments over time."""
-    output_path = os.path.join(output_folder, "fte_usage.csv")
-    
-    fte_assignments = []
-    
-    # Create lookup map for tests
-    tests_map = {t.test_id: t for t in data.tests}
-
-    # Group schedules by FTE resource
-    for schedule in solution.test_schedules:
-        test = tests_map.get(schedule.test_id)
-        
-        for fte_id in schedule.assigned_fte:
-            # Calculate actual FTE duration
-            duration_days = float(schedule.duration_days)
-            if test and test.fte_time_pct < 100.0:
-                duration_days = duration_days * test.fte_time_pct / 100.0
-            
-            fte_assignments.append({
-                'fte_id': fte_id,
-                'test_id': schedule.test_id,
-                'test_name': schedule.test_name,
-                'start': start_date + timedelta(days=schedule.start_day),
-                'end': start_date + timedelta(days=schedule.start_day + duration_days)
-            })
-    
-    # Sort by FTE ID and start date
-    fte_assignments.sort(key=lambda x: (x['fte_id'], x['start']))
-    
-    with open(output_path, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['fte_id', 'test_id', 'test_name', 'start', 'end'])
-        
-        for assignment in fte_assignments:
-            writer.writerow([
-                assignment['fte_id'],
-                assignment['test_id'], 
-                assignment['test_name'],
-                assignment['start'].strftime('%Y-%m-%dT%H:%M:%S'),
-                assignment['end'].strftime('%Y-%m-%dT%H:%M:%S')
-            ])
-    
-    return output_path
+    return _generate_resource_usage_csv(
+        resource_type="fte",
+        solution=solution,
+        data=data,
+        start_date=start_date,
+        output_folder=output_folder,
+    )
 
 
 def generate_equipment_usage_csv(
-    solution: SolutionResult, 
-    data: PlanningData, 
-    start_date: date, 
-    output_folder: str
+    solution: SolutionResult, data: PlanningData, start_date: date, output_folder: str
 ) -> str:
     """Generate equipment usage CSV file with detailed resource assignments over time."""
-    output_path = os.path.join(output_folder, "equipment_usage.csv")
-    
-    equipment_assignments = []
-    
-    # Group schedules by equipment resource
+    return _generate_resource_usage_csv(
+        resource_type="equipment",
+        solution=solution,
+        data=data,
+        start_date=start_date,
+        output_folder=output_folder,
+    )
+
+
+def _generate_resource_usage_csv(
+    resource_type: str,
+    solution: SolutionResult,
+    data: PlanningData,
+    start_date: date,
+    output_folder: str,
+) -> str:
+    """Generate resource usage CSV for FTE or equipment assignments."""
+    if resource_type not in {"fte", "equipment"}:
+        raise ValueError(f"Unsupported resource type: {resource_type}")
+
+    output_filename = f"{resource_type}_usage.csv"
+    output_path = os.path.join(output_folder, output_filename)
+    resource_id_key = f"{resource_type}_id"
+
+    assignments = []
+    tests_map = {t.test_id: t for t in data.tests} if resource_type == "fte" else {}
+
     for schedule in solution.test_schedules:
-        for eq_id in schedule.assigned_equipment:
-            equipment_assignments.append({
-                'equipment_id': eq_id,
-                'test_id': schedule.test_id,
-                'test_name': schedule.test_name,
-                'start': start_date + timedelta(days=schedule.start_day),
-                'end': start_date + timedelta(days=schedule.start_day + schedule.duration_days)
-            })
-    
-    # Sort by equipment ID and start date
-    equipment_assignments.sort(key=lambda x: (x['equipment_id'], x['start']))
-    
-    with open(output_path, 'w', newline='') as f:
+        resource_ids = (
+            schedule.assigned_fte
+            if resource_type == "fte"
+            else schedule.assigned_equipment
+        )
+
+        for resource_id in resource_ids:
+            duration_days = float(schedule.duration_days)
+            if resource_type == "fte":
+                test = tests_map.get(schedule.test_id)
+                if test and test.fte_time_pct < 100.0:
+                    duration_days = duration_days * test.fte_time_pct / 100.0
+
+            assignments.append(
+                {
+                    resource_id_key: resource_id,
+                    "test_id": schedule.test_id,
+                    "test_name": schedule.test_name,
+                    "start": start_date + timedelta(days=schedule.start_day),
+                    "end": start_date
+                    + timedelta(days=schedule.start_day + duration_days),
+                }
+            )
+
+    assignments.sort(key=lambda x: (x[resource_id_key], x["start"]))
+
+    with open(output_path, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(['equipment_id', 'test_id', 'test_name', 'start', 'end'])
-        
-        for assignment in equipment_assignments:
-            writer.writerow([
-                assignment['equipment_id'],
-                assignment['test_id'],
-                assignment['test_name'], 
-                assignment['start'].strftime('%Y-%m-%dT%H:%M:%S'),
-                assignment['end'].strftime('%Y-%m-%dT%H:%M:%S')
-            ])
-    
+        writer.writerow([resource_id_key, "test_id", "test_name", "start", "end"])
+
+        for assignment in assignments:
+            writer.writerow(
+                [
+                    assignment[resource_id_key],
+                    assignment["test_id"],
+                    assignment["test_name"],
+                    assignment["start"].strftime("%Y-%m-%dT%H:%M:%S"),
+                    assignment["end"].strftime("%Y-%m-%dT%H:%M:%S"),
+                ]
+            )
+
     return output_path
 
 
 def generate_concurrency_timeseries_csv(
-    solution: SolutionResult, 
-    data: PlanningData, 
-    start_date: date, 
-    output_folder: str
+    solution: SolutionResult, data: PlanningData, start_date: date, output_folder: str
 ) -> str:
     """Generate concurrency time series CSV showing active tests and resource availability over time."""
     output_path = os.path.join(output_folder, "concurrency_timeseries.csv")
-    
+
     if not solution.test_schedules:
         return output_path
-    
+
     # Calculate the time range
     max_end_day = max(s.start_day + s.duration_days for s in solution.test_schedules)
-    
+
     # Generate time series data (12-hour intervals)
     timeseries_data = []
-    
+
     # Calculate availability from resource windows
     fte_availability_by_day = {}
     equipment_availability_by_day = {}
-    
+
     for day in range(max_end_day + 1):
         current_date = start_date + timedelta(days=day)
-        
+
         # Count available FTE
-        available_fte = sum(1 for w in data.fte_windows 
-                          if w.start_monday <= current_date <= w.end_monday)
-        
+        available_fte = sum(
+            1
+            for w in data.fte_windows
+            if w.start_monday <= current_date <= w.end_monday
+        )
+
         # Count available equipment
-        available_equipment = sum(1 for w in data.equipment_windows 
-                                if w.start_monday <= current_date <= w.end_monday)
-        
+        available_equipment = sum(
+            1
+            for w in data.equipment_windows
+            if w.start_monday <= current_date <= w.end_monday
+        )
+
         fte_availability_by_day[day] = available_fte
         equipment_availability_by_day[day] = available_equipment
-    
+
     # Generate time series (12-hour intervals)
     for day in range(max_end_day + 1):
         for hour in [0, 12]:  # 00:00 and 12:00
             timestamp = start_date + timedelta(days=day, hours=hour)
-            
+
             # Count active tests at this time
-            active_tests = sum(1 for s in solution.test_schedules
-                             if s.start_day <= day < s.start_day + s.duration_days)
-            
+            active_tests = sum(
+                1
+                for s in solution.test_schedules
+                if s.start_day <= day < s.start_day + s.duration_days
+            )
+
             # Get resource availability for this day
             available_fte = fte_availability_by_day.get(day, 0)
             available_equipment = equipment_availability_by_day.get(day, 0)
             capacity_min = min(available_fte, available_equipment)
-            
-            timeseries_data.append({
-                'timestamp': timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-                'active_tests': active_tests,
-                'available_fte': available_fte,
-                'available_equipment': available_equipment,
-                'capacity_min': capacity_min
-            })
-    
+
+            timeseries_data.append(
+                {
+                    "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                    "active_tests": active_tests,
+                    "available_fte": available_fte,
+                    "available_equipment": available_equipment,
+                    "capacity_min": capacity_min,
+                }
+            )
+
     # Write to CSV
-    with open(output_path, 'w', newline='') as f:
+    with open(output_path, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(['timestamp', 'active_tests', 'available_fte', 'available_equipment', 'capacity_min'])
-        
+        writer.writerow(
+            [
+                "timestamp",
+                "active_tests",
+                "available_fte",
+                "available_equipment",
+                "capacity_min",
+            ]
+        )
+
         for row in timeseries_data:
-            writer.writerow([
-                row['timestamp'],
-                row['active_tests'],
-                row['available_fte'],
-                row['available_equipment'],
-                row['capacity_min']
-            ])
-    
+            writer.writerow(
+                [
+                    row["timestamp"],
+                    row["active_tests"],
+                    row["available_fte"],
+                    row["available_equipment"],
+                    row["capacity_min"],
+                ]
+            )
+
     return output_path

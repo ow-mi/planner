@@ -1,13 +1,19 @@
-/* Theme Toggle Floating Component - positioned over tab bar */
+/* Theme Toggle Floating Component - positioned within tab bar */
 .theme-toggle-floating {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    z-index: 50;
+    position: relative;
+    flex-shrink: 0;
+    z-index: 6000;
     background-color: oklch(var(--b1));
     border: 1px solid oklch(var(--b3));
     border-radius: 6px;
     box-shadow: 0 2px 8px var(--shadow-color);
+    margin-bottom: 0.25rem;
+    order: 2;
+}
+
+/* Ensure tabs come before theme toggle in flex order */
+.tabs-bar .tabs {
+    order: 1;
 }
 
 .theme-toggle-floating .theme-toggle-btn {
@@ -43,20 +49,42 @@
     }
 }
 
-/* Theme Dropdown (same as before) */
+/* Theme Dropdown - Wider and with proper sizing */
 .theme-dropdown {
-    min-width: 280px;
-    max-height: 400px;
+    min-width: 320px;
+    max-width: min(90vw, 450px);
+    max-height: 70vh;
+    min-height: 200px;
     overflow-y: auto;
+    overflow-x: hidden;
     background-color: oklch(var(--b1));
     border: 1px solid oklch(var(--b3));
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 100;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    z-index: 6100;
     position: absolute;
     right: 0;
     top: calc(100% + 0.5rem);
     margin-top: 4px;
+    padding: 0.5rem;
+    box-sizing: border-box;
+}
+
+/* Global Theme Selector - positioned in header area */
+.theme-selector-global {
+    position: relative;
+    flex-shrink: 0;
+    z-index: 6000;
+    background-color: oklch(var(--b1));
+    border: 1px solid oklch(var(--b3));
+    border-radius: 6px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    margin-left: auto;
+}
+
+/* Keep the entire tabs bar layer above page-specific content stacks */
+.tabs-bar {
+    z-index: 5900;
 }
 
 .theme-dropdown .theme-category {
@@ -123,4 +151,32 @@
     padding: 16px;
     text-align: center;
     color: oklch(var(--bc) / 0.6);
+}
+
+/* Theme Dropdown - Responsive positioning */
+@media (max-width: 480px) {
+    .theme-dropdown {
+        min-width: 280px;
+        max-width: calc(100vw - 1rem);
+        right: -0.5rem;
+    }
+}
+
+/* Responsive: Hide theme name on small screens */
+@media (max-width: 768px) {
+    .theme-toggle-floating .theme-toggle-btn .theme-name {
+        display: none;
+    }
+    
+    /* Smaller theme dropdown on mobile */
+    .theme-dropdown {
+        min-width: 260px;
+        max-height: 60vh;
+    }
+}
+
+/* Ensure theme dropdown doesn't overflow viewport */
+.theme-dropdown {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }

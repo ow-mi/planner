@@ -6,7 +6,7 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from planner_v4.data_loader import (
+from solver.data_loader import (
     load_legs,
     load_resource_windows,
     load_tests,
@@ -14,7 +14,7 @@ from planner_v4.data_loader import (
     parse_iso_week,
     load_test_duts,
 )
-from planner_v4.utils.data_validation import validate_iso_week_format
+from solver.utils.data_validation import validate_iso_week_format
 
 
 @pytest.mark.parametrize(

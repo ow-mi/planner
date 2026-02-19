@@ -1,0 +1,6 @@
+severity,file,row,field,message
+ERROR,data_legs.csv,,,Failed to read: [Errno 2] No such file or directory: 'input_data\\data_legs.csv'
+ERROR,data_test.csv,,,Failed to read: [Errno 2] No such file or directory: 'input_data\\data_test.csv'
+ERROR,data_fte.csv,,,Failed to read: [Errno 2] No such file or directory: 'input_data\\data_fte.csv'
+ERROR,data_equipment.csv,,,Failed to read: [Errno 2] No such file or directory: 'input_data\\data_equipment.csv'
+WARN,data_test_duts.csv,,,Failed to read (optional): [Errno 2] No such file or directory: 'input_data\\data_test_duts.csv'

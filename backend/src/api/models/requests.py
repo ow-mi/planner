@@ -2,6 +2,8 @@ from typing import Dict, Optional, List
 from pydantic import BaseModel, Field
 from enum import Enum
 
+from backend.src.api.models.responses import ExtractedEntities
+
 
 class DebugLevel(str, Enum):
     DEBUG = "DEBUG"
@@ -72,7 +74,9 @@ class SpreadsheetDiscoveryRequest(BaseModel):
     config_paths: Optional[List[str]] = Field(
         None, description="List of configured paths to scan for spreadsheets"
     )
-    session_id: Optional[str] = Field(None, description="Uploaded session ID to include")
+    session_id: Optional[str] = Field(
+        None, description="Uploaded session ID to include"
+    )
 
 
 class SpreadsheetValidationRequest(BaseModel):
@@ -82,30 +86,6 @@ class SpreadsheetValidationRequest(BaseModel):
 
 class ConfigConsistencyRequest(BaseModel):
     config_json: str = Field(..., description="JSON configuration to validate")
-    spreadsheet_entities: "ExtractedEntities" = Field(
+    spreadsheet_entities: ExtractedEntities = Field(
         ..., description="Entities extracted from active spreadsheet"
     )
-
-
-# ============================================================================
-# Scenario Queue Orchestration Models
-# ============================================================================
-
-
-class AddScenarioToQueueRequest(BaseModel):
-    run_name: str = Field(..., min_length=1)
-    spreadsheet_id: str = Field(..., min_length=1)
-    scenario_name: Optional[str] = Field(None, description="Optional scenario name")
-    config_json: Optional[str] = Field(None, description="JSON configuration string")
-
-
-class RunSingleScenarioRequest(BaseModel):
-    scenario_id: str = Field(..., min_length=1)
-
-
-class RunAllUnsolvedRequest(BaseModel):
-    run_name: str = Field(..., min_length=1)
-
-
-class StopRenderRequest(BaseModel):
-    scenario_id: str = Field(..., min_length=1)

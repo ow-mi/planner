@@ -1,0 +1,264 @@
+<!-- LEGS SUBTAB - Updated with Branch support and CSV Import -->
+<div x-show="activeSubtab === 'legs'" class="config-section" id="section-legs">
+    <div class="section-header">
+        <div class="flex-container" style="margin-bottom: 1rem; align-items: center; justify-content: space-between;">
+            <div>
+                <h3 style="margin: 0;">Leg Scheduling Order</h3>
+                <p style="margin: 0.25rem 0 0 0; color: var(--text-light); font-size: 0.9rem;">Define leg priorities and deadlines. Drag to reorder. Import legs from CSV.</p>
+            </div>
+            <label class="checkbox-label">
+                <input type="checkbox" x-model="sectionEnabled.deadlinesEnabled" @change="queueOutputUpdate(true)">
+                Enable
+            </label>
+        </div>
+    </div>
+
+    <div x-show="!sectionEnabled.deadlinesEnabled" class="disabled-section-notice" style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem; text-align: center; color: var(--text-light);">
+        <p style="margin: 0;">Leg scheduling is disabled. Enable to configure leg order and deadlines.</p>
+    </div>
+
+    <div x-show="sectionEnabled.deadlinesEnabled" class="legs-container">
+        <!-- CSV Import Section -->
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <div>
+                    <h4 style="margin: 0; font-size: 1rem;">Import from CSV</h4>
+                    <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; color: var(--text-muted);" x-show="availableCsvLegs.length > 0">
+                        Found <span x-text="availableCsvLegs.length"></span> unique leg/branch combinations
+                    </p>
+                    <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; color: var(--text-muted);" x-show="availableCsvLegs.length === 0">
+                        Upload CSV file in Input Data tab to extract legs
+                    </p>
+                </div>
+                <button 
+                    type="button"
+                    @click="importLegsFromCsv()"
+                    class="btn btn-secondary"
+                    :disabled="availableCsvLegs.length === 0"
+                    style="display: inline-flex; align-items: center; gap: 0.5rem;"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Import Legs
+                </button>
+            </div>
+            <!-- Quick Add from CSV List -->
+            <div x-show="availableCsvLegs.length > 0" style="margin-top: 0.75rem; max-height: 150px; overflow-y: auto;">
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    <template x-for="csvLeg in availableCsvLegs.filter(l => !isLegAlreadyAdded(l.project, l.leg, l.branch))" :key="(csvLeg.project || '') + '-' + csvLeg.leg + '-' + csvLeg.branch">
+                        <button 
+                            type="button"
+                            @click="quickAddLegFromCsv(csvLeg.project, csvLeg.leg, csvLeg.branch)"
+                            class="btn btn-sm"
+                            style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.8rem;"
+                            title="Click to add this leg/branch"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            <span x-text="(csvLeg.project ? csvLeg.project + ' / ' : '') + csvLeg.leg + (csvLeg.branch ? ' / ' + csvLeg.branch : '')"></span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Header Row -->
+        <div class="legs-header" style="display: grid; grid-template-columns: 40px 1fr 120px 140px 140px 40px; gap: 0.5rem; padding: 0.5rem 0.75rem; background: var(--bg-secondary); border-radius: 0.375rem 0.375rem 0 0; font-weight: 600; font-size: 0.875rem; color: var(--text-light);">
+            <div style="text-align: center;">⋮⋮</div>
+            <div>Leg ID / Branch</div>
+            <div>Branch</div>
+            <div>Start <span style="font-weight: normal; color: var(--text-muted);">(YYYY-Www.d)</span></div>
+            <div>End <span style="font-weight: normal; color: var(--text-muted);">(optional)</span></div>
+            <div></div>
+        </div>
+
+        <!-- Legs List - Draggable -->
+        <div class="legs-list" style="border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 0.375rem 0.375rem; min-height: 100px;">
+            <template x-for="(leg, index) in legs" :key="leg.id">
+                <div 
+                    class="leg-row"
+                    :class="{ 'dragging': draggedIndex === index, 'drag-over': dragOverIndex === index }"
+                    style="display: grid; grid-template-columns: 40px 1fr 120px 140px 140px 40px; gap: 0.5rem; padding: 0.75rem; align-items: center; border-bottom: 1px solid var(--border-color); transition: background-color 0.15s;"
+                    :style="dragOverIndex === index ? 'border-top: 3px solid var(--primary-color);' : ''"
+                    @dragstart="dragStart(index)"
+                    @dragend="dragEnd"
+                    @dragover.prevent="dragOver(index)"
+                    @dragleave="dragLeave"
+                    @drop.prevent="drop(index)"
+                    draggable="true"
+                >
+                    <!-- Drag Handle -->
+                    <div 
+                        class="drag-handle"
+                        style="cursor: grab; text-align: center; color: var(--text-light); user-select: none; padding: 0.5rem; border-radius: 0.25rem;"
+                        :style="draggedIndex === index ? 'cursor: grabbing; background: var(--bg-tertiary);' : ''"
+                        @mousedown="$event.target.style.cursor = 'grabbing'"
+                        @mouseup="$event.target.style.cursor = 'grab'"
+                        title="Drag to reorder"
+                        role="button"
+                        tabindex="0"
+                        @keydown.space.prevent="startKeyboardDrag(index)"
+                        @keydown.enter.prevent="startKeyboardDrag(index)"
+                        :aria-label="'Drag leg ' + (leg.legId || 'unnamed') + ' to reorder'"
+                        :aria-grabbed="draggedIndex === index"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="12" r="1"></circle>
+                            <circle cx="9" cy="5" r="1"></circle>
+                            <circle cx="9" cy="19" r="1"></circle>
+                            <circle cx="15" cy="12" r="1"></circle>
+                            <circle cx="15" cy="5" r="1"></circle>
+                            <circle cx="15" cy="19" r="1"></circle>
+                        </svg>
+                    </div>
+
+                    <!-- Leg ID (combined display) -->
+                    <div class="leg-id-cell">
+                        <span 
+                            x-show="!leg.isEditing"
+                            @click="leg.isEditing = true; $nextTick(() => $refs['legIdInput-' + index].focus())"
+                            style="cursor: text; padding: 0.375rem 0.5rem; border-radius: 0.25rem; display: inline-block; min-width: 100px; border: 1px solid transparent;"
+                            :style="leg.legId ? '' : 'color: var(--text-muted); font-style: italic;'"
+                            class="leg-id-display"
+                            tabindex="0"
+                            @keydown.enter="leg.isEditing = true; $nextTick(() => $refs['legIdInput-' + index].focus())"
+                        >
+                            <span x-text="leg.legId || 'Click to edit'" :style="!leg.legId ? 'color: var(--text-muted);' : ''"></span>
+                        </span>
+                        <input
+                            :x-ref="'legIdInput-' + index"
+                            x-show="leg.isEditing"
+                            x-model="leg.legId"
+                            @blur="leg.isEditing = false; updateLegId(index, leg.legId)"
+                            @keydown.enter="leg.isEditing = false; updateLegId(index, leg.legId)"
+                            @keydown.escape="leg.isEditing = false"
+                            type="text"
+                            class="form-control"
+                            style="width: 100%; font-size: 0.875rem;"
+                            placeholder="e.g., mwcu_b10_6"
+                        >
+                    </div>
+
+                    <!-- Branch -->
+                    <div class="leg-branch-cell">
+                        <input
+                            type="text"
+                            x-model="leg.branch"
+                            @blur="validateAndUpdateLeg(index, 'branch', leg.branch)"
+                            class="form-control"
+                            style="width: 100%; font-size: 0.875rem;"
+                            placeholder="main"
+                        >
+                    </div>
+
+                    <!-- Start Date -->
+                    <div class="leg-date-cell">
+                        <input
+                            type="text"
+                            x-model="leg.startDeadline"
+                            @blur="validateAndUpdateLeg(index, 'startDeadline', leg.startDeadline)"
+                            @input="leg.startDeadlineError = validateWeekFormat(leg.startDeadline) ? '' : 'Invalid format. Use YYYY-Www.f (e.g., 2027-W18.6)'"
+                            class="form-control"
+                            :class="{ 'is-invalid': leg.startDeadlineError }"
+                            style="width: 100%; font-size: 0.875rem;"
+                            placeholder="2027-W18.6"
+                            :aria-invalid="leg.startDeadlineError ? 'true' : 'false'"
+                            :aria-describedby="leg.startDeadlineError ? 'start-error-' + index : null"
+                        >
+                        <div 
+                            :id="'start-error-' + index"
+                            x-show="leg.startDeadlineError" 
+                            x-text="leg.startDeadlineError"
+                            style="color: var(--danger); font-size: 0.75rem; margin-top: 0.25rem;"
+                            role="alert"
+                        ></div>
+                    </div>
+
+                    <!-- End Date -->
+                    <div class="leg-date-cell">
+                        <input
+                            type="text"
+                            x-model="leg.endDeadline"
+                            @blur="validateAndUpdateLeg(index, 'endDeadline', leg.endDeadline)"
+                            @input="leg.endDeadlineError = leg.endDeadline && !validateWeekFormat(leg.endDeadline) ? 'Invalid format' : ''"
+                            class="form-control"
+                            :class="{ 'is-invalid': leg.endDeadlineError }"
+                            style="width: 100%; font-size: 0.875rem;"
+                            placeholder="2027-W30.5"
+                            :aria-invalid="leg.endDeadlineError ? 'true' : 'false'"
+                            :aria-describedby="leg.endDeadlineError ? 'end-error-' + index : null"
+                        >
+                        <div 
+                            :id="'end-error-' + index"
+                            x-show="leg.endDeadlineError" 
+                            x-text="leg.endDeadlineError"
+                            style="color: var(--danger); font-size: 0.75rem; margin-top: 0.25rem;"
+                            role="alert"
+                        ></div>
+                    </div>
+
+                    <!-- Remove Button -->
+                    <div class="leg-actions" style="text-align: center;">
+                        <button
+                            type="button"
+                            @click="removeLeg(index)"
+                            class="btn btn-sm btn-danger"
+                            style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: transparent; border: none; color: var(--danger); cursor: pointer;"
+                            title="Remove leg"
+                            tabindex="0"
+                            :aria-label="'Remove leg ' + (leg.legId || 'unnamed')"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Empty State -->
+            <div x-show="legs.length === 0" style="padding: 2rem; text-align: center; color: var(--text-light);">
+                <p style="margin: 0 0 1rem 0;">No legs configured yet.</p>
+                <p style="margin: 0; font-size: 0.875rem; color: var(--text-muted);">Add a leg to get started with scheduling.</p>
+            </div>
+        </div>
+
+        <!-- Add Leg Button -->
+        <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <button
+                type="button"
+                @click="addLeg()"
+                class="btn btn-primary"
+                style="display: inline-flex; align-items: center; gap: 0.5rem;"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Leg
+            </button>
+
+            <div x-show="legs.length > 0" style="font-size: 0.875rem; color: var(--text-light);">
+                <span x-text="legs.length"></span> leg<span x-show="legs.length !== 1">s</span>
+            </div>
+        </div>
+
+        <!-- Format Help -->
+        <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.375rem; font-size: 0.875rem;">
+            <p style="margin: 0 0 0.5rem 0; font-weight: 600;">📅 Week Format Guide</p>
+            <p style="margin: 0 0 0.5rem 0; color: var(--text-light);">Use <code>YYYY-Www.f</code> format where:</p>
+            <ul style="margin: 0; padding-left: 1.25rem; color: var(--text-light);">
+                <li><code>YYYY</code> = 4-digit year (e.g., 2027)</li>
+                <li><code>ww</code> = 2-digit ISO week (01-53)</li>
+                <li><code>f</code> = day of week (1=Mon, 7=Sun)</li>
+            </ul>
+            <p style="margin: 0.5rem 0 0 0; color: var(--text-muted);">Example: <code>2027-W18.6</code> = Friday of week 18, 2027</p>
+        </div>
+    </div>
+</div>

@@ -447,12 +447,14 @@
              }
          }
 
-         // Initialize HTMX extensions (HTMX 2.x pattern)
-         document.body.addEventListener('htmx:afterSwap', function(event) {
-             // Re-initialize Alpine.js components in dynamically loaded content
-             if (window.Alpine && event && event.detail && event.detail.target) {
-                 window.Alpine.initTree(event.detail.target);
-             }
+         // Initialize HTMX extensions (HTMX 2.x pattern) - wait for body to exist
+         document.addEventListener('DOMContentLoaded', function() {
+             document.body.addEventListener('htmx:afterSwap', function(event) {
+                 // Re-initialize Alpine.js components in dynamically loaded content
+                 if (window.Alpine && event && event.detail && event.detail.target) {
+                     window.Alpine.initTree(event.detail.target);
+                 }
+             });
          });
     </script>
 </body>

@@ -18,7 +18,8 @@ Model Components:
 Key Functions:
     build_model: Main model construction function
     add_temporal_constraints: Time-based constraint modeling
-    add_resource_constraints: Resource capacity and availability modeling
+    add_resource_nonoverlap_constraints: Resource non-overlap modeling
+    add_resource_availability_constraints: Resource availability window modeling
     add_precedence_constraints: Dependency and sequencing constraints
     add_objective_function: Multi-objective optimization setup
 
@@ -43,12 +44,19 @@ from typing import Dict, List, Tuple, Set, Optional
 from ortools.sat.python import cp_model
 from .data_loader import PlanningData, Test, Leg, ResourceWindow
 from .config.priority_modes import (
-    PriorityMode, BasePriorityConfig, LegPriorityConfig,
-    EndDatePriorityConfig, EndDateStickyConfig, LegEndDatesConfig,
-    ResourceBottleneckConfig, TestProximityConfig, create_priority_config
+    PriorityMode,
+    BasePriorityConfig,
+    LegPriorityConfig,
+    EndDatePriorityConfig,
+    EndDateStickyConfig,
+    LegEndDatesConfig,
+    ResourceBottleneckConfig,
+    TestProximityConfig,
+    create_priority_config,
 )
 from .utils.profiling import timeit
 from .utils.intervals import merge_intervals
+from .utils.week_utils import parse_iso_week
 
 
 class ScheduleModel:
@@ -85,14 +93,14 @@ class ScheduleModel:
         All variables are created during the model building process. The container
         provides efficient lookup and access patterns for constraint construction.
     """
-    
+
     def __init__(self):
         self.model = cp_model.CpModel()
         self.test_vars = {}  # test_id -> (start_var, end_var, duration)
         self.resource_assignments = {}  # (test_id, resource_type, resource_id) -> bool_var
         self.makespan_var = None
         self.horizon = 0
-        
+
         # Mappings for easy lookup
         self.test_to_index = {}
         self.resource_to_tests = {}  # resource_id -> list of test_ids that can use it
@@ -129,14 +137,16 @@ def get_time_horizon(data: PlanningData) -> int:
         scheduling inefficiencies that may extend actual project duration.
     """
     # Start from earliest leg start date
-    earliest_start = min(leg.start_monday for leg in data.legs.values() if leg.start_monday)
-    
+    earliest_start = min(
+        leg.start_monday for leg in data.legs.values() if leg.start_monday
+    )
+
     # Sum all test durations as an upper bound
     total_duration = sum(test.duration_days for test in data.tests)
-    
+
     # Add some buffer (50% more time)
     horizon_days = int(total_duration * 1.5)
-    
+
     # Ensure minimum horizon of 365 days for flexibility
     return max(horizon_days, 365)
 
@@ -149,18 +159,20 @@ def date_to_day_offset(target_date: date, start_date: date) -> int:
 
 
 @timeit
-def build_resource_assignments(model: ScheduleModel, data: PlanningData, start_date: date):
+def build_resource_assignments(
+    model: ScheduleModel, data: PlanningData, start_date: date
+):
     """
     Create resource assignment variables and constraints.
     """
     # Get all unique resource IDs
     fte_ids = set(w.resource_id for w in data.fte_windows)
     equipment_ids = set(w.resource_id for w in data.equipment_windows)
-    
+
     # Create assignment variables for each test-resource combination
     for test in data.tests:
         test_id = test.test_id
-        
+
         # FTE assignments
         if test.fte_assigned == "*":
             # Can be assigned to any FTE
@@ -173,22 +185,26 @@ def build_resource_assignments(model: ScheduleModel, data: PlanningData, start_d
                 compatible_ftes = [prefix]
             else:
                 # Pattern match - find FTEs that start with the prefix + "_"
-                compatible_ftes = [fid for fid in fte_ids if fid.startswith(prefix + "_")]
+                compatible_ftes = [
+                    fid for fid in fte_ids if fid.startswith(prefix + "_")
+                ]
         else:
             # Specific FTE assignment
-            compatible_ftes = [test.fte_assigned] if test.fte_assigned in fte_ids else []
-        
+            compatible_ftes = (
+                [test.fte_assigned] if test.fte_assigned in fte_ids else []
+            )
+
         for fte_id in compatible_ftes:
             var_name = f"assign_fte_{test_id}_{fte_id}"
             assign_var = model.model.NewBoolVar(var_name)
             model.resource_assignments[(test_id, "fte", fte_id)] = assign_var
-            
+
             # Track which tests can use this resource
             if fte_id not in model.resource_to_tests:
                 model.resource_to_tests[fte_id] = []
             model.resource_to_tests[fte_id].append(test_id)
-        
-        # Equipment assignments  
+
+        # Equipment assignments
         if test.equipment_assigned == "*":
             # Can be assigned to any equipment
             compatible_equipment = list(equipment_ids)
@@ -200,31 +216,41 @@ def build_resource_assignments(model: ScheduleModel, data: PlanningData, start_d
                 compatible_equipment = [prefix]
             else:
                 # Pattern match - find equipment that starts with the prefix + "_"
-                compatible_equipment = [eid for eid in equipment_ids if eid.startswith(prefix + "_")]
+                compatible_equipment = [
+                    eid for eid in equipment_ids if eid.startswith(prefix + "_")
+                ]
         else:
             # Specific equipment assignment
-            compatible_equipment = [test.equipment_assigned] if test.equipment_assigned in equipment_ids else []
-        
+            compatible_equipment = (
+                [test.equipment_assigned]
+                if test.equipment_assigned in equipment_ids
+                else []
+            )
+
         for eq_id in compatible_equipment:
             var_name = f"assign_equipment_{test_id}_{eq_id}"
             assign_var = model.model.NewBoolVar(var_name)
             model.resource_assignments[(test_id, "equipment", eq_id)] = assign_var
-            
+
             # Track which tests can use this resource
             if eq_id not in model.resource_to_tests:
                 model.resource_to_tests[eq_id] = []
             model.resource_to_tests[eq_id].append(test_id)
-        
+
         # Constraint: Each test must be assigned exactly the required number of each resource type
-        fte_assignments = [model.resource_assignments.get((test_id, "fte", fid)) 
-                          for fid in compatible_ftes 
-                          if (test_id, "fte", fid) in model.resource_assignments]
+        fte_assignments = [
+            model.resource_assignments.get((test_id, "fte", fid))
+            for fid in compatible_ftes
+            if (test_id, "fte", fid) in model.resource_assignments
+        ]
         if fte_assignments:
             model.model.Add(sum(fte_assignments) == test.fte_required)
-        
-        equipment_assignments = [model.resource_assignments.get((test_id, "equipment", eid)) 
-                                for eid in compatible_equipment 
-                                if (test_id, "equipment", eid) in model.resource_assignments]
+
+        equipment_assignments = [
+            model.resource_assignments.get((test_id, "equipment", eid))
+            for eid in compatible_equipment
+            if (test_id, "equipment", eid) in model.resource_assignments
+        ]
         if equipment_assignments:
             model.model.Add(sum(equipment_assignments) == test.equipment_required)
 
@@ -240,46 +266,46 @@ def add_sequencing_constraints(model: ScheduleModel, data: PlanningData):
         if test.project_leg_id not in leg_tests:
             leg_tests[test.project_leg_id] = []
         leg_tests[test.project_leg_id].append(test)
-    
+
     # Sort tests within each leg by sequence index
     for leg_id, tests in leg_tests.items():
         tests.sort(key=lambda t: t.sequence_index)
-        
+
         # Add precedence constraints
         for i in range(len(tests) - 1):
             current_test = tests[i]
             next_test = tests[i + 1]
-            
+
             current_end = model.test_vars[current_test.test_id][1]
             next_start = model.test_vars[next_test.test_id][0]
-            
+
             # Next test can only start after current test ends
             model.model.Add(next_start >= current_end)
 
 
 @timeit
-def add_resource_constraints(model: ScheduleModel, data: PlanningData, start_date: date):
-    """
-    Add resource availability and non-overlap constraints.
-    """
+def add_resource_nonoverlap_constraints(model: ScheduleModel, data: PlanningData):
+    """Prevent tests assigned to the same resource from overlapping."""
     # Pre-calculate test and resource lookups
     tests_by_id = {test.test_id: test for test in data.tests}
-    
+
     # No-overlap constraint for each resource
     for resource_id, test_ids in model.resource_to_tests.items():
         if not test_ids:
             continue
-            
+
         intervals = []
         for test_id in test_ids:
             if test_id in model.test_vars:
                 start_var, _, duration = model.test_vars[test_id]
                 test = tests_by_id[test_id]
-                
+
                 # Check both FTE and equipment assignments using .get() for safety
                 # Do not use 'or' here, as it's not supported for ortools literals
                 fte_var = model.resource_assignments.get((test_id, "fte", resource_id))
-                eq_var = model.resource_assignments.get((test_id, "equipment", resource_id))
+                eq_var = model.resource_assignments.get(
+                    (test_id, "equipment", resource_id)
+                )
 
                 assignment_var = fte_var if fte_var is not None else eq_var
 
@@ -289,19 +315,28 @@ def add_resource_constraints(model: ScheduleModel, data: PlanningData, start_dat
                     if fte_var is not None and test.fte_time_pct < 100.0:
                         # For FTE with < 100% time, calculate reduced duration
                         # Ensure at least 1 day if required
-                        calc_duration = math.ceil(test.duration_days * test.fte_time_pct / 100.0)
+                        calc_duration = math.ceil(
+                            test.duration_days * test.fte_time_pct / 100.0
+                        )
                         resource_duration = int(max(1, calc_duration))
-                    
+
                     interval_var = model.model.NewOptionalIntervalVar(
-                        start_var, resource_duration, start_var + resource_duration, assignment_var,
-                        f"interval_{test_id}_{resource_id}"
+                        start_var,
+                        resource_duration,
+                        start_var + resource_duration,
+                        assignment_var,
+                        f"interval_{test_id}_{resource_id}",
                     )
                     intervals.append(interval_var)
-        
+
         if intervals:
             model.model.AddNoOverlap(intervals)
-    
-    # Resource availability constraints
+
+
+def _build_resource_windows(
+    data: PlanningData, start_date: date
+) -> Dict[str, List[Tuple[int, int]]]:
+    """Build merged day-offset windows for each resource."""
     resource_windows = {}
     all_windows = data.fte_windows + data.equipment_windows
     for window in all_windows:
@@ -311,56 +346,100 @@ def add_resource_constraints(model: ScheduleModel, data: PlanningData, start_dat
             if window.resource_id not in resource_windows:
                 resource_windows[window.resource_id] = []
             resource_windows[window.resource_id].append((start_day, end_day))
-            
+
     # Merge windows for efficiency
     for resource_id in resource_windows:
         resource_windows[resource_id] = merge_intervals(resource_windows[resource_id])
 
+    return resource_windows
+
+
+def _add_window_membership_constraint(
+    model: ScheduleModel,
+    start_var: cp_model.IntVar,
+    end_expr,
+    assignment_var: cp_model.IntVar,
+    allowed_windows: List[Tuple[int, int]],
+    window_name_prefix: str,
+):
+    """Require a scheduled interval to fit within one allowed window."""
+    if assignment_var is None or not allowed_windows:
+        return
+
+    window_bools = []
+    for start, end in allowed_windows:
+        in_window = model.model.NewBoolVar(f"{window_name_prefix}_{start}_{end}")
+        model.model.Add(start_var >= start).OnlyEnforceIf(in_window)
+        model.model.Add(end_expr <= end).OnlyEnforceIf(in_window)
+        window_bools.append(in_window)
+
+    model.model.AddBoolOr(window_bools).OnlyEnforceIf(assignment_var)
+
+
+@timeit
+def add_resource_availability_constraints(
+    model: ScheduleModel, data: PlanningData, start_date: date
+):
+    """Restrict assigned test execution to each resource's availability windows."""
+    resource_windows = _build_resource_windows(data, start_date)
+    fte_ids = {
+        w.resource_id
+        for w in data.fte_windows
+        if w.resource_id in model.resource_to_tests
+    }
+    equipment_ids = {
+        w.resource_id
+        for w in data.equipment_windows
+        if w.resource_id in model.resource_to_tests
+    }
+
     # Add availability constraints
     for test in data.tests:
         test_id = test.test_id
-        start_var, end_var, _ = model.test_vars[test_id]
-        
+        start_var, end_var, duration = model.test_vars[test_id]
+
         # Constraints for FTE
-        for fte_id in {w.resource_id for w in data.fte_windows if w.resource_id in model.resource_to_tests}:
+        for fte_id in fte_ids:
             assignment_var = model.resource_assignments.get((test_id, "fte", fte_id))
             if assignment_var is not None:
                 # Calculate FTE duration for availability window check
                 fte_duration = duration
                 if test.fte_time_pct < 100.0:
-                    calc_duration = math.ceil(test.duration_days * test.fte_time_pct / 100.0)
+                    calc_duration = math.ceil(
+                        test.duration_days * test.fte_time_pct / 100.0
+                    )
                     fte_duration = int(max(1, calc_duration))
 
                 allowed_windows = resource_windows.get(fte_id, [])
-                if allowed_windows:
-                    is_in_any_window = model.model.NewBoolVar(f"{test_id}_in_any_fte_window_{fte_id}")
-                    window_bools = []
-                    for start, end in allowed_windows:
-                        in_window = model.model.NewBoolVar(f"{test_id}_in_fte_window_{fte_id}_{start}_{end}")
-                        model.model.Add(start_var >= start).OnlyEnforceIf(in_window)
-                        # Check against FTE end time (start + fte_duration)
-                        model.model.Add(start_var + fte_duration <= end).OnlyEnforceIf(in_window)
-                        window_bools.append(in_window)
-                    model.model.AddBoolOr(window_bools).OnlyEnforceIf(assignment_var)
+                _add_window_membership_constraint(
+                    model,
+                    start_var,
+                    start_var + fte_duration,
+                    assignment_var,
+                    allowed_windows,
+                    f"{test_id}_in_fte_window_{fte_id}",
+                )
 
         # Constraints for Equipment
-        for eq_id in {w.resource_id for w in data.equipment_windows if w.resource_id in model.resource_to_tests}:
-            assignment_var = model.resource_assignments.get((test_id, "equipment", eq_id))
-            if assignment_var is not None:
-                allowed_windows = resource_windows.get(eq_id, [])
-                if allowed_windows:
-                    is_in_any_window = model.model.NewBoolVar(f"{test_id}_in_any_eq_window_{eq_id}")
-                    window_bools = []
-                    for start, end in allowed_windows:
-                        in_window = model.model.NewBoolVar(f"{test_id}_in_eq_window_{eq_id}_{start}_{end}")
-                        model.model.Add(start_var >= start).OnlyEnforceIf(in_window)
-                        model.model.Add(end_var <= end).OnlyEnforceIf(in_window)
-                        window_bools.append(in_window)
-                    model.model.AddBoolOr(window_bools).OnlyEnforceIf(assignment_var)
+        for eq_id in equipment_ids:
+            assignment_var = model.resource_assignments.get(
+                (test_id, "equipment", eq_id)
+            )
+            allowed_windows = resource_windows.get(eq_id, [])
+            _add_window_membership_constraint(
+                model,
+                start_var,
+                end_var,
+                assignment_var,
+                allowed_windows,
+                f"{test_id}_in_eq_window_{eq_id}",
+            )
 
 
 @timeit
-def add_leg_start_constraints(model: ScheduleModel, data: PlanningData, start_date: date):
+def add_leg_start_constraints(
+    model: ScheduleModel, data: PlanningData, start_date: date
+):
     """
     Add constraints for leg start times and forced test start times.
     """
@@ -370,47 +449,80 @@ def add_leg_start_constraints(model: ScheduleModel, data: PlanningData, start_da
         if test.project_leg_id not in leg_tests:
             leg_tests[test.project_leg_id] = []
         leg_tests[test.project_leg_id].append(test)
-    
+
     # Leg start time constraints
     for leg_id, tests in leg_tests.items():
         leg = data.legs[leg_id]
         if leg.start_monday:
             leg_start_day = date_to_day_offset(leg.start_monday, start_date)
-            
+
             # Find first test in leg (sequence_index = 1)
             first_test = min(tests, key=lambda t: t.sequence_index)
             if first_test.test_id in model.test_vars:
                 first_test_start = model.test_vars[first_test.test_id][0]
                 model.model.Add(first_test_start >= leg_start_day)
-    
-    # Forced start time constraints
+
+    # Forced start time constraints - HARD CONSTRAINT (exact match)
+    # Tests with force_start_week_iso MUST start exactly at that week
+    forced_tests: List[
+        Tuple[str, int]
+    ] = []  # Track (test_id, forced_day) for conflict detection
+
     for test in data.tests:
         if test.force_start_week_iso and test.test_id in model.test_vars:
-            from .data_loader import parse_iso_week
             forced_start_date = parse_iso_week(test.force_start_week_iso)
             if forced_start_date:
                 forced_start_day = date_to_day_offset(forced_start_date, start_date)
                 test_start = model.test_vars[test.test_id][0]
-                model.model.Add(test_start >= forced_start_day)
+                test_end = model.test_vars[test.test_id][1]
+                duration = model.test_vars[test.test_id][2]
+
+                # HARD CONSTRAINT: Test must start EXACTLY at forced week (not just >=)
+                model.model.Add(test_start == forced_start_day)
+
+                # Also constraint end time based on duration
+                model.model.Add(test_end == test_start + duration)
+
+                forced_tests.append((test.test_id, forced_start_day))
+                print(
+                    f"  HARD: Forced test {test.test_id} to start exactly at day {forced_start_day} (week {test.force_start_week_iso})"
+                )
+
+    # Detect potential conflicts: Multiple tests forced to same time with overlapping resources
+    if len(forced_tests) >= 2:
+        print(f"  Checking for conflicts among {len(forced_tests)} forced tests...")
+        # Note: Full conflict detection happens during solve, but we can warn here
+        day_groups: Dict[int, List[str]] = {}
+        for test_id, day in forced_tests:
+            if day not in day_groups:
+                day_groups[day] = []
+            day_groups[day].append(test_id)
+
+        for day, tests_at_day in day_groups.items():
+            if len(tests_at_day) > 1:
+                print(
+                    f"    WARNING: {len(tests_at_day)} tests forced to same day {day}: {tests_at_day}"
+                )
+                print(f"    This may cause resource conflicts or infeasibility")
 
 
 @timeit
 def add_leg_dependency_constraints(model: ScheduleModel, data: PlanningData):
     """
     Add constraints for leg dependencies.
-    
+
     Ensures that successor legs can only start after predecessor legs finish.
-    
+
     Args:
         model: The model being built
         data: Planning data
     """
     print(f"Adding {len(data.leg_dependencies)} leg dependency constraints...")
-    
+
     for dependency in data.leg_dependencies:
         predecessor_leg_id = dependency.predecessor_leg_id
         successor_leg_id = dependency.successor_leg_id
-        
+
         # Find the last test in the predecessor leg
         predecessor_last_test = None
         predecessor_max_sequence = 0
@@ -419,32 +531,37 @@ def add_leg_dependency_constraints(model: ScheduleModel, data: PlanningData):
                 if test.sequence_index > predecessor_max_sequence:
                     predecessor_max_sequence = test.sequence_index
                     predecessor_last_test = test
-        
+
         # Find the first test in the successor leg
         successor_first_test = None
         for test in data.tests:
             if test.project_leg_id == successor_leg_id and test.sequence_index == 1:
                 successor_first_test = test
                 break
-        
+
         # Add constraint: successor leg can only start after predecessor leg finishes
-        if (predecessor_last_test and successor_first_test and
-            predecessor_last_test.test_id in model.test_vars and
-            successor_first_test.test_id in model.test_vars):
-            
+        if (
+            predecessor_last_test
+            and successor_first_test
+            and predecessor_last_test.test_id in model.test_vars
+            and successor_first_test.test_id in model.test_vars
+        ):
             # Get variables
             _, pred_end_var, _ = model.test_vars[predecessor_last_test.test_id]
             succ_start_var, _, _ = model.test_vars[successor_first_test.test_id]
-            
+
             # Constraint: successor start >= predecessor end
             model.model.Add(succ_start_var >= pred_end_var)
-            
-            print(f"  Added dependency: {successor_leg_id} starts after {predecessor_leg_id} finishes")
+
+            print(
+                f"  Added dependency: {successor_leg_id} starts after {predecessor_leg_id} finishes"
+            )
 
 
 @timeit
-def add_test_proximity_constraints(model: ScheduleModel, data: PlanningData,
-                                 config: TestProximityConfig) -> List:
+def add_test_proximity_constraints(
+    model: ScheduleModel, data: PlanningData, config: TestProximityConfig
+) -> List:
     """
     Add test proximity constraints based on pattern matching.
 
@@ -485,13 +602,17 @@ def add_test_proximity_constraints(model: ScheduleModel, data: PlanningData,
         # Check if test matches any pattern
         for pattern in patterns:
             pattern_lower = pattern.lower()
-            if (pattern_lower in test_name or
-                pattern_lower in test_id or
-                pattern_lower in test_desc):
+            if (
+                pattern_lower in test_name
+                or pattern_lower in test_id
+                or pattern_lower in test_desc
+            ):
                 pattern_tests.append(test)
                 break
 
-    print(f"  Found {len(pattern_tests)} tests matching proximity patterns: {[t.test_id for t in pattern_tests]}")
+    print(
+        f"  Found {len(pattern_tests)} tests matching proximity patterns: {[t.test_id for t in pattern_tests]}"
+    )
 
     if not pattern_tests:
         print("  No tests match proximity patterns - skipping proximity constraints")
@@ -533,20 +654,29 @@ def add_test_proximity_constraints(model: ScheduleModel, data: PlanningData,
 
         # Soft constraint: following test should start within max_gap_days of preceding test end
         # following_start <= preceding_end + max_gap_days
-        gap_violation = model.model.NewIntVar(0, model.horizon, f"gap_{preceding_test.test_id}_{following_test.test_id}")
-        model.model.Add(gap_violation >= following_start - (preceding_end + max_gap_days))
+        gap_violation = model.model.NewIntVar(
+            0, model.horizon, f"gap_{preceding_test.test_id}_{following_test.test_id}"
+        )
+        model.model.Add(
+            gap_violation >= following_start - (preceding_end + max_gap_days)
+        )
         model.model.Add(gap_violation >= 0)
 
         gap_violation_vars.append(gap_violation)
 
-        print(f"  Proximity constraint: {following_test.test_id} should start within {max_gap_days} days of {preceding_test.test_id} end")
+        print(
+            f"  Proximity constraint: {following_test.test_id} should start within {max_gap_days} days of {preceding_test.test_id} end"
+        )
 
     return gap_violation_vars
 
 
 @timeit
-def setup_objective_function(model: ScheduleModel, data: PlanningData,
-                           priority_config: Optional[BasePriorityConfig]):
+def setup_objective_function(
+    model: ScheduleModel,
+    data: PlanningData,
+    priority_config: Optional[BasePriorityConfig],
+):
     """
     Set up the objective function based on the specified priority mode.
 
@@ -570,7 +700,9 @@ def setup_objective_function(model: ScheduleModel, data: PlanningData,
     proximity_penalty_terms = []
     if isinstance(priority_config, TestProximityConfig):
         # Add proximity constraints and get gap violation variables
-        gap_violation_vars = add_test_proximity_constraints(model, data, priority_config)
+        gap_violation_vars = add_test_proximity_constraints(
+            model, data, priority_config
+        )
 
         # Calculate penalty terms for objective function
         rules = priority_config.test_proximity_rules
@@ -586,8 +718,9 @@ def setup_objective_function(model: ScheduleModel, data: PlanningData,
         # Use the wrapped base configuration when proximity rules are applied
         base_config = priority_config.base_config
         if base_config is None:
-            base_config = create_priority_config(priority_config.mode,
-                                               weights=priority_config.weights)
+            base_config = create_priority_config(
+                priority_config.mode, weights=priority_config.weights
+            )
 
     # Get objective terms from the base mode
     objective_terms = []
@@ -619,15 +752,17 @@ def setup_objective_function(model: ScheduleModel, data: PlanningData,
         model.model.Minimize(model.makespan_var)
 
 
-def setup_end_date_priority_objective(model: ScheduleModel, data: PlanningData,
-                                    config: EndDatePriorityConfig) -> List:
+def setup_end_date_priority_objective(
+    model: ScheduleModel, data: PlanningData, config: EndDatePriorityConfig
+) -> List:
     """Set up pure makespan minimization objective (Mode B)."""
     # Return makespan as the objective term
     return [model.makespan_var]
 
 
-def setup_leg_priority_objective(model: ScheduleModel, data: PlanningData,
-                               config: LegPriorityConfig) -> List:
+def setup_leg_priority_objective(
+    model: ScheduleModel, data: PlanningData, config: LegPriorityConfig
+) -> List:
     """Set up leg priority objective (Mode A)."""
     # Get leg priority weights
     leg_weights = config.leg_weights or {}
@@ -641,13 +776,17 @@ def setup_leg_priority_objective(model: ScheduleModel, data: PlanningData,
     # Normalize weights to sum to 1
     total_weight = sum(leg_weights.values())
     if total_weight > 0:
-        leg_weights = {leg_id: weight/total_weight for leg_id, weight in leg_weights.items()}
+        leg_weights = {
+            leg_id: weight / total_weight for leg_id, weight in leg_weights.items()
+        }
 
     # Create leg completion/start time variables for each leg
     leg_completion_vars = {}
     leg_start_time_vars = {}
     for leg_id in data.legs.keys():
-        leg_completion_vars[leg_id] = model.model.NewIntVar(0, model.horizon, f"leg_completion_{leg_id}")
+        leg_completion_vars[leg_id] = model.model.NewIntVar(
+            0, model.horizon, f"leg_completion_{leg_id}"
+        )
 
         # Leg completion is the max end time of any test in the leg
         leg_test_end_vars = []
@@ -660,17 +799,28 @@ def setup_leg_priority_objective(model: ScheduleModel, data: PlanningData,
 
         if leg_test_end_vars:
             model.model.AddMaxEquality(leg_completion_vars[leg_id], leg_test_end_vars)
-            leg_start_var = model.model.NewIntVar(0, model.horizon, f"leg_start_{leg_id}")
+            leg_start_var = model.model.NewIntVar(
+                0, model.horizon, f"leg_start_{leg_id}"
+            )
             model.model.AddMinEquality(leg_start_var, leg_test_start_vars)
             leg_start_time_vars[leg_id] = leg_start_var
 
     # Determine sequencing order based on priority configuration
     priority_order: List[str] = []
     if config.priority_sequence:
-        priority_order = [leg_id for leg_id in config.priority_sequence if leg_id in leg_start_time_vars]
+        priority_order = [
+            leg_id
+            for leg_id in config.priority_sequence
+            if leg_id in leg_start_time_vars
+        ]
     elif leg_weights:
-        priority_order = [leg_id for leg_id, _ in sorted(leg_weights.items(), key=lambda item: (-item[1], item[0]))
-                          if leg_id in leg_start_time_vars]
+        priority_order = [
+            leg_id
+            for leg_id, _ in sorted(
+                leg_weights.items(), key=lambda item: (-item[1], item[0])
+            )
+            if leg_id in leg_start_time_vars
+        ]
 
     priority_violation_terms = []
 
@@ -681,13 +831,19 @@ def setup_leg_priority_objective(model: ScheduleModel, data: PlanningData,
         if prev_completion is None or next_start is None:
             continue
 
-        violation_var = model.model.NewIntVar(0, model.horizon, f"priority_violation_{prev_leg}_{next_leg}")
+        violation_var = model.model.NewIntVar(
+            0, model.horizon, f"priority_violation_{prev_leg}_{next_leg}"
+        )
         model.model.Add(next_start + violation_var >= prev_completion)
 
-        penalty_scale = config.weights["priority_weight"] * config.priority_penalty_per_day
+        penalty_scale = (
+            config.weights["priority_weight"] * config.priority_penalty_per_day
+        )
         next_leg_weight = leg_weights.get(next_leg, 1.0)
         if penalty_scale > 0 and next_leg_weight > 0:
-            priority_violation_terms.append(penalty_scale * next_leg_weight * violation_var)
+            priority_violation_terms.append(
+                penalty_scale * next_leg_weight * violation_var
+            )
 
     # Objective: weighted sum of leg completion times + makespan
     objective_terms = []
@@ -709,8 +865,9 @@ def setup_leg_priority_objective(model: ScheduleModel, data: PlanningData,
     return objective_terms
 
 
-def setup_end_date_sticky_objective(model: ScheduleModel, data: PlanningData,
-                                  config: EndDateStickyConfig) -> List:
+def setup_end_date_sticky_objective(
+    model: ScheduleModel, data: PlanningData, config: EndDateStickyConfig
+) -> List:
     """Set up end date sticky objective (Mode C)."""
     start_date = min(leg.start_monday for leg in data.legs.values() if leg.start_monday)
     target_day = date_to_day_offset(config.target_completion_date, start_date)
@@ -734,19 +891,24 @@ def setup_end_date_sticky_objective(model: ScheduleModel, data: PlanningData,
     model.model.Add(utilized_slots == sum(assignment_vars))
 
     # Parallel bonus proportional to utilization
-    model.model.Add(parallel_bonus == config.parallel_execution_bonus * utilized_slots // 100)
+    model.model.Add(
+        parallel_bonus == config.parallel_execution_bonus * utilized_slots // 100
+    )
 
     # Objective: makespan weight + penalty for being late - bonus for parallel execution
     makespan_term = config.weights["makespan_weight"] * model.makespan_var
-    penalty_term = config.weights["priority_weight"] * config.penalty_per_day_late * late_days
+    penalty_term = (
+        config.weights["priority_weight"] * config.penalty_per_day_late * late_days
+    )
     bonus_term = parallel_bonus  # Parallel bonus is separate from priority weights
 
     # Return the objective terms (note: bonus is subtracted, so it's negative)
     return [makespan_term, penalty_term, -bonus_term]
 
 
-def setup_leg_end_dates_objective(model: ScheduleModel, data: PlanningData,
-                                config: LegEndDatesConfig) -> List:
+def setup_leg_end_dates_objective(
+    model: ScheduleModel, data: PlanningData, config: LegEndDatesConfig
+) -> List:
     """Set up leg end dates objective (Mode D)."""
     start_date = min(leg.start_monday for leg in data.legs.values() if leg.start_monday)
 
@@ -762,7 +924,9 @@ def setup_leg_end_dates_objective(model: ScheduleModel, data: PlanningData,
         deadline_day = date_to_day_offset(deadline, start_date)
 
         # Leg completion variable
-        leg_completion_vars[leg_id] = model.model.NewIntVar(0, model.horizon, f"leg_completion_{leg_id}")
+        leg_completion_vars[leg_id] = model.model.NewIntVar(
+            0, model.horizon, f"leg_completion_{leg_id}"
+        )
 
         # Leg completion is the max end time of any test in the leg
         leg_test_end_vars = []
@@ -775,12 +939,16 @@ def setup_leg_end_dates_objective(model: ScheduleModel, data: PlanningData,
 
         if leg_test_end_vars and leg_test_start_vars:
             model.model.AddMaxEquality(leg_completion_vars[leg_id], leg_test_end_vars)
-            leg_start_var = model.model.NewIntVar(0, model.horizon, f"leg_start_{leg_id}")
+            leg_start_var = model.model.NewIntVar(
+                0, model.horizon, f"leg_start_{leg_id}"
+            )
             model.model.AddMinEquality(leg_start_var, leg_test_start_vars)
 
             leg_span = model.model.NewIntVar(0, model.horizon, f"leg_span_{leg_id}")
             model.model.Add(leg_span == leg_completion_vars[leg_id] - leg_start_var)
-            compactness_penalties.append(config.leg_compactness_penalty_per_day * leg_span)
+            compactness_penalties.append(
+                config.leg_compactness_penalty_per_day * leg_span
+            )
 
         # HARD CONSTRAINT: Leg must finish by deadline (only for critical legs)
         # For now, make all constraints soft to allow the solver to find a solution
@@ -795,13 +963,16 @@ def setup_leg_end_dates_objective(model: ScheduleModel, data: PlanningData,
 
     # Objective: makespan weight + deadline penalties
     makespan_term = config.weights["makespan_weight"] * model.makespan_var
-    penalty_term = config.weights["priority_weight"] * (sum(deadline_penalties) + sum(compactness_penalties))
+    penalty_term = config.weights["priority_weight"] * (
+        sum(deadline_penalties) + sum(compactness_penalties)
+    )
 
     return [makespan_term, penalty_term]
 
 
-def setup_resource_bottleneck_objective(model: ScheduleModel, data: PlanningData,
-                                      config: ResourceBottleneckConfig) -> List:
+def setup_resource_bottleneck_objective(
+    model: ScheduleModel, data: PlanningData, config: ResourceBottleneckConfig
+) -> List:
     """Set up resource bottleneck objective (Mode E)."""
     # Calculate resource utilization variables
     resource_utilization = {}
@@ -813,7 +984,9 @@ def setup_resource_bottleneck_objective(model: ScheduleModel, data: PlanningData
             if test_id in model.test_vars:
                 # Check both FTE and equipment assignments
                 fte_var = model.resource_assignments.get((test_id, "fte", resource_id))
-                eq_var = model.resource_assignments.get((test_id, "equipment", resource_id))
+                eq_var = model.resource_assignments.get(
+                    (test_id, "equipment", resource_id)
+                )
 
                 if fte_var is not None:
                     assigned_tests.append(fte_var)
@@ -831,7 +1004,9 @@ def setup_resource_bottleneck_objective(model: ScheduleModel, data: PlanningData
             # utilization = assigned_count / len(assigned_tests)
             # We need to use integer division, so we'll use a constraint approach
             num_tests = len(assigned_tests)
-            utilization_scaled = model.model.NewIntVar(0, num_tests * 100, f"utilization_scaled_{resource_id}")
+            utilization_scaled = model.model.NewIntVar(
+                0, num_tests * 100, f"utilization_scaled_{resource_id}"
+            )
             model.model.Add(utilization_scaled == assigned_count)
             model.model.Add(utilization * num_tests == utilization_scaled)
 
@@ -855,12 +1030,16 @@ def setup_resource_bottleneck_objective(model: ScheduleModel, data: PlanningData
         # avg_utilization = sum(utilizations) / len(utilizations)
         # We need to use constraint approach for integer division
         num_resources = len(utilizations)
-        total_utilization = model.model.NewIntVar(0, 100 * num_resources, "total_utilization")
+        total_utilization = model.model.NewIntVar(
+            0, 100 * num_resources, "total_utilization"
+        )
         model.model.Add(total_utilization == sum(utilizations))
         model.model.Add(avg_utilization * num_resources == total_utilization)
 
         # Sum of absolute deviations from average (balance objective)
-        balance_penalty = model.model.NewIntVar(0, 100 * len(utilizations), "balance_penalty")
+        balance_penalty = model.model.NewIntVar(
+            0, 100 * len(utilizations), "balance_penalty"
+        )
         deviations = []
         for utilization in utilizations:
             deviation = model.model.NewIntVar(0, 100, f"deviation_{len(deviations)}")
@@ -886,7 +1065,9 @@ def setup_resource_bottleneck_objective(model: ScheduleModel, data: PlanningData
 
 
 @timeit
-def build_model(data: PlanningData, priority_config: Optional[BasePriorityConfig] = None) -> ScheduleModel:
+def build_model(
+    data: PlanningData, priority_config: Optional[BasePriorityConfig] = None
+) -> ScheduleModel:
     """
     Build the complete CP-SAT optimization model from planning data.
 
@@ -933,39 +1114,44 @@ def build_model(data: PlanningData, priority_config: Optional[BasePriorityConfig
         any feasible solution.
     """
     model = ScheduleModel()
-    
+
     # Calculate time horizon and start date
     model.horizon = get_time_horizon(data)
     start_date = min(leg.start_monday for leg in data.legs.values() if leg.start_monday)
-    
+
     # Create test variables (start, end, duration)
     for test in data.tests:
         duration = int(test.duration_days)  # Convert to integer days
-        
-        start_var = model.model.NewIntVar(0, model.horizon - duration, f"start_{test.test_id}")
+
+        start_var = model.model.NewIntVar(
+            0, model.horizon - duration, f"start_{test.test_id}"
+        )
         end_var = model.model.NewIntVar(duration, model.horizon, f"end_{test.test_id}")
-        
+
         # Link start, duration, and end
         model.model.Add(end_var == start_var + duration)
-        
+
         model.test_vars[test.test_id] = (start_var, end_var, duration)
         model.test_to_index[test.test_id] = len(model.test_to_index)
-    
+
     # Build resource assignment variables and constraints
     build_resource_assignments(model, data, start_date)
-    
+
     # Add sequencing constraints
     add_sequencing_constraints(model, data)
-    
-    # Add resource constraints including availability windows
-    add_resource_constraints(model, data, start_date)
-    
+
+    # Add non-overlap constraints for shared resources
+    add_resource_nonoverlap_constraints(model, data)
+
+    # Add availability window constraints for assigned resources
+    add_resource_availability_constraints(model, data, start_date)
+
     # Add leg start and forced start constraints
     add_leg_start_constraints(model, data, start_date)
-    
+
     # Add leg dependency constraints
     add_leg_dependency_constraints(model, data)
-    
+
     # Set up objective function based on priority mode
     setup_objective_function(model, data, priority_config)
 

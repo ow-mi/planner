@@ -99,12 +99,12 @@ getTestHierarchyLevels() {
 // Define which fields are editable at each hierarchy level
 getEditableFields(level) {
     const fieldMap = {
-        all: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal', 'duration', 'priority'],
+        all: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
         projects: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
-        legTypes: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal', 'duration', 'priority'],
-        legs: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal', 'duration', 'priority'],
-        testTypes: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal', 'duration', 'priority'],
-        tests: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal', 'duration', 'priority', 'forceStartWeek']
+        legTypes: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
+        legs: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
+        testTypes: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
+        tests: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal','forceStartWeek']
     };
     return fieldMap[level] || [];
 }

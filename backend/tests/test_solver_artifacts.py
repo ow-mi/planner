@@ -3,7 +3,11 @@ from datetime import datetime, timezone
 
 from backend.src.api.models.requests import SolverRequest
 from backend.src.api.models.responses import ExecutionStatusEnum, SolverExecution
+from backend.src.services.queue_service import ExecutionQueueService
 from backend.src.services.solver_service import SolverService
+from backend.src.state import ExecutionState as InternalExecutionState
+from backend.src.state import ExecutionStatusEnum as InternalExecutionStatusEnum
+from backend.src.state import StateStore
 from backend.src.utils.file_handler import FileHandler
 
 
@@ -38,7 +42,9 @@ def test_create_run_artifact_workspace_uses_deterministic_layout(tmp_path):
 
 
 def test_run_solver_persists_artifacts_under_contract(monkeypatch, tmp_path):
-    service = SolverService()
+    state_store = StateStore()
+    queue_service = ExecutionQueueService(state_store=state_store)
+    service = SolverService(state_store=state_store, queue_service=queue_service)
     service._stop_event.set()
 
     execution = SolverExecution(
@@ -56,11 +62,18 @@ def test_run_solver_persists_artifacts_under_contract(monkeypatch, tmp_path):
         output_folder="batch-run",
     )
 
-    service._requests[execution.execution_id] = request
+    service._state_store.set_execution(
+        InternalExecutionState(
+            execution_id=execution.execution_id,
+            status=InternalExecutionStatusEnum.PENDING,
+            created_at=execution.created_at,
+            request_payload=request.model_dump(),
+        )
+    )
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(
-        "backend.src.services.solver_service.load_priority_config_from_dict",
+        "backend.src.services.execution_orchestrator.load_priority_config_from_dict",
         lambda config: config,
     )
 
@@ -102,19 +115,21 @@ def test_run_solver_persists_artifacts_under_contract(monkeypatch, tmp_path):
         return _Solution()
 
     monkeypatch.setattr(
-        "backend.src.services.solver_service.planner_main", _fake_solver
+        "backend.src.services.execution_orchestrator.planner_main", _fake_solver
     )
     monkeypatch.setattr(
-        "backend.src.services.solver_service.queue_service.complete_execution",
-        lambda execution_id: None,
+        service._orchestrator._queue, "complete_execution", lambda _: None
     )
 
-    service._run_solver(execution)
+    service._run_solver(execution.execution_id)
+
+    final_state = service._state_store.get_execution(execution.execution_id)
+    assert final_state is not None
 
     run_root = tmp_path / "runs" / "20260210_010203_batch-run" / "run-abc"
     settings_path = run_root / "settings_used.json"
 
-    assert execution.status == ExecutionStatusEnum.COMPLETED
+    assert final_state.status.value == ExecutionStatusEnum.COMPLETED.value
     assert (run_root / "input_original").exists()
     assert (run_root / "input_effective").exists()
     assert (run_root / "output").exists()

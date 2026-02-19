@@ -345,33 +345,42 @@
                 </div>
 
                 <div x-show="sectionEnabled.deadlinesEnabled" class="legs-container">
-                    <div class="subsection" style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
-                        <div class="section-header">
-                            <div class="flex-container" style="margin-bottom: 0.75rem;">
-                                <h3 style="margin: 0;">Deadline Penalty Settings</h3>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" x-model="sectionEnabled.penaltyEnabled" @change="queueOutputUpdate(true)">
-                                    Enable
-                                </label>
+                    <div style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem;">Global Column Update</h4>
+                        <div style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); align-items: end;">
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.85rem;">Start</label>
+                                <input type="text"
+                                       x-model="legColumnControls.startDeadline"
+                                       placeholder="YYYY-Www.f"
+                                       class="form-control">
+                                <button type="button" class="btn btn-sm" style="margin-top: 0.4rem;" @click="applyLegColumnValue('startDeadline')">Apply Start To All</button>
                             </div>
-                        </div>
-                        <div class="flex-container">
-                            <div class="form-group flex-item">
-                                <label for="deadline_penalty">Deadline Penalty</label>
-                                <p style="margin: 0.25rem 0 0.5rem 0; color: var(--text-light); font-size: 0.8rem;">Penalty for finishing a leg late.</p>
-                                <input type="number" id="deadline_penalty" x-model.number="config.penaltySettings.deadlinePenalty"
-                                       :disabled="!sectionEnabled.penaltyEnabled" min="0" step="0.01" class="form-control">
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.85rem;">End</label>
+                                <input type="text"
+                                       x-model="legColumnControls.endDeadline"
+                                       placeholder="YYYY-Www.f"
+                                       class="form-control">
+                                <button type="button" class="btn btn-sm" style="margin-top: 0.4rem;" @click="applyLegColumnValue('endDeadline')">Apply End To All</button>
                             </div>
-                            <div class="form-group flex-item">
-                                <label for="compactness_penalty">Compactness</label>
-                                <p style="margin: 0.25rem 0 0.5rem 0; color: var(--text-light); font-size: 0.8rem;">Penalty for gaps inside a leg schedule.</p>
-                                <input type="number" id="compactness_penalty" x-model.number="config.penaltySettings.compactnessPenalty"
-                                       :disabled="!sectionEnabled.penaltyEnabled" min="0" step="0.01" class="form-control">
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.85rem;">Deadline Penalty</label>
+                                <input type="number"
+                                       min="0"
+                                       step="0.01"
+                                       x-model.number="legColumnControls.deadlinePenalty"
+                                       class="form-control">
+                                <button type="button" class="btn btn-sm" style="margin-top: 0.4rem;" @click="applyLegColumnValue('deadlinePenalty')">Apply Penalty To All</button>
                             </div>
-                            <div class="form-group flex-item">
-                                <label for="parallel_within_deadlines">Parallel Within Deadlines</label>
-                                <input type="number" id="parallel_within_deadlines" x-model.number="config.penaltySettings.parallelWithinDeadlines"
-                                       :disabled="!sectionEnabled.penaltyEnabled" min="0" step="1" class="form-control">
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.85rem;">Compactness</label>
+                                <input type="number"
+                                       min="0"
+                                       step="0.01"
+                                       x-model.number="legColumnControls.compactness"
+                                       class="form-control">
+                                <button type="button" class="btn btn-sm" style="margin-top: 0.4rem;" @click="applyLegColumnValue('compactness')">Apply Compactness To All</button>
                             </div>
                         </div>
                     </div>
@@ -383,6 +392,8 @@
                                 <col>
                                 <col style="width: 190px;">
                                 <col style="width: 190px;">
+                                <col style="width: 150px;">
+                                <col style="width: 130px;">
                             </colgroup>
                             <thead>
                                 <tr>
@@ -391,6 +402,8 @@
                                     <th>Branch</th>
                                     <th style="width: 160px;">Start <span style="font-weight: normal; color: var(--text-muted);">(YYYY-Www.d)</span></th>
                                     <th style="width: 160px;">End <span style="font-weight: normal; color: var(--text-muted);">(optional)</span></th>
+                                    <th style="width: 130px;">Deadline Penalty</th>
+                                    <th style="width: 130px;">Compactness</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -497,10 +510,32 @@
                                                 role="alert"
                                             ></div>
                                         </td>
+                                        <td>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                x-model.number="leg.deadlinePenalty"
+                                                @input="updateLegNumericField(index, 'deadlinePenalty', leg.deadlinePenalty)"
+                                                class="form-control leg-input"
+                                                placeholder="0"
+                                            >
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                x-model.number="leg.compactness"
+                                                @input="updateLegNumericField(index, 'compactness', leg.compactness)"
+                                                class="form-control leg-input"
+                                                placeholder="0"
+                                            >
+                                        </td>
                                     </tr>
                                 </template>
                                 <tr x-show="legs.length === 0">
-                                    <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-light);">
+                                    <td colspan="7" style="padding: 2rem; text-align: center; color: var(--text-light);">
                                         <p style="margin: 0 0 0.5rem 0;">No legs configured yet.</p>
                                         <p style="margin: 0; font-size: 0.875rem; color: var(--text-muted);">Add a leg to get started with scheduling.</p>
                                     </td>
@@ -850,23 +885,35 @@
                             <p>No resource groups configured. Create groups to map logical names to multiple resources.</p>
                         </div>
 
-                        <div x-show="Object.keys(fteAliases).length > 0" style="display: grid; gap: 1rem;">
+                        <div x-show="Object.keys(fteAliases).length > 0" class="fte-resources-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
                             <template x-for="(resources, aliasName) in fteAliases" :key="aliasName">
-                                <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                                        <h5 style="margin: 0; font-size: 1.1rem;" x-text="aliasName"></h5>
-                                        <button @click="removeAliasGroup(aliasName)" class="btn btn-sm btn-danger" type="button" style="background: transparent; border: none; color: var(--danger); cursor: pointer;">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <polyline points="3 6 5 6 21 6"></polyline>
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                            </svg>
-                                        </button>
+                                <div class="fte-resource-item" style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.375rem; background: var(--bg-primary);">
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="display: grid; grid-template-columns: minmax(180px, 1fr) auto; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem;">
+                                            <div style="font-weight: 600;" x-text="aliasName"></div>
+                                            <span style="font-size: 0.75rem; color: var(--text-light);" x-text="'group_id: ' + aliasName"></span>
+                                        </div>
+                                        <div style="font-size: 0.8125rem; color: var(--text-light); margin-bottom: 0.35rem;">
+                                            fte_names
+                                        </div>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                                            <template x-for="resName in resources" :key="resName">
+                                                <span style="padding: 0.2rem 0.55rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 0.25rem; font-size: 0.8125rem;" x-text="getFteDisplayName(resName)"></span>
+                                            </template>
+                                            <span x-show="!resources || resources.length === 0" style="font-size: 0.8125rem; color: var(--text-light); font-style: italic;">None</span>
+                                        </div>
                                     </div>
-                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                        <template x-for="resName in resources" :key="resName">
-                                            <span style="padding: 0.25rem 0.625rem; background: var(--primary-color); color: white; border-radius: 0.25rem; font-size: 0.875rem;" x-text="resName"></span>
-                                        </template>
-                                    </div>
+                                    <button
+                                        @click="removeAliasGroup(aliasName)"
+                                        class="btn btn-danger btn-sm"
+                                        type="button"
+                                        title="Remove group"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        </svg>
+                                    </button>
                                 </div>
                             </template>
                         </div>
@@ -1212,25 +1259,170 @@
 
     <div class="test-container" x-data="{
         activeHierarchyLevel: 'all',
-        showAddProjectModal: false,
-        showAddLegTypeModal: false,
-        showAddLegModal: false,
-        showAddTestTypeModal: false,
-        showAddTestModal: false
+        selectedConfigIds: {
+            projects: '',
+            legTypes: '',
+            legs: '',
+            testTypes: '',
+            tests: ''
+        },
+        fieldOrder: ['fteResources', 'fteTimePercentage', 'equipmentResources', 'equipmentTimePercentage', 'isExternal', 'forceStartWeek'],
+        getVisibleFields(level) {
+            const editable = $store.config.getEditableFields(level) || [];
+            return this.fieldOrder.filter(field => editable.includes(field));
+        },
+        requiresSelection(level) {
+            return level !== 'all' && level !== 'csv';
+        },
+        isCsvLevel(level) {
+            return level === 'csv';
+        },
+        getSelectedId(level) {
+            return this.selectedConfigIds[level] || '';
+        },
+        getLevelOptions(level) {
+            return $store.config.getSortedHierarchyOptions(level);
+        },
+        getLevelTitle(level) {
+            const titleMap = {
+                all: 'Global Default Settings',
+                projects: 'Project Override',
+                legTypes: 'Leg Type Override',
+                legs: 'Leg Override',
+                testTypes: 'Test Type Override',
+                tests: 'Test Override',
+                csv: 'Resolved CSV Output'
+            };
+            return titleMap[level] || 'Configuration';
+        },
+        getLevelIcon(level) {
+            const iconMap = {
+                all: '🌍',
+                projects: '📁',
+                legTypes: '🔗',
+                legs: '📍',
+                testTypes: '🏷️',
+                tests: '📝',
+                csv: '📊'
+            };
+            return iconMap[level] || '⚙️';
+        },
+        getLevelColorKey(level) {
+            if (level === 'csv') return '';
+            return $store.config.getOriginKeyForConfigLevel(level);
+        },
+        getLevelButtonStyle(level) {
+            const isActive = this.activeHierarchyLevel === level;
+            const colorKey = this.getLevelColorKey(level);
+            const background = colorKey ? $store.config.getInheritanceBackground(colorKey) : 'var(--bg-secondary)';
+            const border = isActive ? 'var(--primary-color)' : 'var(--border-color)';
+            const text = isActive ? 'var(--text-strong)' : 'var(--text-color)';
+            const weight = isActive ? '600' : '500';
+            return `padding: 0.375rem 0.75rem; background: ${background}; color: ${text}; border: 1px solid ${border}; border-radius: 0.25rem; font-size: 0.75rem; font-weight: ${weight}; cursor: pointer;`;
+        },
+        getSelectionLabel(level) {
+            const labelMap = {
+                projects: 'Select Project',
+                legTypes: 'Select Leg Type',
+                legs: 'Select Leg',
+                testTypes: 'Select Test Type',
+                tests: 'Select Test'
+            };
+            return labelMap[level] || 'Select Item';
+        },
+        getSelectionPlaceholder(level) {
+            const placeholderMap = {
+                projects: 'Choose a project...',
+                legTypes: 'Choose a leg type...',
+                legs: 'Choose a leg...',
+                testTypes: 'Choose a test type...',
+                tests: 'Choose a test...'
+            };
+            return placeholderMap[level] || 'Choose...';
+        },
+        getSelectedLabel(level) {
+            if (level === 'all') return 'Global Defaults';
+            return this.getSelectedId(level);
+        },
+        getFieldLabel(field) {
+            const labelMap = {
+                fteResources: 'FTE Resources',
+                fteTimePercentage: 'FTE Time Percentage',
+                equipmentResources: 'Equipment Resources',
+                equipmentTimePercentage: 'Equipment Time Percentage',
+                isExternal: 'External Test',
+                forceStartWeek: 'Force Start Week'
+            };
+            return labelMap[field] || field;
+        },
+        getFieldHelp(field) {
+            if (field === 'isExternal') return 'Tests run externally without consuming internal resources';
+            if (field === 'forceStartWeek') return 'Format: YYYY-Www';
+            return '';
+        },
+        getResolvedField(level, field) {
+            const configId = this.getSelectedId(level);
+            return $store.config.getResolvedFieldForLevel(level, configId, field);
+        },
+        getFieldValue(level, field) {
+            return this.getResolvedField(level, field)?.value;
+        },
+        getFieldOrigin(level, field) {
+            return this.getResolvedField(level, field)?.originKey || 'all';
+        },
+        getFieldGroupStyle(level, field) {
+            const background = $store.config.getInheritanceBackground(this.getFieldOrigin(level, field));
+            return `padding: 0.625rem; border-radius: 0.375rem; background: ${background};`;
+        },
+        setFieldValue(level, field, value) {
+            if (level === 'all') {
+                if (!$store.config.testConfig.defaults) {
+                    $store.config.testConfig.defaults = {};
+                }
+                $store.config.testConfig.defaults[field] = value;
+                $store.config.updateOutputSettings();
+                return;
+            }
+
+            const configId = this.getSelectedId(level);
+            if (!configId) return;
+            $store.config.updateTestConfigValue(level, configId, field, value);
+        },
+        getResourceOptions(field) {
+            const options = field === 'fteResources' ? $store.config.getFteOptions() : $store.config.getEquipmentOptions();
+            return Array.isArray(options) ? options : [];
+        },
+        getResourceValues(level, field) {
+            const value = this.getFieldValue(level, field);
+            return Array.isArray(value) ? value : [];
+        },
+        getResourceLabel(field, resourceId) {
+            return $store.config.resolveResourceOptionLabel(field, resourceId);
+        },
+        isResourceSelected(level, field, resourceId) {
+            return this.getResourceValues(level, field).includes(resourceId);
+        },
+        toggleResource(level, field, resourceId) {
+            const current = this.getResourceValues(level, field);
+            const next = current.includes(resourceId)
+                ? current.filter(item => item !== resourceId)
+                : [...current, resourceId];
+            this.setFieldValue(level, field, next);
+        },
+        removeResource(level, field, resourceId) {
+            const next = this.getResourceValues(level, field).filter(item => item !== resourceId);
+            this.setFieldValue(level, field, next);
+        }
     }">
-        <!-- Inheritance Chain Visualizer -->
         <div class="inheritance-chain" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
             <h4 style="margin: 0 0 0.75rem 0; font-size: 0.875rem; font-weight: 600;">Inheritance Chain</h4>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <template x-for="(level, index) in $store.config.getTestHierarchyLevels()" :key="level.id">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <button 
+                        <button
                             type="button"
                             @click="activeHierarchyLevel = level.id"
-                            :style="activeHierarchyLevel === level.id 
-                                ? 'padding: 0.375rem 0.75rem; background: var(--primary-color); color: white; border: none; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 500; cursor: pointer;' 
-                                : 'padding: 0.375rem 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer;'
-                            "
+                            :style="getLevelButtonStyle(level.id)"
                             :title="level.description"
                             x-text="level.label">
                         </button>
@@ -1239,1132 +1431,166 @@
                 </template>
             </div>
             <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem; color: var(--text-light);"
-               x-text="$store.config.getTestHierarchyLevels().find(l => l.id === activeHierarchyLevel)?.description">
+               x-text="$store.config.getTestHierarchyLevels().find(level => level.id === activeHierarchyLevel)?.description">
             </p>
         </div>
 
-        <!-- Level Navigation Tabs -->
-        <div class="hierarchy-level-nav" style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
-            <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem;">
-                <template x-for="level in $store.config.getTestHierarchyLevels()" :key="level.id">
-                    <button 
-                        type="button"
-                        @click="activeHierarchyLevel = level.id"
-                        :class="{ 'active': activeHierarchyLevel === level.id }"
-                        style="padding: 0.75rem 1rem; background: none; border: none; border-bottom: 2px solid transparent; font-size: 0.875rem; cursor: pointer; white-space: nowrap;"
-                        :style="activeHierarchyLevel === level.id 
-                            ? 'border-bottom-color: var(--primary-color); color: var(--primary-color); font-weight: 500;' 
-                            : 'color: var(--text-light);'"
-                        x-text="level.label">
-                    </button>
-                </template>
-            </div>
-        </div>
-
-        <!-- Level Content -->
         <div class="hierarchy-level-content">
-            <!-- ALL Level (Global Defaults) -->
-            <div x-show="activeHierarchyLevel === 'all'" class="level-content">
+            <template x-if="requiresSelection(activeHierarchyLevel)">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;" x-text="getSelectionLabel(activeHierarchyLevel)"></label>
+                    <select x-model="selectedConfigIds[activeHierarchyLevel]" class="form-control" style="width: auto; min-width: 240px;">
+                        <option value="" x-text="getSelectionPlaceholder(activeHierarchyLevel)"></option>
+                        <template x-for="option in getLevelOptions(activeHierarchyLevel)" :key="option.value">
+                            <option :value="option.value" x-text="option.label"></option>
+                        </template>
+                    </select>
+                </div>
+            </template>
+
+            <template x-if="isCsvLevel(activeHierarchyLevel)">
+                <div class="config-card" style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1rem; background: var(--bg-primary);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;" x-text="getLevelIcon(activeHierarchyLevel)"></span>
+                        <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="getLevelTitle(activeHierarchyLevel)"></h4>
+                    </div>
+                    <div style="overflow: auto; border: 1px solid var(--border-color); border-radius: 0.375rem; max-height: 420px;">
+                        <table style="margin: 0; width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                            <thead style="position: sticky; top: 0; z-index: 1;">
+                                <tr>
+                                    <th style="white-space: nowrap;">test_type</th>
+                                    <th style="white-space: nowrap;">test_id</th>
+                                    <th style="white-space: nowrap;">project</th>
+                                    <th style="white-space: nowrap;">leg</th>
+                                    <th style="white-space: nowrap;">branch</th>
+                                    <th style="white-space: nowrap;">sequence</th>
+                                    <th style="white-space: nowrap;">name</th>
+                                    <th style="white-space: nowrap;">fte_resources</th>
+                                    <th style="white-space: nowrap;">equipment_resources</th>
+                                    <th style="white-space: nowrap;">fte_time_percentage</th>
+                                    <th style="white-space: nowrap;">equipment_time_percentage</th>
+                                    <th style="white-space: nowrap;">is_external</th>
+                                    <th style="white-space: nowrap;">force_start_week</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="row in $store.config.getResolvedTestConfigRows()" :key="row.testId">
+                                    <tr>
+                                        <td x-text="row.testType"></td>
+                                        <td x-text="row.testId"></td>
+                                        <td x-text="row.project"></td>
+                                        <td x-text="row.leg"></td>
+                                        <td x-text="row.branch"></td>
+                                        <td x-text="row.sequence"></td>
+                                        <td x-text="row.name"></td>
+                                        <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.fteResources || 'all')" x-text="(row.fteResourcesDisplay || []).join(';')"></td>
+                                        <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.equipmentResources || 'all')" x-text="(row.equipmentResourcesDisplay || []).join(';')"></td>
+                                        <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.fteTimePercentage || 'all')" x-text="row.fteTimePercentage"></td>
+                                        <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.equipmentTimePercentage || 'all')" x-text="row.equipmentTimePercentage"></td>
+                                        <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.isExternal || 'all')" x-text="row.isExternal ? 'true' : 'false'"></td>
+                                        <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.forceStartWeek || 'all')" x-text="row.forceStartWeek"></td>
+                                    </tr>
+                                </template>
+                                <tr x-show="($store.config.getResolvedTestConfigRows() || []).length === 0">
+                                    <td colspan="13" style="text-align: center; color: var(--text-light); padding: 1rem;">No resolved test data available.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </template>
+
+            <template x-if="(!requiresSelection(activeHierarchyLevel) || getSelectedId(activeHierarchyLevel)) && !isCsvLevel(activeHierarchyLevel)">
                 <div class="config-card" style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
-                        <span style="font-size: 1.25rem;">🌍</span>
-                        <h4 style="margin: 0; font-size: 1rem; font-weight: 600;">Global Default Settings</h4>
-                        <span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: var(--primary-color-10); color: var(--primary-color); border-radius: 0.25rem;">Default</span>
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+                        <span style="font-size: 1.25rem;" x-text="getLevelIcon(activeHierarchyLevel)"></span>
+                        <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="getLevelTitle(activeHierarchyLevel)"></h4>
+                        <span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: var(--primary-color-10); color: var(--primary-color); border-radius: 0.25rem;" x-text="getSelectedLabel(activeHierarchyLevel)"></span>
                     </div>
-                    
-                    <p style="margin: 0 0 1.5rem 0; font-size: 0.875rem; color: var(--text-light);">
-                        These settings apply to all tests unless overridden at a more specific level.
-                    </p>
 
-                    <!-- Standard Field Grid -->
-                    <div class="config-fields-grid" style="display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
-                        
-                        <!-- FTE Resources (Multi-select) -->
-                        <div class="form-group">
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
-                            <div class="resource-selector" x-data="{ open: false }" @click.away="open = false">
-                                <!-- Selected Resources Display -->
-                                <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.5rem; min-height: 32px;">
-                                    <template x-for="fte in $store.config.testConfig.defaults.fteResources || []" :key="fte">
-                                        <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: var(--primary-color); color: white; border-radius: 0.25rem; font-size: 0.75rem;">
-                                            <span x-text="fte"></span>
-                                            <button @click.prevent="$store.config.removeDefaultResource('fte', fte)" style="background: none; border: none; color: white; cursor: pointer; padding: 0; font-size: 0.875rem;">×</button>
-                                        </span>
-                                    </template>
-                                    <span x-show="!($store.config.testConfig.defaults.fteResources?.length)" style="font-size: 0.875rem; color: var(--text-muted); font-style: italic;">No FTE resources assigned</span>
-                                </div>
-                                <!-- Dropdown Trigger -->
-                                <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary);">
-                                    <span style="color: var(--text-muted); font-size: 0.875rem;">Add FTE resource...</span>
-                                    <span>▼</span>
-                                </div>
-                                <!-- Dropdown Menu -->
-                                <div x-show="open" 
-                                     style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                                    <template x-for="option in $store.config.getFteOptions()" :key="option.id">
-                                        <div @click="$store.config.addDefaultResource('fte', option.id); open = false"
-                                             style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
-                                             :style="($store.config.testConfig.defaults.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
-                                            <span x-text="option.name"></span>
-                                            <span x-show="option.type === 'alias'" style="font-size: 0.7rem; margin-left: 0.5rem; color: var(--text-light);">(alias)</span>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Equipment Resources (Multi-select) -->
-                        <div class="form-group">
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">Equipment Resources</label>
-                            <div class="resource-selector" x-data="{ open: false }" @click.away="open = false">
-                                <!-- Selected Resources Display -->
-                                <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.5rem; min-height: 32px;">
-                                    <template x-for="equip in $store.config.testConfig.defaults.equipmentResources || []" :key="equip">
-                                        <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: var(--success-color, #10b981); color: white; border-radius: 0.25rem; font-size: 0.75rem;">
-                                            <span x-text="equip"></span>
-                                            <button @click.prevent="$store.config.removeDefaultResource('equipment', equip)" style="background: none; border: none; color: white; cursor: pointer; padding: 0; font-size: 0.875rem;">×</button>
-                                        </span>
-                                    </template>
-                                    <span x-show="!($store.config.testConfig.defaults.equipmentResources?.length)" style="font-size: 0.875rem; color: var(--text-muted); font-style: italic;">No equipment resources assigned</span>
-                                </div>
-                                <!-- Dropdown Trigger -->
-                                <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary);">
-                                    <span style="color: var(--text-muted); font-size: 0.875rem;">Add equipment resource...</span>
-                                    <span>▼</span>
-                                </div>
-                                <!-- Dropdown Menu -->
-                                <div x-show="open" 
-                                     style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                                    <template x-for="option in $store.config.getEquipmentOptions()" :key="option.id">
-                                        <div @click="$store.config.addDefaultResource('equipment', option.id); open = false"
-                                             style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
-                                             :style="($store.config.testConfig.defaults.equipmentResources || []).includes(option.id) ? 'background: var(--success-color-10);' : ''">
-                                            <span x-text="option.name"></span>
-                                            <span x-show="option.type === 'alias'" style="font-size: 0.7rem; margin-left: 0.5rem; color: var(--text-light);">(alias)</span>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- FTE Time Percentage Slider -->
-                        <div class="form-group">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Time Allocation</label>
-                                <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color);" 
-                                      x-text="$store.config.testConfig.defaults.fteTimePercentage + '%'"></span>
-                            </div>
-                            <input type="range" min="0" max="100" step="5"
-                                   x-model.number="$store.config.testConfig.defaults.fteTimePercentage"
-                                   style="width: 100%; height: 0.5rem; padding: 0;"
-                                   @input="$store.config.updateTestConfigValue('defaults', null, 'fteTimePercentage', $store.config.testConfig.defaults.fteTimePercentage)">
-                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-light); margin-top: 0.25rem;">
-                                <span>0%</span>
-                                <span>50%</span>
-                                <span>100%</span>
-                            </div>
-                        </div>
-
-                        <!-- Equipment Time Percentage Slider -->
-                        <div class="form-group">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                <label style="font-weight: 500; font-size: 0.875rem;">Equipment Time Allocation</label>
-                                <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color);" 
-                                      x-text="$store.config.testConfig.defaults.equipmentTimePercentage + '%'"></span>
-                            </div>
-                            <input type="range" min="0" max="100" step="5"
-                                   x-model.number="$store.config.testConfig.defaults.equipmentTimePercentage"
-                                   style="width: 100%; height: 0.5rem; padding: 0;"
-                                   @input="$store.config.updateTestConfigValue('defaults', null, 'equipmentTimePercentage', $store.config.testConfig.defaults.equipmentTimePercentage)">
-                        </div>
-
-                        <!-- External Test Flag -->
-                        <div class="form-group">
-                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem;">
-                                <input type="checkbox" 
-                                       x-model="$store.config.testConfig.defaults.isExternal"
-                                       @change="$store.config.updateTestConfigValue('defaults', null, 'isExternal', $store.config.testConfig.defaults.isExternal)">
-                                <span>External Test (no FTE/equipment required)</span>
-                            </label>
-                            <p style="margin: 0.25rem 0 0 1.5rem; font-size: 0.75rem; color: var(--text-light);">Tests run externally without consuming internal resources</p>
-                        </div>
-
-                        <!-- Test Duration -->
-                        <div class="form-group">
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">Default Test Duration (days)</label>
-                            <input type="number" min="1" max="365"
-                                   x-model.number="$store.config.testConfig.defaults.duration"
-                                   class="form-control"
-                                   style="width: 100%;"
-                                   @input="$store.config.updateTestConfigValue('defaults', null, 'duration', $store.config.testConfig.defaults.duration)">
-                        </div>
-
-                        <!-- Priority -->
-                        <div class="form-group">
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">Default Priority</label>
-                            <input type="number" min="1" max="10"
-                                   x-model.number="$store.config.testConfig.defaults.priority"
-                                   class="form-control"
-                                   style="width: 100%;"
-                                   @input="$store.config.updateTestConfigValue('defaults', null, 'priority', $store.config.testConfig.defaults.priority)">
-                            <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: var(--text-light);">1 = highest, 10 = lowest</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PROJECTS Level -->
-            <div x-show="activeHierarchyLevel === 'projects'" class="level-content">
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Project</label>
-                    <select x-model="$store.config.selectedProject" class="form-control" style="width: auto; min-width: 200px;">
-                        <option value="">Choose a project...</option>
-                        <template x-for="project in $store.csvData?.projects || []" :key="project">
-                            <option :value="project" x-text="project"></option>
-                        </template>
-                    </select>
-                </div>
-
-                <template x-if="$store.config.selectedProject">
-                    <div class="config-card override-card" 
-                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);"
-                         :style="Object.keys($store.config.testConfig.projects[$store.config.selectedProject] || {}).length > 0 ? 'border-left: 4px solid var(--warning-color);' : ''">
-                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                            <span style="font-size: 1.25rem;">📁</span>
-                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedProject"></h4>
-                            <span x-show="Object.keys($store.config.testConfig.projects[$store.config.selectedProject] || {}).length > 0" 
-                                  style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: var(--warning-color-10); color: var(--warning-color); border-radius: 0.25rem;">
-                                Override Active
-                            </span>
-                        </div>
-
-                        <!-- Show Inherited Values -->
-                        <div class="inherited-values" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.25rem;">
-                            <h5 style="margin: 0 0 0.5rem 0; font-size: 0.8rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">Inherited from Global</h5>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem; font-size: 0.8rem;">
-                                <div><span style="color: var(--text-light);">FTE:</span> <span x-text="$store.config.testConfig.defaults.fteResources?.join(', ') || 'None'"></span></div>
-                                <div><span style="color: var(--text-light);">Equipment:</span> <span x-text="$store.config.testConfig.defaults.equipmentResources?.join(', ') || 'None'"></span></div>
-                                <div><span style="color: var(--text-light);">FTE Time:</span> <span x-text="$store.config.testConfig.defaults.fteTimePercentage + '%'"></span></div>
-                                <div><span style="color: var(--text-light);">External:</span> <span x-text="$store.config.testConfig.defaults.isExternal ? 'Yes' : 'No'"></span></div>
-                            </div>
-                        </div>
-
-                        <!-- Override Fields (Projects only get resources and external flag) -->
-                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
-                            
-                            <!-- FTE Resources Override -->
-                            <div class="form-group">
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                    <input type="checkbox"
-                                           :checked="!!($store.config.testConfig.projects[$store.config.selectedProject]?.overrides?.fteResources)"
-                                           @change="$store.config.updateTestConfigOverride('projects', $store.config.selectedProject, 'fteResources', $event.target.checked)">
-                                    <label style="font-weight: 500; margin: 0;">Override FTE Resources</label>
-                                </div>
-                                <div x-show="$store.config.testConfig.projects[$store.config.selectedProject]?.overrides?.fteResources">
-                                    <!-- Multi-select for FTE resources -->
-                                    <div style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem;" x-data="{ open: false }" @click.away="open = false">
-                                        <div @click="open = !open" style="padding: 0.25rem; font-size: 0.75rem; cursor: pointer;">
-                                            <span x-text="$store.config.testConfig.projects[$store.config.selectedProject]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
-                                        </div>
-                                        <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
-                                            <template x-for="option in $store.config.getFteOptions()" :key="option.id">
-                                                <div @click="$store.config.updateTestConfigValue('projects', $store.config.selectedProject, 'fteResources', [...($store.config.testConfig.projects[$store.config.selectedProject]?.fteResources || []), option.id]); open = false"
-                                                     style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
-                                                     :style="($store.config.testConfig.projects[$store.config.selectedProject]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
-                                                    <span x-text="option.name"></span>
-                                                </div>
+                    <div class="config-fields-grid" style="display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+                        <template x-for="field in getVisibleFields(activeHierarchyLevel)" :key="field">
+                            <div class="form-group" :style="getFieldGroupStyle(activeHierarchyLevel, field)">
+                                <template x-if="field === 'fteResources' || field === 'equipmentResources'">
+                                    <div>
+                                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;" x-text="getFieldLabel(field)"></label>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.5rem; min-height: 24px;">
+                                            <template x-for="resource in getResourceValues(activeHierarchyLevel, field)" :key="resource">
+                                                <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: var(--primary-color); color: white; border-radius: 0.25rem; font-size: 0.75rem;">
+                                                    <span x-text="getResourceLabel(field, resource)"></span>
+                                                    <button type="button" @click.prevent="removeResource(activeHierarchyLevel, field, resource)" style="background: none; border: none; color: white; cursor: pointer; padding: 0; font-size: 0.875rem;">×</button>
+                                                </span>
                                             </template>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Equipment Resources Override -->
-                            <div class="form-group">
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                    <input type="checkbox"
-                                           :checked="!!($store.config.testConfig.projects[$store.config.selectedProject]?.overrides?.equipmentResources)"
-                                           @change="$store.config.updateTestConfigOverride('projects', $store.config.selectedProject, 'equipmentResources', $event.target.checked)">
-                                    <label style="font-weight: 500; margin: 0;">Override Equipment Resources</label>
-                                </div>
-                                <div x-show="$store.config.testConfig.projects[$store.config.selectedProject]?.overrides?.equipmentResources">
-                                    <!-- Multi-select for equipment resources -->
-                                    <div style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem;" x-data="{ open: false }" @click.away="open = false">
-                                        <div @click="open = !open" style="padding: 0.25rem; font-size: 0.75rem; cursor: pointer;">
-                                            <span x-text="$store.config.testConfig.projects[$store.config.selectedProject]?.equipmentResources?.join(', ') || 'Select equipment resources...'"></span>
-                                        </div>
-                                        <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
-                                            <template x-for="option in $store.config.getEquipmentOptions()" :key="option.id">
-                                                <div @click="$store.config.updateTestConfigValue('projects', $store.config.selectedProject, 'equipmentResources', [...($store.config.testConfig.projects[$store.config.selectedProject]?.equipmentResources || []), option.id]); open = false"
-                                                     style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
-                                                     :style="($store.config.testConfig.projects[$store.config.selectedProject]?.equipmentResources || []).includes(option.id) ? 'background: var(--success-color-10);' : ''">
-                                                    <span x-text="option.name"></span>
-                                                </div>
-                                            </template>
+                                        <div x-data="{ open: false }" @click.away="open = false" style="position: relative;">
+                                            <button type="button" @click="open = !open" style="width: 100%; text-align: left; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; background: var(--bg-primary); cursor: pointer; font-size: 0.875rem;">
+                                                Choose resources
+                                            </button>
+                                            <div x-show="open" class="resource-dropdown-panel" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 220px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                                <template x-for="option in getResourceOptions(field)" :key="option.id">
+                                                     <button type="button"
+                                                             @click="toggleResource(activeHierarchyLevel, field, option.id)"
+                                                             class="resource-dropdown-item"
+                                                             :class="isResourceSelected(activeHierarchyLevel, field, option.id) ? 'selected' : ''">
+                                                         <span x-text="option.name"></span>
+                                                     </button>
+                                                </template>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                </template>
+
+                                <template x-if="field === 'fteTimePercentage' || field === 'equipmentTimePercentage'">
+                                    <div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                            <label style="font-weight: 500; font-size: 0.875rem;" x-text="getFieldLabel(field)"></label>
+                                            <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color);" x-text="(getFieldValue(activeHierarchyLevel, field) || 0) + '%' "></span>
+                                        </div>
+                                        <input type="range"
+                                               min="0"
+                                               max="100"
+                                               step="5"
+                                               :value="getFieldValue(activeHierarchyLevel, field)"
+                                               style="width: 100%; height: 0.5rem; padding: 0;"
+                                               @input="setFieldValue(activeHierarchyLevel, field, Number($event.target.value))">
+                                    </div>
+                                </template>
+
+                                <template x-if="field === 'isExternal'">
+                                    <div>
+                                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem;">
+                                            <input type="checkbox"
+                                                   :checked="!!getFieldValue(activeHierarchyLevel, field)"
+                                                   @change="setFieldValue(activeHierarchyLevel, field, $event.target.checked)">
+                                            <span x-text="getFieldLabel(field)"></span>
+                                        </label>
+                                        <p style="margin: 0.25rem 0 0 1.5rem; font-size: 0.75rem; color: var(--text-light);" x-text="getFieldHelp(field)"></p>
+                                    </div>
+                                </template>
+
+                                <template x-if="field === 'forceStartWeek'">
+                                    <div>
+                                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;" x-text="getFieldLabel(field)"></label>
+                                        <input type="text"
+                                               class="form-control"
+                                               placeholder="YYYY-Www"
+                                               :value="getFieldValue(activeHierarchyLevel, field)"
+                                               @input="setFieldValue(activeHierarchyLevel, field, $event.target.value)">
+                                        <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; color: var(--text-light);" x-text="getFieldHelp(field)"></p>
+                                    </div>
+                                </template>
                             </div>
-
-                            <!-- External Flag Override -->
-                            <div class="form-group">
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                    <input type="checkbox"
-                                           :checked="!!($store.config.testConfig.projects[$store.config.selectedProject]?.overrides?.isExternal)"
-                                           @change="$store.config.updateTestConfigOverride('projects', $store.config.selectedProject, 'isExternal', $event.target.checked)">
-                                    <label style="font-weight: 500; margin: 0;">Override External Flag</label>
-                                </div>
-                                <div x-show="$store.config.testConfig.projects[$store.config.selectedProject]?.overrides?.isExternal">
-                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
-                                        <input type="checkbox" 
-                                               x-model="$store.config.testConfig.projects[$store.config.selectedProject].isExternal"
-                                               @change="$store.config.updateTestConfigValue('projects', $store.config.selectedProject, 'isExternal', $store.config.testConfig.projects[$store.config.selectedProject].isExternal)">
-                                        <span>Mark as External Test</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <template x-if="!$store.config.selectedProject">
-                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
-                        <p style="margin: 0;">Select a project to configure project-specific overrides</p>
-                    </div>
-                </template>
-            </div>
-
-            <!-- LEG TYPES Level -->
-            <div x-show="activeHierarchyLevel === 'legTypes'" class="level-content">
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Leg Type</label>
-                    <select x-model="$store.config.selectedLegType" class="form-control" style="width: auto; min-width: 200px;">
-                        <option value="">Choose a leg type...</option>
-                        <template x-for="legType in Object.keys($store.testHierarchy.legTypes || {})" :key="legType">
-                            <option :value="legType" x-text="legType"></option>
                         </template>
-                    </select>
+                    </div>
                 </div>
+            </template>
 
-                <template x-if="$store.config.selectedLegType">
-                    <div class="config-card override-card" 
-                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
-                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                            <span style="font-size: 1.25rem;">🔗</span>
-                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedLegType"></h4>
-                        </div>
-
-                        <!-- Override Fields -->
-                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
-                            
-                            <!-- FTE Resources Override -->
-                            <div class="form-group">
-                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
-                                <div x-data="{ open: false }" @click.away="open = false">
-                                    <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;">
-                                        <span x-text="$store.config.testConfig.legTypes[$store.config.selectedLegType]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
-                                    </div>
-                                    <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
-                                        <template x-for="option in $store.config.getFteOptions()" :key="option.id">
-                                            <div @click="$store.config.updateTestConfigValue('legTypes', $store.config.selectedLegType, 'fteResources', [...($store.config.testConfig.legTypes[$store.config.selectedLegType]?.fteResources || []), option.id]); open = false"
-                                                 style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
-                                                 :style="($store.config.testConfig.legTypes[$store.config.selectedLegType]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
-                                                <span x-text="option.name"></span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Duration Override -->
-                            <div class="form-group">
-                                <label style="font-weight: 500; font-size: 0.875rem;">Duration Override (days)</label>
-                                <input type="number" min="1" max="365"
-                                       x-model.number="$store.config.testConfig.legTypes[$store.config.selectedLegType]?.duration"
-                                       class="form-control"
-                                       style="width: 100%;"
-                                       @input="$store.config.updateTestConfigValue('legTypes', $store.config.selectedLegType, 'duration', $store.config.testConfig.legTypes[$store.config.selectedLegType]?.duration)">
-                            </div>
-
-                            <!-- Priority Override -->
-                            <div class="form-group">
-                                <label style="font-weight: 500; font-size: 0.875rem;">Priority Override</label>
-                                <input type="number" min="1" max="10"
-                                       x-model.number="$store.config.testConfig.legTypes[$store.config.selectedLegType]?.priority"
-                                       class="form-control"
-                                       style="width: 100%;"
-                                       @input="$store.config.updateTestConfigValue('legTypes', $store.config.selectedLegType, 'priority', $store.config.testConfig.legTypes[$store.config.selectedLegType]?.priority)">
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <template x-if="!$store.config.selectedLegType">
-                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
-                        <p style="margin: 0;">Select a leg type to configure leg type-specific overrides</p>
-                    </div>
-                </template>
-            </div>
-
-            <!-- LEGS Level -->
-            <div x-show="activeHierarchyLevel === 'legs'" class="level-content">
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Leg</label>
-                    <select x-model="$store.config.selectedLeg" class="form-control" style="width: auto; min-width: 200px;">
-                        <option value="">Choose a leg...</option>
-                        <template x-for="leg in $store.legs || []" :key="leg.legId || leg._uiId">
-                            <option :value="leg.legId || leg._uiId" x-text="leg.legId || leg._uiId"></option>
-                        </template>
-                    </select>
+            <template x-if="requiresSelection(activeHierarchyLevel) && !getSelectedId(activeHierarchyLevel)">
+                <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
+                    <p style="margin: 0;">Select an item to edit this hierarchy level.</p>
                 </div>
-
-                <template x-if="$store.config.selectedLeg">
-                    <div class="config-card override-card" 
-                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
-                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                            <span style="font-size: 1.25rem;">📍</span>
-                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedLeg"></h4>
-                        </div>
-
-                        <!-- Override Fields -->
-                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
-                            
-                            <!-- FTE Resources Override -->
-                            <div class="form-group">
-                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
-                                <div x-data="{ open: false }" @click.away="open = false">
-                                    <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;">
-                                        <span x-text="$store.config.testConfig.legs[$store.config.selectedLeg]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
-                                    </div>
-                                    <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
-                                        <template x-for="option in $store.config.getFteOptions()" :key="option.id">
-                                            <div @click="$store.config.updateTestConfigValue('legs', $store.config.selectedLeg, 'fteResources', [...($store.config.testConfig.legs[$store.config.selectedLeg]?.fteResources || []), option.id]); open = false"
-                                                 style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
-                                                 :style="($store.config.testConfig.legs[$store.config.selectedLeg]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
-                                                <span x-text="option.name"></span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Duration Override -->
-                            <div class="form-group">
-                                <label style="font-weight: 500; font-size: 0.875rem;">Duration Override (days)</label>
-                                <input type="number" min="1" max="365"
-                                       x-model.number="$store.config.testConfig.legs[$store.config.selectedLeg]?.duration"
-                                       class="form-control"
-                                       style="width: 100%;"
-                                       @input="$store.config.updateTestConfigValue('legs', $store.config.selectedLeg, 'duration', $store.config.testConfig.legs[$store.config.selectedLeg]?.duration)">
-                            </div>
-
-                            <!-- Force Start Week -->
-                            <div class="form-group">
-                                <label style="font-weight: 500; font-size: 0.875rem;">Force Start Week</label>
-                                <input type="text" placeholder="YYYY-Www"
-                                       x-model="$store.config.testConfig.legs[$store.config.selectedLeg]?.forceStartWeek"
-                                       class="form-control"
-                                       style="width: 100%;"
-                                       @input="$store.config.updateTestConfigValue('legs', $store.config.selectedLeg, 'forceStartWeek', $store.config.testConfig.legs[$store.config.selectedLeg]?.forceStartWeek)">
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <template x-if="!$store.config.selectedLeg">
-                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
-                        <p style="margin: 0;">Select a leg to configure leg-specific overrides</p>
-                    </div>
-                </template>
-            </div>
-
-            <!-- TEST TYPES Level -->
-            <div x-show="activeHierarchyLevel === 'testTypes'" class="level-content">
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Test Type</label>
-                    <select x-model="$store.config.selectedTestType" class="form-control" style="width: auto; min-width: 200px;">
-                        <option value="">Choose a test type...</option>
-                        <template x-for="testType in Object.keys($store.testHierarchy.testTypes || {})" :key="testType">
-                            <option :value="testType" x-text="testType"></option>
-                        </template>
-                    </select>
-                </div>
-
-                <template x-if="$store.config.selectedTestType">
-                    <div class="config-card override-card" 
-                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
-                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                            <span style="font-size: 1.25rem;">🏷️</span>
-                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedTestType"></h4>
-                        </div>
-
-                        <!-- Override Fields -->
-                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
-                            
-                            <!-- FTE Resources Override -->
-                            <div class="form-group">
-                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
-                                <div x-data="{ open: false }" @click.away="open = false">
-                                    <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;">
-                                        <span x-text="$store.config.testConfig.testTypes[$store.config.selectedTestType]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
-                                    </div>
-                                    <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
-                                        <template x-for="option in $store.config.getFteOptions()" :key="option.id">
-                                            <div @click="$store.config.updateTestConfigValue('testTypes', $store.config.selectedTestType, 'fteResources', [...($store.config.testConfig.testTypes[$store.config.selectedTestType]?.fteResources || []), option.id]); open = false"
-                                                 style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
-                                                 :style="($store.config.testConfig.testTypes[$store.config.selectedTestType]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
-                                                <span x-text="option.name"></span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Duration Override -->
-                            <div class="form-group">
-                                <label style="font-weight: 500; font-size: 0.875rem;">Duration Override (days)</label>
-                                <input type="number" min="1" max="365"
-                                       x-model.number="$store.config.testConfig.testTypes[$store.config.selectedTestType]?.duration"
-                                       class="form-control"
-                                       style="width: 100%;"
-                                       @input="$store.config.updateTestConfigValue('testTypes', $store.config.selectedTestType, 'duration', $store.config.testConfig.testTypes[$store.config.selectedTestType]?.duration)">
-                            </div>
-
-                            <!-- External Flag Override -->
-                            <div class="form-group">
-                                <label style="font-weight: 500; font-size: 0.875rem;">External Flag</label>
-                                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
-                                    <input type="checkbox" 
-                                           x-model="$store.config.testConfig.testTypes[$store.config.selectedTestType]?.isExternal"
-                                           @change="$store.config.updateTestConfigValue('testTypes', $store.config.selectedTestType, 'isExternal', $store.config.testConfig.testTypes[$store.config.selectedTestType]?.isExternal)">
-                                    <span>Mark as External Test</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <template x-if="!$store.config.selectedTestType">
-                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
-                        <p style="margin: 0;">Select a test type to configure test type-specific overrides</p>
-                    </div>
-                </template>
-            </div>
-
-            <!-- TESTS Level -->
-            <div x-show="activeHierarchyLevel === 'tests'" class="level-content">
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Test</label>
-                    <select x-model="$store.config.selectedTest" class="form-control" style="width: auto; min-width: 200px;">
-                        <option value="">Choose a test...</option>
-                        <template x-for="test in Object.keys($store.testHierarchy.tests || {})" :key="test">
-                            <option :value="test" x-text="test"></option>
-                        </template>
-                    </select>
-                </div>
-
-                <template x-if="$store.config.selectedTest">
-                    <div class="config-card override-card" 
-                         style="border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 1.5rem; background: var(--bg-primary);">
-                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                            <span style="font-size: 1.25rem;">📝</span>
-                            <h4 style="margin: 0; font-size: 1rem; font-weight: 600;" x-text="$store.config.selectedTest"></h4>
-                        </div>
-
-                        <!-- Override Fields -->
-                        <div class="override-fields" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
-                            
-                            <!-- FTE Resources Override -->
-                            <div class="form-group">
-                                <label style="font-weight: 500; font-size: 0.875rem;">FTE Resources</label>
-                                <div x-data="{ open: false }" @click.away="open = false">
-                                    <div @click="open = !open" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;">
-                                        <span x-text="$store.config.testConfig.tests[$store.config.selectedTest]?.fteResources?.join(', ') || 'Select FTE resources...'"></span>
-                                    </div>
-                                    <div x-show="open" style="position: absolute; left: 0; right: 0; margin-top: 0.25rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.25rem; max-height: 200px; overflow-y: auto; z-index: 100;">
-                                        <template x-for="option in $store.config.getFteOptions()" :key="option.id">
-                                            <div @click="$store.config.updateTestConfigValue('tests', $store.config.selectedTest, 'fteResources', [...($store.config.testConfig.tests[$store.config.selectedTest]?.fteResources || []), option.id]); open = false"
-                                                 style="padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem;"
-                                                 :style="($store.config.testConfig.tests[$store.config.selectedTest]?.fteResources || []).includes(option.id) ? 'background: var(--primary-color-10);' : ''">
-                                                <span x-text="option.name"></span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Duration Override -->
-                            <div class="form-group">
-                                <label style="font-weight: 500; font-size: 0.875rem;">Duration Override (days)</label>
-                                <input type="number" min="1" max="365"
-                                       x-model.number="$store.config.testConfig.tests[$store.config.selectedTest]?.duration"
-                                       class="form-control"
-                                       style="width: 100%;"
-                                       @input="$store.config.updateTestConfigValue('tests', $store.config.selectedTest, 'duration', $store.config.testConfig.tests[$store.config.selectedTest]?.duration)">
-                            </div>
-
-                            <!-- Force Start Week -->
-                            <div class="form-group">
-                                <label style="font-weight: 500; font-size: 0.875rem;">Force Start Week</label>
-                                <input type="text" placeholder="YYYY-Www"
-                                       x-model="$store.config.testConfig.tests[$store.config.selectedTest]?.forceStartWeek"
-                                       class="form-control"
-                                       style="width: 100%;"
-                                       @input="$store.config.updateTestConfigValue('tests', $store.config.selectedTest, 'forceStartWeek', $store.config.testConfig.tests[$store.config.selectedTest]?.forceStartWeek)">
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <template x-if="!$store.config.selectedTest">
-                    <div style="text-align: center; padding: 3rem; color: var(--text-light); background: var(--bg-secondary); border-radius: 0.5rem;">
-                        <p style="margin: 0;">Select a test to configure test-specific overrides</p>
-                    </div>
-                </template>
-            </div>
+            </template>
         </div>
 
-        <!-- Configuration Summary -->
-        <div class="config-summary" style="margin-top: 2rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
-            <h4 style="margin: 0 0 1rem 0; font-size: 0.95rem;">Configuration Summary</h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; font-size: 0.875rem;">
-                <div>
-                    <span style="color: var(--text-light);">Global:</span>
-                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.defaults || {}).length + ' fields set'"></span>
-                </div>
-                <div>
-                    <span style="color: var(--text-light);">Projects:</span>
-                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.projects || {}).length + ' overrides'"></span>
-                </div>
-                <div>
-                    <span style="color: var(--text-light);">Leg Types:</span>
-                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.legTypes || {}).length + ' overrides'"></span>
-                </div>
-                <div>
-                    <span style="color: var(--text-light);">Legs:</span>
-                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.legs || {}).length + ' overrides'"></span>
-                </div>
-                <div>
-                    <span style="color: var(--text-light);">Test Types:</span>
-                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.testTypes || {}).length + ' overrides'"></span>
-                </div>
-                <div>
-                    <span style="color: var(--text-light);">Tests:</span>
-                    <span style="font-weight: 500;" x-text="Object.keys($store.config.testConfig.tests || {}).length + ' overrides'"></span>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
-    </div>
-</div>
-
-<style>
-    .copy-success-badge {
-        animation: fadeIn 0.3s ease;
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-5px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .subsection {
-        margin-bottom: 1rem;
-    }
-    
-    .subsection:last-child {
-        margin-bottom: 0;
-    }
-
-    /* Legs Subtab Styles */
-    .legs-container {
-        margin-top: 1rem;
-    }
-
-    .legs-table-wrapper {
-        border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
-        background: var(--bg-primary);
-        overflow-x: auto;
-    }
-
-    .legs-table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 820px;
-    }
-
-    .legs-table thead th {
-        padding: 0.625rem 0.75rem;
-        text-align: left;
-        font-weight: 600;
-        font-size: 0.875rem;
-        color: var(--text-light);
-        background: var(--bg-secondary);
-        border-bottom: 1px solid var(--border-color);
-        white-space: nowrap;
-    }
-
-    .legs-table tbody td {
-        padding: 0.625rem 0.75rem;
-        border-bottom: 1px solid var(--border-color);
-        vertical-align: top;
-        background: var(--bg-primary);
-    }
-
-    .legs-table tbody tr:last-child td {
-        border-bottom: none;
-    }
-
-    .drag-cell {
-        text-align: center;
-        vertical-align: middle !important;
-        padding-top: 0.5rem !important;
-    }
-
-    .leg-row:hover {
-        background: var(--bg-secondary);
-    }
-
-    .leg-row:hover td {
-        background: var(--bg-secondary);
-    }
-
-    .leg-row.dragging {
-        opacity: 0.7;
-    }
-
-    .leg-row.dragging td {
-        background: var(--bg-tertiary);
-    }
-
-    .leg-row.drag-over {
-    }
-
-    .leg-row.drag-over td {
-        background: var(--bg-secondary);
-        border-top: 2px solid var(--primary-color);
-    }
-
-    .leg-row.drag-over * {
-        pointer-events: none;
-    }
-
-    .leg-row[data-keyboard-drag="true"] {
-        outline: 2px solid var(--primary-color);
-        outline-offset: -2px;
-    }
-
-    .drag-handle {
-        opacity: 0.6;
-        transition: opacity 0.15s, background-color 0.15s;
-    }
-
-    .drag-handle:hover {
-        opacity: 1;
-        background: var(--bg-tertiary);
-    }
-
-    .drag-handle:focus {
-        opacity: 1;
-        outline: 2px solid var(--primary-color);
-        outline-offset: 2px;
-    }
-
-    .leg-id-display:hover {
-        background: var(--bg-tertiary);
-        border-color: var(--border-color-hover, var(--border-color));
-    }
-
-    .leg-id-display:focus {
-        outline: 2px solid var(--primary-color);
-        outline-offset: 2px;
-    }
-
-    .leg-id-display:focus-visible {
-        outline: 2px solid var(--primary-color);
-        outline-offset: 2px;
-    }
-
-    .leg-input {
-        width: 100%;
-    }
-
-    .leg-error {
-        margin-top: 0.25rem;
-        font-size: 0.75rem;
-        color: var(--danger);
-        line-height: 1.2;
-    }
-
-    /* Validation styles */
-    .form-control.is-invalid {
-        border-color: var(--danger);
-        background-color: rgba(var(--danger-rgb, 220, 53, 69), 0.05);
-    }
-
-    .form-control.is-invalid:focus {
-        border-color: var(--danger);
-        box-shadow: 0 0 0 0.2rem rgba(var(--danger-rgb, 220, 53, 69), 0.25);
-    }
-
-    /* Disabled section */
-    .disabled-section-notice {
-        border: 1px dashed var(--border-color);
-    }
-
-    /* Code styling for format help */
-    code {
-        background: var(--bg-tertiary);
-        padding: 0.125rem 0.375rem;
-        border-radius: 0.25rem;
-        font-family: ui-monospace, SFMono-Regular, Monaco, Consolas, monospace;
-        font-size: 0.875em;
-    }
-
-    /* Button styles */
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
-    }
-
-    .btn-danger {
-        opacity: 0.7;
-        transition: opacity 0.15s;
-    }
-
-    .btn-danger:hover {
-        opacity: 1;
-        background: rgba(var(--danger-rgb, 220, 53, 69), 0.1) !important;
-    }
-
-    .btn-danger:focus-visible {
-        outline: 2px solid var(--danger);
-        outline-offset: 2px;
-    }
-
-    /* Shared subtab styles for nested configuration sections */
-    .config-subtabs {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.375rem;
-        margin-bottom: 1.5rem;
-        padding: 0.375rem;
-        border: 1px solid var(--border-color);
-        border-radius: 0.625rem;
-        background: var(--bg-secondary);
-    }
-
-    .config-subtab-btn {
-        padding: 0.5rem 0.875rem;
-        border: 1px solid transparent;
-        border-radius: 0.5rem;
-        background: transparent;
-        color: var(--text-light);
-        cursor: pointer;
-        font-weight: 600;
-        line-height: 1.2;
-        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .config-subtab-btn:hover {
-        background: var(--bg-tertiary);
-        color: var(--text-color);
-    }
-
-    .config-subtab-btn.active {
-        border-color: var(--primary-color);
-        background: var(--bg-primary);
-        color: var(--primary-color);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-    }
-
-    .config-subtab-btn:focus-visible {
-        outline: 2px solid var(--primary-color);
-        outline-offset: 1px;
-    }
-
-    /* FTE Subtab Styles */
-    .fte-container {
-        padding: 0;
-    }
-
-    .fte-tabs {
-        margin-bottom: 1.5rem;
-    }
-
-    .fte-tab-btn {
-        position: relative;
-    }
-
-    .fte-resource-card {
-        transition: all 0.15s ease;
-    }
-
-    .fte-resource-card:hover {
-        border-color: var(--border-color-hover, var(--border-color));
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .fte-resource-card.selected {
-        border-color: var(--primary-color);
-        background: var(--primary-color-10, rgba(59, 130, 246, 0.1));
-    }
-
-    .fte-avatar {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        user-select: none;
-    }
-
-    .fte-day-cell {
-        transition: all 0.15s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .fte-day-cell:hover {
-        transform: scale(1.1);
-        z-index: 1;
-    }
-
-    .fte-day-cell:focus {
-        outline: 2px solid var(--primary-color);
-        outline-offset: -1px;
-        z-index: 2;
-    }
-
-    .fte-day-cell.available {
-        background: var(--success-bg, rgba(25, 135, 84, 0.1));
-        border-color: var(--success);
-        color: var(--success);
-    }
-
-    .fte-day-cell.unavailable {
-        background: var(--danger-bg, rgba(220, 53, 69, 0.1));
-        border-color: var(--danger);
-        color: var(--danger);
-    }
-
-    .fte-day-cell.holiday::after {
-        content: '★';
-        position: absolute;
-        top: 0;
-        right: 1px;
-        font-size: 8px;
-        color: var(--danger);
-    }
-
-    .fte-month {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .fte-month h4 {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .bulk-panel {
-        border: 1px dashed var(--border-color);
-    }
-
-    .holidays-list {
-        background: var(--bg-primary);
-    }
-
-    .holidays-list > div:first-child {
-        border-top: none;
-    }
-
-    .fte-aliases-tab .form-group {
-        margin-bottom: 0.75rem;
-    }
-
-    .fte-aliases-tab label {
-        display: block;
-        margin-bottom: 0.25rem;
-        font-weight: 500;
-    }
-
-    /* Checkbox labels in alias form */
-    .fte-aliases-tab label:has(input[type="checkbox"]) {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-        padding: 0.375rem 0.75rem;
-        background: var(--bg-primary);
-        border: 1px solid var(--border-color);
-        border-radius: 0.25rem;
-        font-size: 0.875rem;
-        transition: all 0.15s ease;
-    }
-
-    .fte-aliases-tab label:has(input[type="checkbox"]:checked) {
-        border-color: var(--primary-color);
-        background: var(--primary-color-10, rgba(59, 130, 246, 0.1));
-    }
-
-    .fte-aliases-tab input[type="checkbox"] {
-        margin: 0;
-    }
-
-    .fte-holidays-tab .form-group {
-        margin-bottom: 0;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .legs-table {
-            min-width: 760px;
-        }
-
-        .fte-controls {
-            flex-direction: column;
-            align-items: stretch !important;
-        }
-
-        .fte-controls .form-group {
-            flex: 1 1 100% !important;
-        }
-
-        .fte-controls button {
-            width: 100%;
-        }
-    }
-
-    @media (max-width: 992px) {
-        .fte-calendar-grid > div {
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
-        }
-    }
-
-    /* Equipment Subtab Styles - mirrors FTE styles */
-    .equipment-container {
-        padding: 0;
-    }
-
-    .equipment-tabs {
-        margin-bottom: 1.5rem;
-    }
-
-    .equipment-tab-btn {
-        position: relative;
-    }
-
-    .equipment-resource-card {
-        transition: all 0.15s ease;
-    }
-
-    .equipment-resource-card:hover {
-        border-color: var(--border-color-hover, var(--border-color));
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .equipment-resource-card.selected {
-        border-color: var(--primary-color);
-        background: var(--primary-color-10, rgba(59, 130, 246, 0.1));
-    }
-
-    .equipment-avatar {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        user-select: none;
-    }
-
-    .equipment-day-cell {
-        transition: all 0.15s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .equipment-day-cell:hover {
-        transform: scale(1.1);
-        z-index: 1;
-    }
-
-    .equipment-day-cell:focus {
-        outline: 2px solid var(--primary-color);
-        outline-offset: -1px;
-        z-index: 2;
-    }
-
-    .equipment-day-cell.available {
-        background: var(--success-bg, rgba(25, 135, 84, 0.1));
-        border-color: var(--success);
-        color: var(--success);
-    }
-
-    .equipment-day-cell.unavailable {
-        background: var(--danger-bg, rgba(220, 53, 69, 0.1));
-        border-color: var(--danger);
-        color: var(--danger);
-    }
-
-    .equipment-day-cell.holiday::after {
-        content: '★';
-        position: absolute;
-        top: 0;
-        right: 1px;
-        font-size: 8px;
-        color: var(--danger);
-    }
-
-    .equipment-month {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .equipment-month h4 {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .equipment-holidays-tab .form-group {
-        margin-bottom: 0;
-    }
-
-    .equipment-aliases-tab .form-group {
-        margin-bottom: 0.75rem;
-    }
-
-    .equipment-aliases-tab label {
-        display: block;
-        margin-bottom: 0.25rem;
-        font-weight: 500;
-    }
-
-    .equipment-controls {
-        flex-direction: row;
-    }
-
-    @media (max-width: 768px) {
-        .equipment-controls {
-            flex-direction: column;
-            align-items: stretch !important;
-        }
-
-        .equipment-controls .form-group {
-            flex: 1 1 100% !important;
-        }
-
-        .equipment-controls button {
-            width: 100%;
-        }
-    }
-
-    @media (max-width: 992px) {
-        .equipment-calendar-grid > div {
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
-        }
-    }
-</style>

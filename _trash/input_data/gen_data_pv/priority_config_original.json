@@ -1,0 +1,37 @@
+{
+  "priority_mode": "leg_priority",
+  "modes": {
+    "leg_priority": {
+      "description": "Use existing leg priorities from data_legs.csv (lower numbers = higher priority)",
+      "type": "weighted_end_times"
+    },
+    "makespan_minimize": {
+      "description": "Finish testing program as quickly as possible (minimize total duration)",
+      "type": "makespan"
+    },
+    "equal_weight": {
+      "description": "Treat all legs equally (no priority weighting)",
+      "type": "weighted_end_times",
+      "weight": 1
+    },
+    "completion_date": {
+      "description": "Prioritize by completion date requirements",
+      "type": "weighted_end_times",
+      "use_completion_deadlines": true
+    },
+    "resource_efficiency": {
+      "description": "Optimize for resource utilization efficiency",
+      "type": "resource_efficiency"
+    }
+  },
+  "custom_weights": {
+    "high_priority_multiplier": 2.0,
+    "medium_priority_multiplier": 1.5,
+    "low_priority_multiplier": 1.0
+  },
+  "completion_deadlines": {
+    "mwcu_b10_2": "2025-W20",
+    "mwcu_b10_3": "2025-W22",
+    "mwcu_b10_4": "2025-W24"
+  }
+}

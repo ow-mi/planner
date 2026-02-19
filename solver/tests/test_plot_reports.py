@@ -7,8 +7,8 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from planner_v4 import main as planner_main_fn
-from planner_v4.solver import SolutionResult, TestSchedule as ScheduleEntry
+from solver import main as planner_main_fn
+from solver.solver import SolutionResult, TestSchedule as ScheduleEntry
 
 
 def _make_solution(status: str) -> SolutionResult:

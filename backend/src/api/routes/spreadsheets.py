@@ -1,4 +1,5 @@
 """Spreadsheet discovery and validation routes."""
+
 from fastapi import APIRouter, HTTPException, status
 
 from backend.src.api.models.requests import (
@@ -8,12 +9,6 @@ from backend.src.api.models.requests import (
 from backend.src.api.models.responses import (
     SpreadsheetDiscoveryResponse,
     SpreadsheetValidationResponse,
-    SpreadsheetFileInfo,
-    SpreadsheetFileTypeEnum,
-    ValidationErrorCategory,
-    HeaderValidationError,
-    ColumnValidationError,
-    ExtractedEntities,
 )
 from backend.src.services.spreadsheet_service import spreadsheet_service
 

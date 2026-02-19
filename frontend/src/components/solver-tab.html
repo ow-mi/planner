@@ -1,100 +1,626 @@
 <div x-data="solverTabComponent()" x-cloak>
-    <!-- Subtab Navigation Sidebar -->
-    <div class="subtab-container">
-        <div class="subtab-sidebar">
-            <button
-                type="button"
-                class="subtab-btn"
-                :class="{ 'active': activeSubtab === 'solver' }"
-                @click="setActiveSubtab('solver')"
-                @keydown.enter.prevent="setActiveSubtab('solver')"
-                @keydown.space.prevent="setActiveSubtab('solver')"
+    <!-- Scenario Tabs Container -->
+    <div class="scenario-container" style="display: flex; flex-direction: column; height: 100%;">
+        
+        <!-- Scenario Tabs Header -->
+        <div class="scenario-tabs-header" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border-bottom: 1px solid var(--border-color); background: var(--bg-secondary);">
+            <!-- Scenario Tabs -->
+            <div class="scenario-tabs" style="display: flex; gap: 0.25rem; flex: 1; overflow-x: auto;">
+                <template x-for="scenario in $store.solver.scenarios" :key="scenario.id">
+                    <div 
+                        class="scenario-tab"
+                        :class="{ 
+                            'active': scenario.id === $store.solver.activeScenarioId,
+                            'running': scenario.status === 'RUNNING',
+                            'completed': scenario.status === 'COMPLETED',
+                            'failed': scenario.status === 'FAILED'
+                        }"
+                        @click="$store.solver.switchToScenario(scenario.id)"
+                        @contextmenu.prevent="openScenarioContextMenu($event, scenario.id)"
+                        :title="scenario.name + ' (' + scenario.status + ')'"
+                    >
+                        <span class="scenario-status-icon" x-text="getStatusIcon(scenario.status)"></span>
+                        
+                        <!-- Editable name when editing -->
+                        <input 
+                            x-show="$store.solver.editingScenarioId === scenario.id"
+                            x-model="$store.solver.editingName"
+                            @blur="finishEditingName()"
+                            @keydown.enter.prevent="finishEditingName()"
+                            @keydown.esc.prevent="cancelEditingName()"
+                            :id="'scenario-name-input-' + scenario.id"
+                            type="text"
+                            class="scenario-name-input"
+                            @click.stop
+                        >
+                        
+                        <!-- Display name normally -->
+                        <span 
+                            x-show="$store.solver.editingScenarioId !== scenario.id"
+                            class="scenario-name"
+                            x-text="scenario.name"
+                            @dblclick.prevent="startEditingName(scenario.id, scenario.name)"
+                        ></span>
+                        
+                        <!-- Close button -->
+                        <button 
+                            class="scenario-close-btn"
+                            @click.stop="$store.solver.removeScenario(scenario.id)"
+                            title="Remove scenario"
+                        >
+                            ×
+                        </button>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- Add Scenario Button -->
+            <button 
+                class="btn btn-sm btn-primary add-scenario-btn"
+                @click="$store.solver.openNewScenarioModal()"
+                title="Add new scenario"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                Solver
-            </button>
-            <button
-                type="button"
-                class="subtab-btn"
-                :class="{ 'active': activeSubtab === 'batch' }"
-                @click="setActiveSubtab('batch')"
-                @keydown.enter.prevent="setActiveSubtab('batch')"
-                @keydown.space.prevent="setActiveSubtab('batch')"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="3" y1="9" x2="21" y2="9"></line>
-                    <line x1="9" y1="21" x2="9" y2="9"></line>
-                </svg>
-                Batch
+                Add
             </button>
         </div>
         
-        <div class="subtab-content">
-            <!-- Solver Section -->
-            <div x-show="activeSubtab === 'solver'" class="config-section" id="section-solver">
-                <div class="section-header">
-                    <h3>Run Solver</h3>
-                    <p>Execute the solver using loaded input data and configuration.</p>
+        <!-- Active Scenario Content -->
+        <div class="scenario-content" style="flex: 1; overflow-y: auto;">
+            <template x-for="scenario in $store.solver.scenarios" :key="scenario.id">
+                <div 
+                    x-show="scenario.id === $store.solver.activeScenarioId"
+                    class="scenario-panel"
+                >
+                    <!-- Scenario Header -->
+                    <div class="scenario-panel-header" style="padding: 1rem; border-bottom: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.25rem;" x-text="scenario.name"></h3>
+                                <div style="display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-light);">
+                                    <span>
+                                        Status: 
+                                        <span :class="'status-badge ' + getStatusClass(scenario.status)" x-text="scenario.status"></span>
+                                    </span>
+                                    <span x-show="scenario.runId">Run ID: <span x-text="scenario.runId ? scenario.runId.substring(0, 8) : ''"></span>...</span>
+                                    <span x-show="scenario.completedAt">Completed: <span x-text="new Date(scenario.completedAt).toLocaleString()"></span></span>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 0.5rem;">
+                                <!-- Run Scenario Button -->
+                                <button 
+                                    class="btn btn-primary"
+                                    @click="$store.solver.runScenario(scenario.id)"
+                                    :disabled="scenario.status === 'RUNNING' || $store.solver.isLoading"
+                                    x-show="scenario.status !== 'RUNNING'"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem;">
+                                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                    </svg>
+                                    Run Scenario
+                                </button>
+                                
+                                <!-- Stop Button (when running) -->
+                                <button 
+                                    class="btn btn-warning"
+                                    @click="$store.solver.stopScenario(scenario.id)"
+                                    :disabled="!scenario.runId"
+                                    x-show="scenario.status === 'RUNNING'"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem;">
+                                        <rect x="6" y="4" width="4" height="16"></rect>
+                                        <rect x="14" y="4" width="4" height="16"></rect>
+                                    </svg>
+                                    Stop
+                                </button>
+                                
+                                <!-- View Results Button (when completed) -->
+                                <button 
+                                    class="btn btn-success"
+                                    @click="viewResults(scenario.id)"
+                                    x-show="scenario.status === 'COMPLETED'"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem;">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                                        <polyline points="10 9 9 9 8 9"></polyline>
+                                    </svg>
+                                    Results
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Config Changed Warning -->
+                        <div x-show="$store.solver.configChangedWarning && $store.solver.configChangedScenario === scenario.id" 
+                             class="config-warning"
+                             style="margin-top: 1rem; padding: 0.75rem; background: #fff3cd; border: 1px solid #ffc107; border-radius: 0.375rem; font-size: 0.875rem;"
+                        >
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffc107" stroke-width="2">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                                <span>Configuration has changed since this scenario was created. You may want to update the scenario or create a new one.</span>
+                                <button @click="$store.solver.updateScenarioConfig(scenario.id)" class="btn btn-sm" style="margin-left: auto;">Update</button>
+                                <button @click="$store.solver.dismissConfigChangedWarning()" class="btn btn-sm">Dismiss</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Scenario Body: Solver Controls -->
+                    <div class="scenario-panel-body" style="padding: 1rem;">
+                        <!-- Solver Settings -->
+                        <div class="solver-settings" style="margin-bottom: 1.5rem;">
+                            <h4 style="margin: 0 0 1rem 0; font-size: 1rem;">Solver Settings</h4>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                                <div class="form-group">
+                                    <label for="time-limit-" x-bind:for="'time-limit-' + scenario.id">Time Limit (seconds)</label>
+                                    <input 
+                                        type="number" 
+                                        :id="'time-limit-' + scenario.id"
+                                        x-model.number="$store.solver.config.timeLimit"
+                                        min="60" max="3600"
+                                        class="form-control"
+                                        @change="$store.solver.saveToLocalStorage()"
+                                    >
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="debug-level-" x-bind:for="'debug-level-' + scenario.id">Debug Level</label>
+                                    <select 
+                                        :id="'debug-level-' + scenario.id"
+                                        x-model="$store.solver.config.debugLevel"
+                                        class="form-control"
+                                        @change="$store.solver.saveToLocalStorage()"
+                                    >
+                                        <option value="DEBUG">DEBUG</option>
+                                        <option value="INFO">INFO</option>
+                                        <option value="WARNING">WARNING</option>
+                                        <option value="ERROR">ERROR</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Run Name Input -->
+                        <div class="form-group" style="margin-bottom: 1.5rem;">
+                            <label>Run Name</label>
+                            <input 
+                                type="text" 
+                                x-model="$store.solver.config.outputFolder"
+                                :placeholder="scenario.name"
+                                class="form-control"
+                                @change="$store.solver.saveToLocalStorage()"
+                            >
+                            <small style="color: var(--text-light);">This name will identify the solver output</small>
+                        </div>
+                        
+                        <!-- Progress Section (shown while running) -->
+                        <div x-show="scenario.status === 'RUNNING'" class="progress-section" style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                                <div class="spinner-small"></div>
+                                <span style="font-weight: 500;">Running...</span>
+                            </div>
+                            
+                            <div class="progress-bar-container" style="height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden;">
+                                <div class="progress-bar" :style="'width: ' + ($store.solver.progress || 0) + '%'"></div>
+                            </div>
+                            
+                            <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-light);">
+                                <span x-text="$store.solver.message || 'Initializing...'"></span>
+                                <span x-text="Math.round($store.solver.progress || 0) + '%'"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- Results Section (shown when completed) -->
+                        <div x-show="scenario.status === 'COMPLETED' && scenario.results" class="results-section" style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                            <h4 style="margin: 0 0 1rem 0;">Results</h4>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                                <div class="result-card" style="padding: 0.75rem; background: var(--bg-primary); border-radius: 0.375rem;">
+                                    <div style="font-size: 0.75rem; color: var(--text-light);">Objective Value</div>
+                                    <div style="font-size: 1.25rem; font-weight: 600;" x-text="scenario.results?.objective?.toFixed(2) || '-'"></div>
+                                </div>
+                                
+                                <div class="result-card" style="padding: 0.75rem; background: var(--bg-primary); border-radius: 0.375rem;">
+                                    <div style="font-size: 0.75rem; color: var(--text-light);">Tests Scheduled</div>
+                                    <div style="font-size: 1.25rem; font-weight: 600;" x-text="scenario.results?.testsScheduled || '-'"></div>
+                                </div>
+                                
+                                <div class="result-card" style="padding: 0.75rem; background: var(--bg-primary); border-radius: 0.375rem;">
+                                    <div style="font-size: 0.75rem; color: var(--text-light);">Duration</div>
+                                    <div style="font-size: 1.25rem; font-weight: 600;">
+                                        <span x-text="Math.round((scenario.results?.solveTimeMs || 0) / 1000)"></span> s
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Error Section (shown when failed) -->
+                        <div x-show="scenario.status === 'FAILED'" class="error-section validation-error" style="margin-top: 1.5rem;">
+                            <strong>Execution Failed:</strong>
+                            <pre style="margin-top: 0.5rem; white-space: pre-wrap; font-size: 0.875rem;"><span x-text="scenario.error?.message || 'Unknown error'"></span></pre>
+                        </div>
+                    </div>
                 </div>
-                <!-- Solver controls fragment - loads automatically -->
-                <div id="solver-controls-fragment" hx-get="src/components/solver-controls.html" hx-trigger="load" hx-swap="innerHTML"></div>
+            </template>
+            
+            <!-- No Scenarios State -->
+            <div x-show="$store.solver.scenarios.length === 0" style="padding: 3rem; text-align: center; color: var(--text-light);">
+                <p>No scenarios created yet.</p>
+                <button @click="$store.solver.openNewScenarioModal()" class="btn btn-primary">Create First Scenario</button>
+            </div>
+        </div>
+        
+        <!-- Batch Actions Bar -->
+        <div class="scenario-actions-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-top: 1px solid var(--border-color); background: var(--bg-secondary);">
+            <div style="font-size: 0.875rem; color: var(--text-light);">
+                <span x-text="$store.solver.scenarios.length"></span> scenario(s) | 
+                <span x-text="$store.solver.scenarios.filter(s => s.status === 'QUEUED').length"></span> queued | 
+                <span x-text="$store.solver.scenarios.filter(s => s.status === 'COMPLETED').length"></span> completed
             </div>
             
-            <!-- Batch Section -->
-            <div x-show="activeSubtab === 'batch'" class="config-section" id="section-batch">
-                <div class="section-header">
-                    <h3>Batch Execution</h3>
-                    <p>Run multiple solver scenarios in batch mode.</p>
-                </div>
-                <!-- Batch editor fragment - loads automatically -->
-                <div id="batch-editor-fragment" hx-get="src/components/batch-editor.html" hx-trigger="load" hx-swap="innerHTML"></div>
+            <div style="display: flex; gap: 0.5rem;">
+                <!-- Clear Completed -->
+                <button 
+                    class="btn btn-sm"
+                    @click="$store.solver.clearCompletedScenarios()"
+                    :disabled="!$store.solver.scenarios.some(s => s.status === 'COMPLETED')"
+                >
+                    Clear Completed
+                </button>
+                
+                <!-- Run All -->
+                <button 
+                    class="btn btn-primary"
+                    @click="$store.solver.runAllScenarios()"
+                    :disabled="!$store.solver.scenarios.some(s => s.status === 'QUEUED') || $store.solver.isLoading"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem;">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                    </svg>
+                    Run All Scenarios
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Scenario Modal -->
+    <div 
+        x-show="$store.solver.showNewScenarioModal" 
+        class="modal-backdrop"
+        style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100;"
+        x-cloak
+    >
+        <div class="scenario-modal" style="background: var(--bg-primary); border-radius: 0.5rem; padding: 1.5rem; min-width: 300px; max-width: 90vw; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <h3 style="margin: 0 0 1rem 0;">Create New Scenario</h3>
+            
+            <div class="form-group">
+                <label for="new-scenario-name">Scenario Name</label>
+                <input 
+                    type="text" 
+                    id="new-scenario-name"
+                    x-model="$store.solver.newScenarioName"
+                    @keydown.enter.prevent="$store.solver.createNewScenario($store.solver.newScenarioName)"
+                    placeholder="e.g., Run 1"
+                    class="form-control"
+                >
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button @click="$store.solver.closeNewScenarioModal()" class="btn">Cancel</button>
+                <button 
+                    @click="$store.solver.createNewScenario($store.solver.newScenarioName)" 
+                    class="btn btn-primary"
+                    :disabled="!$store.solver.newScenarioName?.trim()"
+                >
+                    Create
+                </button>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+/* Scenario Tabs */
+.scenario-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.scenario-tabs-header {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.scenario-tabs {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.scenario-tabs::-webkit-scrollbar {
+    height: 4px;
+}
+
+.scenario-tabs::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 2px;
+}
+
+.scenario-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.25rem;
+    background: var(--bg-primary);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s;
+    min-width: 120px;
+    max-width: 200px;
+}
+
+.scenario-tab:hover {
+    background: var(--bg-secondary);
+}
+
+.scenario-tab.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.scenario-tab.running {
+    border-color: var(--warning-color, #ffc107);
+    animation: pulse 2s infinite;
+}
+
+.scenario-tab.completed {
+    border-color: var(--success-color, #10b981);
+}
+
+.scenario-tab.failed {
+    border-color: var(--error-color, #ef4444);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.scenario-status-icon {
+    font-size: 0.875rem;
+}
+
+.scenario-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.875rem;
+}
+
+.scenario-name-input {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.875rem;
+    padding: 0.125rem 0.25rem;
+}
+
+.scenario-close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.125rem 0.25rem;
+    font-size: 1rem;
+    line-height: 1;
+    color: inherit;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.scenario-close-btn:hover {
+    opacity: 1;
+    background: rgba(255,255,255,0.2);
+    border-radius: 0.125rem;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-badge.status-queued {
+    background: var(--bg-tertiary);
+    color: var(--text-light);
+}
+
+.status-badge.status-running {
+    background: var(--warning-color, #ffc107);
+    color: #000;
+}
+
+.status-badge.status-completed {
+    background: var(--success-color, #10b981);
+    color: white;
+}
+
+.status-badge.status-failed {
+    background: var(--error-color, #ef4444);
+    color: white;
+}
+
+/* Progress Bar */
+.progress-bar-container {
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: var(--primary-color);
+    transition: width 0.3s ease;
+}
+
+/* Spinner */
+.spinner-small {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Add Scenario Button */
+.add-scenario-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+
+/* Modal */
+.modal-backdrop {
+    backdrop-filter: blur(2px);
+}
+</style>
+
 <script>
 /**
- * Solver Tab Component
- * Manages subtab navigation between Solver and Batch views
- * 
- * Alpine.js Patterns Used:
- * - x-data with function returning object (auto-detects init() method)
- * - Properties reactive to all children (even nested x-data)
- * - Methods callable without parentheses: @click="setActiveSubtab"
+ * Solver Tab Component with Scenario Management
  */
 function solverTabComponent() {
     return {
-        // State
-        activeSubtab: 'solver',
-        
-        /**
-         * Automatically called by Alpine.js on initialization
-         * Called before x-init directives, if any
-         */
         init() {
-            console.log('[solver-tab] Component initialized, activeSubtab:', this.activeSubtab);
+            console.log('[solver-tab] Component initialized');
+            // Initialize solver store
+            this.$store.solver.init();
+            
+            // Watch for config changes to show warning
+            this.$watch(() => JSON.stringify(this.$store.config?.config), () => {
+                this.checkConfigChanges();
+            });
         },
         
         /**
-         * Switch active subtab with validation
-         * Alpine.js automatically binds 'this' to the component
-         * 
-         * @param {string} subtabName - 'solver' or 'batch'
+         * Get status icon based on scenario status
          */
-        setActiveSubtab(subtabName) {
-            const validSubtabs = ['solver', 'batch'];
-            
-            if (!validSubtabs.includes(subtabName)) {
-                console.warn('[solver-tab] Invalid subtab:', subtabName);
-                return;
+        getStatusIcon(status) {
+            switch (status) {
+                case 'QUEUED': return '⏳';
+                case 'RUNNING': return '▶';
+                case 'COMPLETED': return '✓';
+                case 'FAILED': return '⚠';
+                default: return '⏳';
             }
+        },
+        
+        /**
+         * Get CSS class for status
+         */
+        getStatusClass(status) {
+            switch (status) {
+                case 'QUEUED': return 'status-queued';
+                case 'RUNNING': return 'status-running';
+                case 'COMPLETED': return 'status-completed';
+                case 'FAILED': return 'status-failed';
+                default: return 'status-queued';
+            }
+        },
+        
+        /**
+         * Start editing scenario name
+         */
+        startEditingName(scenarioId, currentName) {
+            this.$store.solver.startEditingScenarioName(scenarioId, currentName);
             
-            this.activeSubtab = subtabName;
-            console.log('[solver-tab] Switched to:', subtabName);
+            // Focus the input after it appears
+            setTimeout(() => {
+                const input = document.getElementById('scenario-name-input-' + scenarioId);
+                if (input) {
+                    input.focus();
+                    input.select();
+                }
+            }, 10);
+        },
+        
+        /**
+         * Finish editing scenario name
+         */
+        finishEditingName() {
+            this.$store.solver.finishEditingScenarioName();
+        },
+        
+        /**
+         * Cancel editing name
+         */
+        cancelEditingName() {
+            this.$store.solver.cancelEditingScenarioName();
+        },
+        
+        /**
+         * Check if config has changed for active scenario
+         */
+        checkConfigChanges() {
+            const solverStore = this.$store.solver;
+            if (!solverStore.activeScenarioId) return;
+            
+            const activeScenario = solverStore.scenarios.find(s => s.id === solverStore.activeScenarioId);
+            if (!activeScenario) return;
+            
+            const currentHash = solverStore.getCurrentConfigHash();
+            if (activeScenario.configHash && activeScenario.configHash !== currentHash && activeScenario.status !== 'RUNNING') {
+                solverStore.configChangedWarning = true;
+                solverStore.configChangedScenario = activeScenario.id;
+            }
+        },
+        
+        /**
+         * View results for a scenario
+         */
+        viewResults(scenarioId) {
+            const scenario = this.$store.solver.scenarios.find(s => s.id === scenarioId);
+            if (scenario?.results) {
+                console.log('[solver-tab] Viewing results for:', scenario.name);
+                // Could emit an event or navigate to visualizer
+                window.dispatchEvent(new CustomEvent('view-scenario-results', {
+                    detail: { scenarioId, results: scenario.results }
+                }));
+            }
+        },
+        
+        /**
+         * Open context menu for scenario (right-click)
+         */
+        openScenarioContextMenu(event, scenarioId) {
+            // Could implement a custom context menu
+            // For now, just log
+            console.log('[solver-tab] Context menu for scenario:', scenarioId);
         }
     };
 }

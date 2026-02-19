@@ -1,0 +1,59 @@
+Phase 0 Coverage Baseline
+Generated: 2026-02-17
+
+Command:
+  .venv/bin/python -m pytest --cov=backend --cov-report=term-missing --cov-report=html
+
+Overall coverage:
+  TOTAL 61% (1858 statements, 730 missed)
+
+Key file coverage:
+  | File                                  | Cover | Missed lines |
+  |---------------------------------------|-------|--------------|
+  | src/services/execution_orchestrator.py| 78%   | 53, 59, 85-86, 91, 95-98, 104, 117-119, 149-151, 165, 170, 177-179, 188-190, 193-195, 347-366, 376, 403-404, 422-438, 442 |
+  | src/services/solver_service.py        | 61%   | 74, 79, 82, 85, 98, 112, 115, 118, 121, 128-131, 135-169, 173 |
+  | src/services/queue_service.py         | 85%   | 20-24, 35, 74, 108, 116, 119, 138 |
+  | src/state/store.py                    | 97%   | 98-99 |
+
+ExecutionOrchestrator untested/low-covered paths:
+  - Validation error branch for invalid CSV files in create_execution (line 53).
+  - Validation error branch for invalid priority config in create_execution (line 59).
+  - get_execution_status delegate path not directly exercised (line 91).
+  - get_execution_results branch behavior not covered (lines 95-98).
+  - run_solver early returns not covered:
+      * missing execution state (line 104)
+      * missing request payload -> _handle_error + queue completion (lines 117-119)
+  - run_solver exception handling path not covered (lines 149-151).
+  - Worker lifecycle/loop paths under-covered:
+      * _run_solver alias (line 165)
+      * start_worker already-running guard (line 170)
+      * stop_worker join path (lines 177-179)
+      * _process_queue active/pending branch and exception branch (lines 188-190, 193-195)
+  - Result processing gaps:
+      * _extract_test_schedule populated-row mapping with dates/equipment/fte (lines 347-366)
+      * _write_run_metadata no-final-state return (line 376)
+      * _write_run_metadata write_json failure warning path (lines 403-404)
+      * _handle_error full failure payload creation and persistence path (lines 422-438)
+      * _derive_run_name fallback for empty output folder (line 442)
+
+Critical pre-Phase-1 test gaps:
+  1) StateStore injection patterns
+     - Add SolverService constructor tests proving precedence/consistency:
+         * explicit state_store is used instead of queue._state_store
+         * injected queue with injected state_store remains coherent
+         * default constructor path behavior with singleton queue_service is explicit
+     - Add QueueService constructor tests for default StateStore creation vs injected store behavior.
+
+  2) ExecutionOrchestrator validation tests
+     - create_execution rejects invalid csv_files with expected ValueError message.
+     - create_execution rejects invalid priority_config with expected ValueError message.
+
+  3) ExecutionOrchestrator result processing tests
+     - get_execution_results returns None for non-COMPLETED status and returns results only for COMPLETED.
+     - _process_results maps unknown statuses to NO_SOLUTION.
+     - _extract_test_schedule handles non-empty schedules and serializes start/end dates.
+     - _handle_error writes FAILED state, error payload, and clears request payload.
+
+Notes:
+  - html coverage artifact generated at htmlcov/index.html.
+  - Baseline captured before refactor work begins.

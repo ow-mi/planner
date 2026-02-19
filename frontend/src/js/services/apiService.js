@@ -30,6 +30,24 @@ class ApiService {
             }
             return String(value);
         };
+        const buildDeadlineKey = (deadline) => {
+            const legId = String(deadline?.legId || '').trim();
+            if (!legId) {
+                return '';
+            }
+            const project = String(deadline?.project || '').trim();
+            const branch = String(deadline?.branch || '').trim();
+            if (!project && !branch) {
+                return legId;
+            }
+            if (!project && branch) {
+                return `${legId}__${branch}`;
+            }
+            if (project && !branch) {
+                return `${project}__${legId}`;
+            }
+            return `${project}__${legId}__${branch}`;
+        };
 
         const canonical = {
             mode: source.mode || 'leg_end_dates',
@@ -52,11 +70,15 @@ class ApiService {
                 if (!deadline || !deadline.legId) {
                     return;
                 }
+                const deadlineKey = buildDeadlineKey(deadline);
+                if (!deadlineKey) {
+                    return;
+                }
 
                 if (deadline.startEnabled && deadline.startDeadline) {
                     const normalizedStart = normalizeDate(deadline.startDeadline);
                     if (normalizedStart) {
-                        legStartDeadlines[deadline.legId] = normalizedStart;
+                        legStartDeadlines[deadlineKey] = normalizedStart;
                     }
                 }
 
@@ -64,7 +86,7 @@ class ApiService {
                 if (deadline.endEnabled !== false && legacyDeadline) {
                     const normalizedEnd = normalizeDate(legacyDeadline);
                     if (normalizedEnd) {
-                        legEndDeadlines[deadline.legId] = normalizedEnd;
+                        legEndDeadlines[deadlineKey] = normalizedEnd;
                     }
                 }
             });
@@ -78,9 +100,18 @@ class ApiService {
             }
 
             const penalty = source.penaltySettings || {};
-            canonical.deadline_penalty_per_day = normalizeNumber(penalty.deadline_penalty, 1000.0);
-            canonical.leg_compactness_penalty_per_day = normalizeNumber(penalty.compactness_penalty, 500.0);
-            canonical.allow_parallel_within_deadlines = normalizeNumber(penalty.parallel_within_deadlines, 100.0);
+            canonical.deadline_penalty_per_day = normalizeNumber(
+                penalty.deadlinePenalty ?? penalty.deadline_penalty,
+                1000.0
+            );
+            canonical.leg_compactness_penalty_per_day = normalizeNumber(
+                penalty.compactnessPenalty ?? penalty.compactness_penalty,
+                500.0
+            );
+            canonical.allow_parallel_within_deadlines = normalizeNumber(
+                penalty.parallelWithinDeadlines ?? penalty.parallel_within_deadlines,
+                100.0
+            );
 
             if (Array.isArray(source.proximityRules) && source.proximityRules.length > 0) {
                 const seenPatterns = new Set();
@@ -178,15 +209,28 @@ class ApiService {
 
     /**
      * Execute a POST request
+     * @param {string} endpoint - API endpoint
+     * @param {Object|FormData} data - Request data (object or FormData)
+     * @param {Object} options - Additional options (headers override)
      */
-    async post(endpoint, data = {}) {
+    async post(endpoint, data = {}, options = {}) {
         try {
-            const response = await fetch(`${this.baseUrl}${endpoint}`, {
+            const isFormData = data instanceof FormData;
+            
+            const fetchOptions = {
                 method: 'POST',
-                headers: this.defaultHeaders,
-                body: JSON.stringify(data),
                 credentials: this.credentialsMode
-            });
+            };
+            
+            if (isFormData) {
+                // For FormData, don't set Content-Type (browser sets it with boundary)
+                fetchOptions.body = data;
+            } else {
+                fetchOptions.headers = { ...this.defaultHeaders, ...options.headers };
+                fetchOptions.body = JSON.stringify(data);
+            }
+
+            const response = await fetch(`${this.baseUrl}${endpoint}`, fetchOptions);
 
             return await this.handleResponse(response);
         } catch (error) {
@@ -468,6 +512,82 @@ class ApiService {
         return await this.post('/scenarios/queue/stop-render', {
             scenario_id: scenarioId
         });
+    }
+
+    // ========== FILE UPLOAD METHODS (Phase A) ==========
+
+    /**
+     * Upload a single file (CSV, Excel, or JSON)
+     * @param {FormData} formData - FormData containing the file
+     * @param {Function} onProgress - Optional progress callback (0-100)
+     * @returns {Promise<Object>} Upload response with parsed data
+     */
+    async uploadFile(formData, onProgress = null) {
+        const url = `${this.baseUrl}/v1/files/upload`;
+        
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            
+            // Track upload progress
+            if (onProgress && typeof onProgress === 'function') {
+                xhr.upload.addEventListener('progress', (event) => {
+                    if (event.lengthComputable) {
+                        const percentComplete = Math.round((event.loaded / event.total) * 100);
+                        onProgress(percentComplete);
+                    }
+                });
+            }
+            
+            xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        resolve(response);
+                    } catch (error) {
+                        reject(new Error('Invalid JSON response from server'));
+                    }
+                } else {
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        reject(new Error(errorData.detail || errorData.message || `Upload failed: ${xhr.status}`));
+                    } catch {
+                        reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+                    }
+                }
+            });
+            
+            xhr.addEventListener('error', () => {
+                reject(new Error('Network error during upload'));
+            });
+            
+            xhr.addEventListener('abort', () => {
+                reject(new Error('Upload aborted'));
+            });
+            
+            xhr.open('POST', url);
+            // Don't set Content-Type header for FormData - browser sets it with boundary
+            xhr.withCredentials = true;
+            xhr.send(formData);
+        });
+    }
+
+    /**
+     * Upload multiple files
+     * @param {FormData} formData - FormData containing multiple files
+     * @returns {Promise<Object>} Batch upload response
+     */
+    async uploadMultipleFiles(formData) {
+        return this.post('/v1/files/upload/multiple', formData, {
+            headers: {} // Let browser set multipart boundary
+        });
+    }
+
+    /**
+     * Get supported file formats
+     * @returns {Promise<Object>} Supported formats and constraints
+     */
+    async getSupportedFormats() {
+        return this.get('/v1/files/supported-formats');
     }
 }
 

@@ -41,6 +41,20 @@ function dataEditorComponent() {
             });
         },
 
+        onCsvSelectionChanged() {
+            if (!this.selectedCsv) {
+                this.activeCsvData = { headers: [], rows: [] };
+                this.originalData = null;
+                this.selectedRowIndex = -1;
+                this.validationErrors = {};
+                this.columnTypes = [];
+                return false;
+            }
+
+            this.$store.files.setSelectedCsv(this.selectedCsv);
+            return this.displayCsvData();
+        },
+
         displayCsvData() {
             if (this.selectedCsv && this.$store.files.parsedCsvData[this.selectedCsv]) {
                 this.activeCsvData = this.$store.files.parsedCsvData[this.selectedCsv];

@@ -7,7 +7,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from planner_v4.data_loader import (
+from solver.data_loader import (
     Leg,
     Test as PlannerTest,
     apply_scenario_overrides,

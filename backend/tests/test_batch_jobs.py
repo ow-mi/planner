@@ -4,17 +4,21 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from backend.src.api.main import app
+from backend.src.api.main import app, get_factory
 from backend.src.api.models.responses import (
     ExecutionStatusEnum,
     SolverExecution,
     SolverResults,
     SolverStatusEnum,
 )
-from backend.src.api.routes import solver as solver_routes
 
 
 client = TestClient(app)
+
+
+def _get_solver_service():
+    """Get the current solver service instance from the factory."""
+    return get_factory().solver_service
 
 
 def _result_for_execution(execution_id: str, makespan: float) -> SolverResults:
@@ -75,18 +79,19 @@ def test_batch_job_lifecycle_exposes_per_scenario_statuses(monkeypatch, tmp_path
         executions_by_id[execution_id] = execution
         return execution
 
+    solver_service = _get_solver_service()
     monkeypatch.setattr(
-        solver_routes.solver_service,
+        solver_service,
         "create_execution",
         fake_create_execution,
     )
     monkeypatch.setattr(
-        solver_routes.solver_service,
+        solver_service,
         "get_execution_status",
         lambda execution_id: executions_by_id.get(execution_id),
     )
     monkeypatch.setattr(
-        solver_routes.solver_service,
+        solver_service,
         "get_execution_results",
         lambda execution_id: results_by_execution_id.get(execution_id),
     )
@@ -202,8 +207,9 @@ def test_import_folder_normalizes_csv_content_for_batch_job(monkeypatch, tmp_pat
             queue_position=0,
         )
 
+    solver_service = _get_solver_service()
     monkeypatch.setattr(
-        solver_routes.solver_service,
+        solver_service,
         "create_execution",
         fake_create_execution,
     )
@@ -323,8 +329,9 @@ def test_batch_submission_uses_imported_folder_for_io(monkeypatch, tmp_path):
             queue_position=0,
         )
 
+    solver_service = _get_solver_service()
     monkeypatch.setattr(
-        solver_routes.solver_service,
+        solver_service,
         "create_execution",
         fake_create_execution,
     )

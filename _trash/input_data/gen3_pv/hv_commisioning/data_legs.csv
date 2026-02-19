@@ -1,0 +1,5 @@
+project_id,project_name,project_leg_id,leg_number,leg_name,priority,start_iso_week
+mwcu_b10,mwcu_b10,mwcu_b10_1,1,Sequence,1,2026-W36
+mwcu_b10,mwcu_b10,mwcu_b10_2,2,Sequence,2,2026-W40
+mwcu_a7,mwcu_a7,mwcu_a7_1,1,Sequence,3,2026-W36
+mwcu_a7,mwcu_a7,mwcu_a7_2,2,Sequence,4,2026-W40

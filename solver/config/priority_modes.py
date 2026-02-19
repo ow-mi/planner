@@ -27,11 +27,11 @@ class BasePriorityConfig:
     """Base configuration for all priority modes."""
 
     mode: PriorityMode
+    config_source: Optional[str] = None
     description: str = ""
-    weights: Dict[str, float] = field(default_factory=lambda: {
-        "makespan_weight": 0.5,
-        "priority_weight": 0.5
-    })
+    weights: Dict[str, float] = field(
+        default_factory=lambda: {"makespan_weight": 0.5, "priority_weight": 0.5}
+    )
 
     def validate(self) -> List[str]:
         """Validate configuration parameters."""
@@ -53,8 +53,12 @@ class LegPriorityConfig(BasePriorityConfig):
     description: str = "Higher priority legs get scheduled first. Lower priority legs can only start after higher priority legs complete."
 
     leg_weights: Dict[str, float] = field(default_factory=dict)
-    priority_sequence: List[str] = field(default_factory=list)  # Ordered list of leg IDs by priority
-    priority_penalty_per_day: float = 500.0  # Penalty applied when lower priority legs start too early
+    priority_sequence: List[str] = field(
+        default_factory=list
+    )  # Ordered list of leg IDs by priority
+    priority_penalty_per_day: float = (
+        500.0  # Penalty applied when lower priority legs start too early
+    )
 
     def validate(self) -> List[str]:
         """Validate leg priority configuration."""
@@ -162,7 +166,11 @@ class ResourceBottleneckConfig(BasePriorityConfig):
             errors.append("resource_balance_weight must be non-negative")
 
         # Ensure resource_balance_weight + makespan_weight + priority_weight = 1
-        total = self.resource_balance_weight + self.weights["makespan_weight"] + self.weights["priority_weight"]
+        total = (
+            self.resource_balance_weight
+            + self.weights["makespan_weight"]
+            + self.weights["priority_weight"]
+        )
         if abs(total - 1.0) > 0.001:
             errors.append(f"Total weights must sum to 1.0, got {total}")
 
@@ -180,14 +188,18 @@ class TestProximityConfig(BasePriorityConfig):
     proximity rules can be combined with the underlying objective logic.
     """
 
-    mode: PriorityMode = PriorityMode.END_DATE_PRIORITY  # Base mode for proximity constraints
+    mode: PriorityMode = (
+        PriorityMode.END_DATE_PRIORITY
+    )  # Base mode for proximity constraints
     description: str = "Test proximity constraints: Tests with specified patterns must run close to their predecessors."
-    test_proximity_rules: Dict[str, Any] = field(default_factory=lambda: {
-        "patterns": ["p-02", "p-03"],
-        "max_gap_days": 30,
-        "proximity_penalty_per_day": 50.0,
-        "enforce_sequence_order": True
-    })
+    test_proximity_rules: Dict[str, Any] = field(
+        default_factory=lambda: {
+            "patterns": ["p-02", "p-03"],
+            "max_gap_days": 30,
+            "proximity_penalty_per_day": 50.0,
+            "enforce_sequence_order": True,
+        }
+    )
     base_config: Optional[BasePriorityConfig] = None
 
     def validate(self) -> List[str]:
@@ -214,12 +226,16 @@ class TestProximityConfig(BasePriorityConfig):
         # Validate proximity_penalty_per_day
         penalty = rules.get("proximity_penalty_per_day", 50.0)
         if not isinstance(penalty, (int, float)) or penalty < 0:
-            errors.append("test_proximity_rules.proximity_penalty_per_day must be non-negative")
+            errors.append(
+                "test_proximity_rules.proximity_penalty_per_day must be non-negative"
+            )
 
         # Validate enforce_sequence_order
         enforce_order = rules.get("enforce_sequence_order", True)
         if not isinstance(enforce_order, bool):
-            errors.append("test_proximity_rules.enforce_sequence_order must be a boolean")
+            errors.append(
+                "test_proximity_rules.enforce_sequence_order must be a boolean"
+            )
 
         # Validate wrapped base configuration if present
         if self.base_config is None:
@@ -230,7 +246,9 @@ class TestProximityConfig(BasePriorityConfig):
         return errors
 
 
-def create_priority_config(mode: PriorityMode, **kwargs) -> BasePriorityConfig:
+def create_priority_config(
+    mode: PriorityMode, config_source: Optional[str] = None, **kwargs
+) -> BasePriorityConfig:
     """Factory function to create priority configuration objects."""
 
     config_classes = {
@@ -245,6 +263,9 @@ def create_priority_config(mode: PriorityMode, **kwargs) -> BasePriorityConfig:
     if not config_class:
         raise ValueError(f"Unknown priority mode: {mode}")
 
+    if config_source is not None:
+        kwargs["config_source"] = config_source
+
     if kwargs:
         allowed_fields = {f.name for f in fields(config_class)}
         kwargs = {key: value for key, value in kwargs.items() if key in allowed_fields}
@@ -252,7 +273,9 @@ def create_priority_config(mode: PriorityMode, **kwargs) -> BasePriorityConfig:
     return config_class(**kwargs)
 
 
-def load_priority_config_from_dict(config_dict: Dict[str, Any]) -> BasePriorityConfig:
+def load_priority_config_from_dict(
+    config_dict: Dict[str, Any], config_source: Optional[str] = None
+) -> BasePriorityConfig:
     """Load priority configuration from dictionary (e.g., from JSON)."""
 
     if not isinstance(config_dict, dict):
@@ -274,11 +297,13 @@ def load_priority_config_from_dict(config_dict: Dict[str, Any]) -> BasePriorityC
     # Handle date parsing for specific modes on the copied data
     if mode == PriorityMode.END_DATE_STICKY and "target_completion_date" in config_data:
         from datetime import datetime
+
         date_str = config_data["target_completion_date"]
         config_data["target_completion_date"] = datetime.fromisoformat(date_str).date()
 
     if mode == PriorityMode.LEG_END_DATES and "leg_deadlines" in config_data:
         from datetime import datetime
+
         deadlines = {}
         for leg_id, date_str in config_data["leg_deadlines"].items():
             deadlines[leg_id] = datetime.fromisoformat(date_str).date()
@@ -287,15 +312,18 @@ def load_priority_config_from_dict(config_dict: Dict[str, Any]) -> BasePriorityC
     # Remove mode from kwargs before constructing configuration
     config_data.pop("mode", None)
 
-    base_config = create_priority_config(mode, **config_data)
+    base_config = create_priority_config(
+        mode, config_source=config_source, **config_data
+    )
 
     # If proximity rules are provided, wrap the base configuration
     if proximity_rules is not None:
         proximity_config = TestProximityConfig(
             mode=mode,
+            config_source=config_source,
             weights=dict(base_config.weights),
             test_proximity_rules=proximity_rules,
-            base_config=base_config
+            base_config=base_config,
         )
         return proximity_config
 
@@ -305,9 +333,3 @@ def load_priority_config_from_dict(config_dict: Dict[str, Any]) -> BasePriorityC
 def validate_priority_config(config: BasePriorityConfig) -> List[str]:
     """Validate a priority configuration object."""
     return config.validate()
-
-
-
-
-
-

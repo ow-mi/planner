@@ -1,0 +1,33 @@
+{
+  "name": "planner-redesign-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "serve": "npx serve . -l 5173",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.18.6",
+    "@codemirror/commands": "^6.8.1",
+    "@codemirror/lang-javascript": "^6.2.4",
+    "@codemirror/language": "^6.11.3",
+    "@codemirror/lint": "^6.9.1",
+    "@codemirror/search": "^6.5.11",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/theme-one-dark": "^6.1.3",
+    "@codemirror/view": "^6.38.6",
+    "@lezer/common": "^1.3.0",
+    "@lezer/highlight": "^1.2.3",
+    "@lezer/javascript": "^1.5.4",
+    "@lezer/lr": "^1.4.3",
+    "crelt": "^1.0.6",
+    "style-mod": "^4.1.2",
+    "w3c-keyname": "^2.2.8"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "serve": "^14.2.4"
+  }
+}

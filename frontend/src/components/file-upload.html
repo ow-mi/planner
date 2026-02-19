@@ -1,7 +1,137 @@
-<div x-data="fileUploadComponent()" x-init="init()">
-    <!-- Folder Input Section -->
+<div x-data="fileUploadComponent()">
+    <!-- File Upload Section (Drag & Drop + Browse) -->
     <div class="section">
-        <h3>Import Inputs From Folder</h3>
+        <h3>Upload Files</h3>
+        <p>Drag and drop files here or browse to upload CSV, Excel, or JSON files.</p>
+        
+        <!-- Drag and Drop Zone -->
+        <div 
+            class="drop-zone"
+            :class="{ 'drag-over': dragOver, 'uploading': isUploading }"
+            @dragenter.prevent="handleDragEnter($event)"
+            @dragleave.prevent="handleDragLeave($event)"
+            @dragover.prevent="handleDragOver($event)"
+            @drop.prevent="handleDrop($event)"
+            @click="triggerFileInput()"
+            role="button"
+            tabindex="0"
+            aria-label="Drop files here or click to browse"
+            @keydown.enter.prevent="triggerFileInput()"
+            @keydown.space.prevent="triggerFileInput()"
+        >
+            <input 
+                type="file" 
+                id="file-upload-input"
+                multiple
+                accept=".csv,.xlsx,.xls,.json"
+                style="display: none;"
+                @change="handleFileSelect($event)"
+            >
+            
+            <div class="drop-zone-content">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1rem; opacity: 0.7;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p x-show="!isUploading" style="margin: 0; font-weight: 500;">
+                    <span x-show="!dragOver">Drop files here or click to browse</span>
+                    <span x-show="dragOver" style="color: var(--p);">Drop files to upload</span>
+                </p>
+                <p x-show="isUploading" style="margin: 0; font-weight: 500; color: var(--p);">
+                    Uploading... <span x-text="uploadProgress + '%'"></span>
+                </p>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: var(--text-light);">
+                    Supported: CSV, Excel (.xlsx, .xls), JSON
+                </p>
+            </div>
+            
+            <!-- Upload Progress Bar -->
+            <div x-show="isUploading" class="upload-progress-container">
+                <div class="upload-progress-bar" :style="`width: ${uploadProgress}%`"></div>
+            </div>
+        </div>
+        
+        <!-- Upload Error -->
+        <div x-show="uploadError" class="validation-error" style="margin-top: 0.5rem;">
+            <span x-text="uploadError"></span>
+            <button @click="clearUploadError()" class="btn btn-sm" style="margin-left: 0.5rem;">Dismiss</button>
+        </div>
+    </div>
+
+    <!-- Uploaded Files List -->
+    <div x-show="directUploads.length > 0" class="section" style="margin-top: 1.5rem;">
+        <h3>Uploaded Files</h3>
+        <p>Select a file to use as the active input:</p>
+        
+        <div class="uploaded-files-list">
+            <template x-for="file in directUploads" :key="file.fileId">
+                <div 
+                    class="uploaded-file-item"
+                    :class="{ 'active': file.filename === selectedFile, 'config': file.fileType === 'config' }"
+                    @click="setActiveFile(file.filename)"
+                >
+                    <div class="file-icon">
+                        <svg x-show="file.extension === '.csv'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="8" y1="13" x2="16" y2="13"></line>
+                            <line x1="8" y1="17" x2="16" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <svg x-show="file.extension === '.xlsx' || file.extension === '.xls'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="9" y1="21" x2="9" y2="9"></line>
+                        </svg>
+                        <svg x-show="file.extension === '.json'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <path d="M10 12a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2h-4z"></path>
+                        </svg>
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name" x-text="file.filename"></div>
+                        <div class="file-meta">
+                            <span x-text="helpers.formatFileSize(file.sizeBytes)"></span>
+                            <span class="file-type-badge" x-text="file.fileType === 'config' ? 'Config' : 'Spreadsheet'"></span>
+                        </div>
+                    </div>
+                    <div class="file-status">
+                        <span x-show="file.filename === selectedFile" class="active-badge">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Active
+                        </span>
+                    </div>
+                    <button 
+                        class="btn btn-danger btn-sm"
+                        @click.stop="removeUploadedFile(file.filename)"
+                        title="Remove file"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </template>
+        </div>
+        
+        <!-- Actions -->
+        <div class="form-group" style="margin-top: 1rem;">
+            <button @click="clearAllUploadedFiles()" class="btn btn-danger" :disabled="directUploads.length === 0">
+                Clear All Uploaded Files
+            </button>
+        </div>
+    </div>
+
+    <hr style="margin: 2rem 0; border-color: var(--border-color);">
+
+    <!-- Legacy Folder Input Section -->
+    <div class="section">
+        <h3>Or Import From Folder</h3>
         <p>Provide an absolute folder path containing CSV inputs (and optional <code>priority_config.json</code>).</p>
 
         <div class="form-group">
@@ -20,9 +150,9 @@
             <button @click="importFolder()" class="btn" :disabled="isLoading">Import Folder</button>
         </div>
 
-        <!-- File List -->
+        <!-- Legacy File List -->
         <div x-show="uploadedFiles.length > 0">
-            <h3>Discovered Files</h3>
+            <h4 style="margin-top: 1.5rem;">Folder Files</h4>
             <ul class="file-list">
                 <template x-for="(file, fileIndex) in uploadedFiles" :key="`${file.name}-${file.size || 0}-${file.lastModified || 0}`">
                     <li>
@@ -32,10 +162,6 @@
                     </li>
                 </template>
             </ul>
-
-            <div class="form-group" style="margin-top: 1rem;">
-                <button @click="clearAllFiles()" class="btn btn-danger" :disabled="uploadedFiles.length === 0">Clear All Files</button>
-            </div>
         </div>
 
         <!-- Error Display -->
@@ -45,14 +171,166 @@
     </div>
 </div>
 
+<style>
+/* Drop Zone Styles */
+.drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: oklch(var(--b2));
+    position: relative;
+    overflow: hidden;
+}
+
+.drop-zone:hover {
+    border-color: oklch(var(--p));
+    background-color: oklch(var(--b1));
+}
+
+.drop-zone.drag-over {
+    border-color: oklch(var(--p));
+    background-color: oklch(var(--p) / 0.1);
+}
+
+.drop-zone.uploading {
+    cursor: default;
+    opacity: 0.7;
+}
+
+.drop-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.upload-progress-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: var(--border-color);
+}
+
+.upload-progress-bar {
+    height: 100%;
+    background-color: oklch(var(--p));
+    transition: width 0.2s ease;
+}
+
+/* Uploaded Files List Styles */
+.uploaded-files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.uploaded-file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: oklch(var(--b1));
+}
+
+.uploaded-file-item:hover {
+    border-color: oklch(var(--p) / 0.5);
+    background-color: oklch(var(--b2));
+}
+
+.uploaded-file-item.active {
+    border-color: oklch(var(--su));
+    background-color: oklch(var(--su) / 0.1);
+}
+
+.uploaded-file-item.config {
+    border-left: 3px solid oklch(var(--in));
+}
+
+.uploaded-file-item .file-icon {
+    color: oklch(var(--text-light));
+    flex-shrink: 0;
+}
+
+.uploaded-file-item.active .file-icon {
+    color: oklch(var(--su));
+}
+
+.uploaded-file-item .file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.uploaded-file-item .file-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.uploaded-file-item .file-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-light);
+}
+
+.uploaded-file-item .file-type-badge {
+    background-color: oklch(var(--b3));
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
+}
+
+.uploaded-file-item.config .file-type-badge {
+    background-color: oklch(var(--in) / 0.2);
+    color: oklch(var(--in));
+}
+
+.uploaded-file-item .file-status {
+    flex-shrink: 0;
+}
+
+.active-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: oklch(var(--su));
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.uploaded-file-item .btn {
+    flex-shrink: 0;
+    padding: 0.25rem;
+}
+</style>
+
 <script>
 function fileUploadComponent() {
     return {
         dragOver: false,
         helpers: window.helpers,
 
+        // Computed properties from stores
         get uploadedFiles() {
             return this.$store.files.uploadedFiles || [];
+        },
+
+        get directUploads() {
+            return this.$store.files.directUploads || [];
+        },
+
+        get selectedFile() {
+            return this.$store.files.selectedCsv || '';
         },
 
         get error() {
@@ -61,6 +339,18 @@ function fileUploadComponent() {
 
         get isLoading() {
             return this.$store.files.isLoading;
+        },
+
+        get isUploading() {
+            return this.$store.files.isUploading || false;
+        },
+
+        get uploadProgress() {
+            return this.$store.files.uploadProgress || 0;
+        },
+
+        get uploadError() {
+            return this.$store.files.uploadError;
         },
 
         get baseFolderPath() {
@@ -72,9 +362,113 @@ function fileUploadComponent() {
         },
 
         init() {
-            console.log('Folder import component initialized');
+            console.log('[fileUploadComponent] Initialized');
+            // Load any existing direct uploads
+            this.$store.files.loadDirectUploadsFromLocalStorage();
         },
 
+        // Drag & Drop Handlers
+        handleDragEnter(event) {
+            event.preventDefault();
+            if (!this.isUploading) {
+                this.dragOver = true;
+            }
+        },
+
+        handleDragLeave(event) {
+            event.preventDefault();
+            // Only clear if leaving the drop zone (not entering a child)
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+                this.dragOver = false;
+            }
+        },
+
+        handleDragOver(event) {
+            event.preventDefault();
+        },
+
+        handleDrop(event) {
+            event.preventDefault();
+            this.dragOver = false;
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                this.processFiles(files);
+            }
+        },
+
+        // File Input Handlers
+        triggerFileInput() {
+            if (!this.isUploading) {
+                document.getElementById('file-upload-input').click();
+            }
+        },
+
+        handleFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                this.processFiles(files);
+            }
+            // Reset input so same file can be selected again
+            event.target.value = '';
+        },
+
+        // Process uploaded files
+        async processFiles(fileList) {
+            const files = Array.from(fileList);
+            const validFiles = files.filter(file => this.$store.files.isValidFileType(file.name));
+            
+            if (validFiles.length === 0) {
+                alert('No valid files selected. Supported formats: CSV, Excel (.xlsx, .xls), JSON');
+                return;
+            }
+            
+            console.log('[fileUploadComponent] Processing', validFiles.length, 'files');
+            
+            // Upload files via store
+            const result = await this.$store.files.uploadMultipleFiles(validFiles);
+            
+            console.log('[fileUploadComponent] Upload result:', result);
+            
+            if (result.failed > 0) {
+                const failedNames = result.results
+                    .filter(r => !r.success)
+                    .map(r => r.filename)
+                    .join(', ');
+                console.warn('[fileUploadComponent] Failed uploads:', failedNames);
+            }
+        },
+
+        // Set active file
+        setActiveFile(filename) {
+            const success = this.$store.files.setActiveUploadedFile(filename);
+            if (success) {
+                console.log('[fileUploadComponent] Set active file:', filename);
+            }
+        },
+
+        // Remove uploaded file
+        removeUploadedFile(filename) {
+            this.$store.files.removeUploadedFile(filename);
+        },
+
+        // Clear all uploaded files
+        clearAllUploadedFiles() {
+            if (confirm('Are you sure you want to remove all uploaded files?')) {
+                // Remove each uploaded file
+                const uploads = [...this.directUploads];
+                uploads.forEach(file => {
+                    this.$store.files.removeUploadedFile(file.filename);
+                });
+            }
+        },
+
+        // Clear upload error
+        clearUploadError() {
+            this.$store.files.uploadError = null;
+        },
+
+        // Legacy folder methods
         async importFolder() {
             const store = Alpine.store('files');
             if (store && typeof store.importFolder === 'function') {
@@ -101,10 +495,6 @@ function fileUploadComponent() {
                 console.log('[fileUploadComponent] Store type:', typeof store);
                 console.log('[fileUploadComponent] clearAllFiles method:', typeof (store && store.clearAllFiles));
 
-                // TEMPORARILY DISABLED: const confirmed = confirm('Are you sure you want to clear all imported files?');
-                // console.log('[fileUploadComponent] Confirm result:', confirmed);
-
-                // if (confirmed) {
                 console.log('[fileUploadComponent] Calling store.clearAllFiles()');
                 if (store && typeof store.clearAllFiles === 'function') {
                     store.clearAllFiles();
@@ -114,9 +504,6 @@ function fileUploadComponent() {
                     console.error('[fileUploadComponent] ERROR: Store or clearAllFiles method not available');
                     console.error('[fileUploadComponent] Store:', store);
                 }
-                // } else {
-                //     console.log('[fileUploadComponent] User cancelled the clear operation');
-                // }
                 console.log('[fileUploadComponent] clearAllFiles clicked - END');
             } catch (error) {
                 console.error('[fileUploadComponent] ERROR in clearAllFiles:', error);

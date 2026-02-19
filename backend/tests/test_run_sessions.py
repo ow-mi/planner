@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from backend.src.api.main import app
+from backend.src.api.main import app, get_factory
 from backend.src.api.models.requests import SolverRequest
 from backend.src.api.models.responses import (
     ExecutionStatusEnum,
@@ -8,7 +8,6 @@ from backend.src.api.models.responses import (
     SolverResults,
     SolverStatusEnum,
 )
-from backend.src.api.routes import solver as solver_routes
 
 
 client = TestClient(app)
@@ -26,9 +25,16 @@ def _sample_results(execution_id: str) -> SolverResults:
     )
 
 
+def _get_solver_service():
+    """Get the current solver service instance from the factory."""
+    return get_factory().solver_service
+
+
 def test_create_run_session_returns_created_state(monkeypatch):
+    # Patch the solver service through the factory
+    solver_service = _get_solver_service()
     monkeypatch.setattr(
-        solver_routes.solver_service,
+        solver_service,
         "create_run_session",
         lambda: {
             "run_id": "run-123",
@@ -70,8 +76,9 @@ def test_start_run_session_solver_creates_execution(monkeypatch):
         created_at="2026-01-01T00:00:00Z",
         queue_position=1,
     )
+    solver_service = _get_solver_service()
     monkeypatch.setattr(
-        solver_routes.solver_service,
+        solver_service,
         "start_run_session_execution",
         lambda run_id, request: execution,
         raising=False,
@@ -89,8 +96,9 @@ def test_start_run_session_solver_creates_execution(monkeypatch):
 
 
 def test_get_run_session_status_returns_composite_status(monkeypatch):
+    solver_service = _get_solver_service()
     monkeypatch.setattr(
-        solver_routes.solver_service,
+        solver_service,
         "get_run_session_status",
         lambda run_id: {
             "run_id": run_id,
@@ -112,8 +120,9 @@ def test_get_run_session_status_returns_composite_status(monkeypatch):
 
 
 def test_get_run_session_results_returns_solver_results(monkeypatch):
+    solver_service = _get_solver_service()
     monkeypatch.setattr(
-        solver_routes.solver_service,
+        solver_service,
         "get_run_session_status",
         lambda run_id: {
             "run_id": run_id,
@@ -125,7 +134,7 @@ def test_get_run_session_results_returns_solver_results(monkeypatch):
         raising=False,
     )
     monkeypatch.setattr(
-        solver_routes.solver_service,
+        solver_service,
         "get_run_session_results",
         lambda run_id: _sample_results("exec-123"),
         raising=False,
@@ -145,8 +154,9 @@ def test_execute_endpoint_keeps_backward_compatibility(monkeypatch):
         created_at="2026-01-01T00:00:00Z",
         queue_position=0,
     )
+    solver_service = _get_solver_service()
     monkeypatch.setattr(
-        solver_routes.solver_service,
+        solver_service,
         "create_execution",
         lambda request: execution,
     )

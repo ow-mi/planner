@@ -92,7 +92,6 @@ function parseCompositeLegIdentifier(rawValue) {
 }
 
 function normalizeDeadlineEntry(entry) {
-    console.log('[DEBUG] normalizeDeadlineEntry called with:', JSON.parse(JSON.stringify(entry)));
     if (!entry || typeof entry !== 'object') {
         return null;
     }
@@ -108,18 +107,20 @@ function normalizeDeadlineEntry(entry) {
     const endEnabled = typeof entry.endEnabled === 'boolean' ? entry.endEnabled : true;
     const startDeadline = normalizeDeadlineValue(entry.startDeadline || entry.startDate || '');
     const endDeadline = normalizeDeadlineValue(entry.endDeadline || entry.deadlineDate || entry.endDate || '');
+    const deadlinePenaltyRaw = Number(entry.deadlinePenalty);
+    const compactnessRaw = Number(entry.compactness);
 
-    const result = {
+    return {
         project,
         legId,
         branch,
         startDeadline,
         endDeadline,
         startEnabled,
-        endEnabled
+        endEnabled,
+        deadlinePenalty: Number.isFinite(deadlinePenaltyRaw) && deadlinePenaltyRaw >= 0 ? deadlinePenaltyRaw : 0,
+        compactness: Number.isFinite(compactnessRaw) && compactnessRaw >= 0 ? compactnessRaw : 0
     };
-    console.log('[DEBUG] normalizeDeadlineEntry result:', JSON.parse(JSON.stringify(result)));
-    return result;
 }
 
 function buildDefaultDeadlines() {
@@ -150,6 +151,8 @@ function buildDefaultDeadlines() {
         branch: '',
         startDeadline: '',
         endDeadline: convertDateToWeekFormat(entry.endDate),
+        deadlinePenalty: 0,
+        compactness: 0,
         startEnabled: false,
         endEnabled: true
     }));
@@ -192,6 +195,150 @@ function buildDeadlineKey(entry = {}) {
         return `${project}__${legId}`;
     }
     return `${project}__${legId}__${branch}`;
+}
+
+function normalizeOptionText(value) {
+    return String(value ?? '').trim();
+}
+
+function compareCaseInsensitive(a, b) {
+    return a.localeCompare(b, undefined, { sensitivity: 'base' });
+}
+
+function buildCompositeLegId(project, legId, branch) {
+    const projectValue = normalizeOptionText(project);
+    const legValue = normalizeOptionText(legId);
+    const branchValue = normalizeOptionText(branch);
+
+    if (!legValue) {
+        return '';
+    }
+    if (!projectValue && !branchValue) {
+        return legValue;
+    }
+    if (!projectValue) {
+        return `${legValue}__${branchValue}`;
+    }
+    if (!branchValue) {
+        return `${projectValue}__${legValue}`;
+    }
+    return `${projectValue}__${legValue}__${branchValue}`;
+}
+
+function buildTestIdentifier(project, legId, branch, sequence, name) {
+    const projectValue = normalizeOptionText(project);
+    const legValue = normalizeOptionText(legId);
+    const nameValue = normalizeOptionText(name);
+    const sequenceNumber = Number(sequence);
+    const branchValue = normalizeOptionText(branch);
+
+    if (!projectValue || !legValue || !nameValue || !Number.isFinite(sequenceNumber) || sequenceNumber < 1) {
+        return '';
+    }
+
+    const sequenceValue = String(Math.trunc(sequenceNumber));
+    const branchSequence = branchValue ? `${branchValue}_${sequenceValue}` : sequenceValue;
+    return `${projectValue}__${legValue}__${branchSequence}__${nameValue}`;
+}
+
+function parseTestIdentifier(testId) {
+    const value = normalizeOptionText(testId);
+    if (!value) {
+        return null;
+    }
+
+    const parts = value.split('__');
+    if (parts.length < 4) {
+        return null;
+    }
+
+    const project = normalizeOptionText(parts[0]);
+    const legId = normalizeOptionText(parts[1]);
+    const name = normalizeOptionText(parts.slice(3).join('__'));
+    if (!project || !legId || !name) {
+        return null;
+    }
+
+    const part3 = normalizeOptionText(parts[2]);
+    if (!part3) {
+        return null;
+    }
+
+    const legacySequence = Number(parts[3]);
+    if (parts.length >= 5 && Number.isFinite(legacySequence) && legacySequence > 0) {
+        return {
+            project,
+            legId,
+            branch: part3,
+            sequence: Math.trunc(legacySequence),
+            name: normalizeOptionText(parts.slice(4).join('__'))
+        };
+    }
+
+    const branchSequenceMatch = part3.match(/^(.*)_(\d+)$/);
+    if (branchSequenceMatch) {
+        const sequence = Number(branchSequenceMatch[2]);
+        if (Number.isFinite(sequence) && sequence > 0) {
+            return {
+                project,
+                legId,
+                branch: normalizeOptionText(branchSequenceMatch[1]),
+                sequence: Math.trunc(sequence),
+                name
+            };
+        }
+    }
+
+    const directSequence = Number(part3);
+    if (Number.isFinite(directSequence) && directSequence > 0) {
+        return {
+            project,
+            legId,
+            branch: '',
+            sequence: Math.trunc(directSequence),
+            name
+        };
+    }
+
+    return null;
+}
+
+function compareTestIds(a, b) {
+    const parsedA = parseTestIdentifier(a);
+    const parsedB = parseTestIdentifier(b);
+
+    if (!parsedA || !parsedB) {
+        return compareCaseInsensitive(String(a), String(b));
+    }
+
+    const projectCompare = compareCaseInsensitive(parsedA.project, parsedB.project);
+    if (projectCompare !== 0) {
+        return projectCompare;
+    }
+
+    const legCompare = compareCaseInsensitive(parsedA.legId, parsedB.legId);
+    if (legCompare !== 0) {
+        return legCompare;
+    }
+
+    const branchCompare = compareCaseInsensitive(parsedA.branch, parsedB.branch);
+    if (branchCompare !== 0) {
+        return branchCompare;
+    }
+
+    if (parsedA.sequence !== parsedB.sequence) {
+        return parsedA.sequence - parsedB.sequence;
+    }
+
+    return compareCaseInsensitive(parsedA.name, parsedB.name);
+}
+
+function csvEscape(value) {
+    const stringValue = String(value ?? '');
+    if (!/[",\n]/.test(stringValue)) {
+        return stringValue;
+    }
+    return `"${stringValue.replace(/"/g, '""')}"`;
 }
 
 document.addEventListener('alpine:init', () => {
@@ -260,6 +407,7 @@ document.addEventListener('alpine:init', () => {
                   startWeekBuffer: 0,
                   maxParallelTests: 10
               },
+              projects: [],
               legTypes: {},
               legs: {},
               testTypes: {},
@@ -517,7 +665,9 @@ document.addEventListener('alpine:init', () => {
                 legId: id,
                 branch: this.config.deadlines[index].branch || '',
                 startDeadline: normalizeDeadlineValue(startDeadline),
-                endDeadline: normalizeDeadlineValue(endDeadline)
+                endDeadline: normalizeDeadlineValue(endDeadline),
+                deadlinePenalty: this.config.deadlines[index].deadlinePenalty ?? 0,
+                compactness: this.config.deadlines[index].compactness ?? 0
             };
             this.updateOutputSettings();
         },
@@ -547,6 +697,8 @@ document.addEventListener('alpine:init', () => {
                  branch: '',
                  startDeadline: '',
                  endDeadline: '',
+                 deadlinePenalty: 0,
+                 compactness: 0,
                  startEnabled: false,
                  endEnabled: true
              });
@@ -704,6 +856,8 @@ document.addEventListener('alpine:init', () => {
                         branch,
                         startDeadline: normalizeDeadlineValue(startDeadlines[deadlineKey]),
                         endDeadline: normalizeDeadlineValue(endDeadlines[deadlineKey]),
+                        deadlinePenalty: 0,
+                        compactness: 0,
                         startEnabled: startDeadlines[deadlineKey] !== undefined,
                         endEnabled: endDeadlines[deadlineKey] !== undefined
                     };
@@ -1162,52 +1316,538 @@ document.addEventListener('alpine:init', () => {
           getFteOptions() {
               const options = [];
               // Add FTE resources
-              if (this.fte?.resources) {
-                  this.fte.resources.forEach(resource => {
-                      options.push({
-                          id: resource.id,
-                          name: resource.name || resource.id,
-                          type: 'resource'
-                      });
+              const resources = Array.isArray(this.fte?.resources) ? this.fte.resources : [];
+              resources.forEach(resource => {
+                  const id = normalizeOptionText(resource?.id);
+                  if (!id) {
+                      return;
+                  }
+                  const name = normalizeOptionText(resource?.name) || id;
+                  options.push({
+                      id,
+                      value: id,
+                      name,
+                      label: name,
+                      type: 'resource'
                   });
-              }
+              });
               // Add FTE aliases
-              if (this.fte?.aliases) {
-                  Object.keys(this.fte.aliases).forEach(aliasName => {
-                      options.push({
-                          id: aliasName,
-                          name: aliasName + ' (alias)',
-                          type: 'alias'
-                      });
+              const aliases = this.fte?.aliases && typeof this.fte.aliases === 'object' ? this.fte.aliases : {};
+              Object.keys(aliases).forEach(aliasName => {
+                  const id = normalizeOptionText(aliasName);
+                  if (!id) {
+                      return;
+                  }
+                  const name = `${id} (alias)`;
+                  options.push({
+                      id,
+                      value: id,
+                      name,
+                      label: name,
+                      type: 'alias'
                   });
+              });
+              return options.sort((a, b) => compareCaseInsensitive(a.label, b.label));
+          },
+
+          formatLegDisplayName(legId) {
+              const parsed = parseCompositeLegIdentifier(legId);
+              const legValue = normalizeOptionText(parsed.legId);
+              if (!legValue) {
+                  return '';
               }
-              return options;
+              return buildCompositeLegId(parsed.project, legValue, parsed.branch);
+          },
+
+          formatTestDisplayName(testId) {
+              const value = normalizeOptionText(testId);
+              if (!value) {
+                  return '';
+              }
+              const parsed = parseTestIdentifier(value);
+              if (parsed) {
+                  return buildTestIdentifier(parsed.project, parsed.legId, parsed.branch, parsed.sequence, parsed.name) || value;
+              }
+              return value;
+          },
+
+          resolveResourceOptionLabel(field, resourceId) {
+              const resourceValue = normalizeOptionText(resourceId);
+              if (!resourceValue) {
+                  return '';
+              }
+              const options = field === 'fteResources' ? this.getFteOptions() : this.getEquipmentOptions();
+              const match = options.find(option => option.id === resourceValue || option.value === resourceValue);
+              return match?.label || match?.name || resourceValue;
+          },
+
+          getTestContext(testId) {
+              const parsed = parseTestIdentifier(testId);
+              const hierarchyTest = this.testHierarchy?.tests?.[testId] || {};
+              if (!parsed) {
+                  return {
+                      project: '',
+                      legId: '',
+                      branch: '',
+                      sequence: null,
+                      name: '',
+                      legKey: '',
+                      legKeys: [],
+                      testType: normalizeOptionText(hierarchyTest.testType || '')
+                  };
+              }
+
+              const testType = normalizeOptionText(hierarchyTest.testType || parsed.name || '');
+              const legKey = buildCompositeLegId(parsed.project, parsed.legId, parsed.branch);
+              const legKeys = [legKey, normalizeOptionText(parsed.legId)]
+                  .map(normalizeOptionText)
+                  .filter(Boolean)
+                  .filter((value, index, list) => list.indexOf(value) === index);
+
+              return {
+                  ...parsed,
+                  legKey,
+                  legKeys,
+                  testType
+              };
+          },
+
+          getInheritanceBackground(originKey) {
+              const colors = {
+                  // DaisyUI-aware colors: these automatically follow active theme values.
+                  all: 'oklch(var(--su) / 0.22)',
+                  projects: 'oklch(var(--s) / 0.22)',
+                  legTypes: 'oklch(var(--in) / 0.22)',
+                  legs: 'oklch(var(--p) / 0.24)',
+                  testTypes: 'oklch(var(--wa) / 0.22)',
+                  tests: 'oklch(var(--a) / 0.26)'
+              };
+              return colors[originKey] || colors.all;
+          },
+
+          getOriginKeyForConfigLevel(level) {
+              if (level === 'defaults' || level === 'all') {
+                  return 'all';
+              }
+              const knownLevels = ['projects', 'legTypes', 'legs', 'testTypes', 'tests'];
+              return knownLevels.includes(level) ? level : 'all';
+          },
+
+          getConfigFieldValue(level, configId, field) {
+              if (level === 'defaults') {
+                  return this.testConfig?.defaults?.[field];
+              }
+              return this.testConfig?.[level]?.[configId]?.[field];
+          },
+
+          uniqueValues(values) {
+              const items = Array.isArray(values) ? values : [];
+              return items
+                  .map(normalizeOptionText)
+                  .filter(Boolean)
+                  .filter((value, index, list) => list.indexOf(value) === index);
+          },
+
+          getLegTypeForLeg(legId) {
+              const normalizedLegId = normalizeOptionText(legId);
+              if (!normalizedLegId) {
+                  return '';
+              }
+
+              const explicit = normalizeOptionText(this.testHierarchy?.legs?.[normalizedLegId]?.legType);
+              if (explicit) {
+                  return explicit;
+              }
+
+              const parsed = parseCompositeLegIdentifier(normalizedLegId);
+              return normalizeOptionText(parsed.legId || normalizedLegId);
+          },
+
+          getTestsByType(testType) {
+              const typeValue = normalizeOptionText(testType);
+              if (!typeValue) {
+                  return [];
+              }
+
+              const testsById = this.testHierarchy?.tests || {};
+              return Object.keys(testsById)
+                  .filter((testId) => normalizeOptionText(this.getTestContext(testId).testType) === typeValue)
+                  .sort(compareTestIds);
+          },
+
+          getProjectsForTestType(testType) {
+              const projects = this.getTestsByType(testType).map((testId) => normalizeOptionText(this.getTestContext(testId).project));
+              return this.uniqueValues(projects).sort(compareCaseInsensitive);
+          },
+
+          getLegsForTestType(testType) {
+              const legIds = this.getTestsByType(testType).flatMap((testId) => {
+                  const context = this.getTestContext(testId);
+                  return this.uniqueValues(context.legKeys || []);
+              });
+              return this.uniqueValues(legIds).sort(compareCaseInsensitive);
+          },
+
+          getLegTypesForTestType(testType) {
+              const legTypes = this.getLegsForTestType(testType).map((legId) => this.getLegTypeForLeg(legId));
+              return this.uniqueValues(legTypes).sort(compareCaseInsensitive);
+          },
+
+          getProjectsForLegType(legType) {
+              const typeValue = normalizeOptionText(legType);
+              if (!typeValue) {
+                  return [];
+              }
+
+              const projects = [];
+              const testsById = this.testHierarchy?.tests || {};
+              Object.keys(testsById).forEach((testId) => {
+                  const context = this.getTestContext(testId);
+                  const inferredLegType = this.getLegTypeForLeg(context.legKey || context.legId);
+                  if (normalizeOptionText(inferredLegType) === typeValue) {
+                      projects.push(context.project);
+                  }
+              });
+              return this.uniqueValues(projects).sort(compareCaseInsensitive);
+          },
+
+          buildResolutionChain(level, configId) {
+              const levelValue = normalizeOptionText(level);
+              const idValue = normalizeOptionText(configId);
+
+              if (levelValue === 'all') {
+                  return [{ level: 'defaults', ids: [] }];
+              }
+
+              if (levelValue === 'projects') {
+                  return [
+                      { level: 'projects', ids: this.uniqueValues([idValue]) },
+                      { level: 'defaults', ids: [] }
+                  ];
+              }
+
+              if (levelValue === 'legTypes') {
+                  return [
+                      { level: 'legTypes', ids: this.uniqueValues([idValue]) },
+                      { level: 'projects', ids: this.getProjectsForLegType(idValue) },
+                      { level: 'defaults', ids: [] }
+                  ];
+              }
+
+              if (levelValue === 'legs') {
+                  const parsedLeg = parseCompositeLegIdentifier(idValue);
+                  const project = normalizeOptionText(parsedLeg.project);
+                  const legType = this.getLegTypeForLeg(idValue);
+                  return [
+                      { level: 'legs', ids: this.uniqueValues([idValue]) },
+                      { level: 'legTypes', ids: this.uniqueValues([legType]) },
+                      { level: 'projects', ids: this.uniqueValues([project]) },
+                      { level: 'defaults', ids: [] }
+                  ];
+              }
+
+              if (levelValue === 'testTypes') {
+                  return [
+                      { level: 'testTypes', ids: this.uniqueValues([idValue]) },
+                      { level: 'legs', ids: this.getLegsForTestType(idValue) },
+                      { level: 'legTypes', ids: this.getLegTypesForTestType(idValue) },
+                      { level: 'projects', ids: this.getProjectsForTestType(idValue) },
+                      { level: 'defaults', ids: [] }
+                  ];
+              }
+
+              if (levelValue === 'tests') {
+                  const context = this.getTestContext(idValue);
+                  const legCandidates = this.uniqueValues(context.legKeys || []);
+                  const legType = this.getLegTypeForLeg(context.legKey || context.legId);
+                  return [
+                      { level: 'tests', ids: this.uniqueValues([idValue]) },
+                      { level: 'testTypes', ids: this.uniqueValues([context.testType]) },
+                      { level: 'legs', ids: legCandidates },
+                      { level: 'legTypes', ids: this.uniqueValues([legType]) },
+                      { level: 'projects', ids: this.uniqueValues([context.project]) },
+                      { level: 'defaults', ids: [] }
+                  ];
+              }
+
+              return [{ level: 'defaults', ids: [] }];
+          },
+
+          resolveFieldFromChain(chain, field) {
+              for (const entry of chain) {
+                  if (!entry || !entry.level) {
+                      continue;
+                  }
+
+                  if (entry.level === 'defaults') {
+                      const defaultValue = this.getConfigFieldValue('defaults', '', field);
+                      return {
+                          value: this.normalizeResolvedFieldValue(field, defaultValue),
+                          originLevel: 'all',
+                          originKey: 'all',
+                          sourceId: 'defaults'
+                      };
+                  }
+
+                  const candidateIds = this.uniqueValues(entry.ids || []);
+                  for (const candidateId of candidateIds) {
+                      const candidateValue = this.getConfigFieldValue(entry.level, candidateId, field);
+                      if (candidateValue !== undefined) {
+                          return {
+                              value: this.normalizeResolvedFieldValue(field, candidateValue),
+                              originLevel: entry.level,
+                              originKey: this.getOriginKeyForConfigLevel(entry.level),
+                              sourceId: candidateId
+                          };
+                      }
+                  }
+              }
+
+              return {
+                  value: this.getDefaultFieldValue(field),
+                  originLevel: 'all',
+                  originKey: 'all',
+                  sourceId: 'defaults'
+              };
+          },
+
+          normalizeResolvedFieldValue(field, value) {
+              if (field === 'fteResources' || field === 'equipmentResources') {
+                  return Array.isArray(value) ? value.map(normalizeOptionText).filter(Boolean) : [];
+              }
+
+              if (field === 'fteTimePercentage' || field === 'equipmentTimePercentage') {
+                  const numberValue = Number(value);
+                  return Number.isFinite(numberValue) ? numberValue : 100;
+              }
+
+              if (field === 'isExternal') {
+                  return Boolean(value);
+              }
+
+              if (field === 'forceStartWeek') {
+                  return normalizeOptionText(value);
+              }
+
+              return value;
+          },
+
+          getDefaultFieldValue(field) {
+              const defaults = this.testConfig?.defaults || {};
+              return this.normalizeResolvedFieldValue(field, defaults[field]);
+          },
+
+          resolveResourceNames(field, values) {
+              const items = Array.isArray(values) ? values : [];
+              const names = items
+                  .map((value) => this.resolveResourceOptionLabel(field, value))
+                  .map(normalizeOptionText)
+                  .filter(Boolean);
+
+              const uniqueNames = Array.from(new Set(names));
+              return uniqueNames.sort(compareCaseInsensitive);
+          },
+
+          resolveTestFieldWithOrigin(testId, field) {
+              return this.getResolvedFieldForLevel('tests', testId, field);
+          },
+
+          getResolvedFieldForLevel(level, configId, field) {
+              const resolutionChain = this.buildResolutionChain(level, configId);
+              return this.resolveFieldFromChain(resolutionChain, field);
+          },
+
+          getResolvedTestSetting(testId, field) {
+              return this.resolveTestFieldWithOrigin(testId, field).value;
+          },
+
+          getResolvedTestConfigRows() {
+              const testsById = this.testHierarchy?.tests || {};
+              const rows = Object.keys(testsById).map((testId) => {
+                  const context = this.getTestContext(testId);
+                  const testType = context.testType || normalizeOptionText(testsById[testId]?.displayName || '');
+                  const fteResourcesResolved = this.resolveTestFieldWithOrigin(testId, 'fteResources');
+                  const equipmentResourcesResolved = this.resolveTestFieldWithOrigin(testId, 'equipmentResources');
+                  const fteTimePercentageResolved = this.resolveTestFieldWithOrigin(testId, 'fteTimePercentage');
+                  const equipmentTimePercentageResolved = this.resolveTestFieldWithOrigin(testId, 'equipmentTimePercentage');
+                  const isExternalResolved = this.resolveTestFieldWithOrigin(testId, 'isExternal');
+                  const forceStartWeekResolved = this.resolveTestFieldWithOrigin(testId, 'forceStartWeek');
+                  const fteResourceIds = this.normalizeResolvedFieldValue('fteResources', fteResourcesResolved.value);
+                  const equipmentResourceIds = this.normalizeResolvedFieldValue('equipmentResources', equipmentResourcesResolved.value);
+
+                  return {
+                      testType,
+                      testId: this.formatTestDisplayName(testId) || testId,
+                      project: context.project,
+                      leg: context.legId,
+                      branch: context.branch,
+                      sequence: context.sequence ?? '',
+                      name: context.name,
+                      fteResources: fteResourceIds,
+                      equipmentResources: equipmentResourceIds,
+                      fteResourcesDisplay: this.resolveResourceNames('fteResources', fteResourceIds),
+                      equipmentResourcesDisplay: this.resolveResourceNames('equipmentResources', equipmentResourceIds),
+                      fteTimePercentage: this.normalizeResolvedFieldValue('fteTimePercentage', fteTimePercentageResolved.value),
+                      equipmentTimePercentage: this.normalizeResolvedFieldValue('equipmentTimePercentage', equipmentTimePercentageResolved.value),
+                      isExternal: this.normalizeResolvedFieldValue('isExternal', isExternalResolved.value),
+                      forceStartWeek: this.normalizeResolvedFieldValue('forceStartWeek', forceStartWeekResolved.value),
+                      origins: {
+                          fteResources: fteResourcesResolved.originKey,
+                          equipmentResources: equipmentResourcesResolved.originKey,
+                          fteTimePercentage: fteTimePercentageResolved.originKey,
+                          equipmentTimePercentage: equipmentTimePercentageResolved.originKey,
+                          isExternal: isExternalResolved.originKey,
+                          forceStartWeek: forceStartWeekResolved.originKey
+                      }
+                  };
+              });
+
+              return rows.sort((a, b) => compareTestIds(a.testId, b.testId));
+          },
+
+          getResolvedTestConfigCsv() {
+              const headers = [
+                  'test_type',
+                  'test_id',
+                  'project',
+                  'leg',
+                  'branch',
+                  'sequence',
+                  'name',
+                  'fte_resources',
+                  'equipment_resources',
+                  'fte_time_percentage',
+                  'equipment_time_percentage',
+                  'is_external',
+                  'force_start_week'
+              ];
+
+              const rows = this.getResolvedTestConfigRows();
+              const lines = [headers.join(',')];
+              rows.forEach((row) => {
+                  const cells = [
+                      row.testType,
+                      row.testId,
+                      row.project,
+                      row.leg,
+                      row.branch,
+                      row.sequence,
+                      row.name,
+                      (row.fteResourcesDisplay || []).join(';'),
+                      (row.equipmentResourcesDisplay || []).join(';'),
+                      row.fteTimePercentage,
+                      row.equipmentTimePercentage,
+                      row.isExternal ? 'true' : 'false',
+                      row.forceStartWeek
+                  ];
+                  lines.push(cells.map(csvEscape).join(','));
+              });
+              return lines.join('\n');
+          },
+
+          getSortedHierarchyOptions(level) {
+              if (level === 'projects') {
+                  const projectSet = new Set();
+                  const projectArray = Array.isArray(this.testHierarchy?.projects) ? this.testHierarchy.projects : [];
+                  projectArray.forEach(project => {
+                      const normalized = normalizeOptionText(project);
+                      if (normalized) {
+                          projectSet.add(normalized);
+                      }
+                  });
+                  Object.keys(this.testConfig?.projects || {}).forEach(project => {
+                      const normalized = normalizeOptionText(project);
+                      if (normalized) {
+                          projectSet.add(normalized);
+                      }
+                  });
+                  Object.keys(this.testHierarchy?.legs || {}).forEach(legId => {
+                      const parsed = parseCompositeLegIdentifier(legId);
+                      const normalized = normalizeOptionText(parsed.project);
+                      if (normalized) {
+                          projectSet.add(normalized);
+                      }
+                  });
+                  Object.keys(this.testHierarchy?.tests || {}).forEach(testId => {
+                      const first = normalizeOptionText(String(testId).split('__')[0]);
+                      if (first) {
+                          projectSet.add(first);
+                      }
+                  });
+                  return Array.from(projectSet)
+                      .sort(compareCaseInsensitive)
+                      .map(project => ({ value: project, label: project }));
+              }
+
+              if (level === 'legTypes') {
+                  const values = Object.keys(this.testHierarchy?.legTypes || {}).filter(Boolean).sort(compareCaseInsensitive);
+                  return values.map(legType => ({ value: legType, label: legType }));
+              }
+
+              if (level === 'legs') {
+                  const legSet = new Set(Object.keys(this.testHierarchy?.legs || {}).filter(Boolean));
+                  if (legSet.size === 0) {
+                      (this.config?.deadlines || []).forEach((deadline) => {
+                          const legId = buildCompositeLegId(deadline?.project, deadline?.legId, deadline?.branch);
+                          if (legId) {
+                              legSet.add(legId);
+                          }
+                      });
+                  }
+                  return Array.from(legSet)
+                      .sort(compareCaseInsensitive)
+                      .map(legId => ({ value: legId, label: this.formatLegDisplayName(legId) || legId }));
+              }
+
+              if (level === 'testTypes') {
+                  const values = Object.keys(this.testHierarchy?.testTypes || {}).filter(Boolean).sort(compareCaseInsensitive);
+                  return values.map(testType => ({ value: testType, label: testType }));
+              }
+
+              if (level === 'tests') {
+                  const values = Object.keys(this.testHierarchy?.tests || {}).filter(Boolean).sort(compareTestIds);
+                  return values.map(testId => ({ value: testId, label: this.formatTestDisplayName(testId) || testId }));
+              }
+
+              return [];
           },
 
           // Get available Equipment options (resources + aliases)
           getEquipmentOptions() {
               const options = [];
               // Add equipment resources
-              if (this.equipment?.resources) {
-                  this.equipment.resources.forEach(resource => {
-                      options.push({
-                          id: resource.id,
-                          name: resource.name || resource.id,
-                          type: 'resource'
-                      });
+              const resources = Array.isArray(this.equipment?.resources) ? this.equipment.resources : [];
+              resources.forEach(resource => {
+                  const id = normalizeOptionText(resource?.id);
+                  if (!id) {
+                      return;
+                  }
+                  const name = normalizeOptionText(resource?.name) || id;
+                  options.push({
+                      id,
+                      value: id,
+                      name,
+                      label: name,
+                      type: 'resource'
                   });
-              }
+              });
               // Add equipment aliases
-              if (this.equipment?.aliases) {
-                  Object.keys(this.equipment.aliases).forEach(aliasName => {
-                      options.push({
-                          id: aliasName,
-                          name: aliasName + ' (alias)',
-                          type: 'alias'
-                      });
+              const aliases = this.equipment?.aliases && typeof this.equipment.aliases === 'object' ? this.equipment.aliases : {};
+              Object.keys(aliases).forEach(aliasName => {
+                  const id = normalizeOptionText(aliasName);
+                  if (!id) {
+                      return;
+                  }
+                  const name = `${id} (alias)`;
+                  options.push({
+                      id,
+                      value: id,
+                      name,
+                      label: name,
+                      type: 'alias'
                   });
-              }
-              return options;
+              });
+              return options.sort((a, b) => compareCaseInsensitive(a.label, b.label));
           },
 
           // Phase D: Add resource to test type at any level
@@ -1354,6 +1994,7 @@ document.addEventListener('alpine:init', () => {
           _extractOrderedCsvEntities(csvData) {
               if (!csvData?.headers || !Array.isArray(csvData.rows)) {
                   return {
+                      projects: [],
                       legTypes: [],
                       legs: [],
                       testTypes: [],
@@ -1373,10 +2014,14 @@ document.addEventListener('alpine:init', () => {
               };
 
               const projectIdx = getIdx(['project']);
-              const legTypeIdx = getIdx(['leg', 'leg_type']);
-              const legIdIdx = getIdx(['project_leg', 'project_leg_id', 'leg_id']);
+              const legTypeIdx = getIdx(['leg_type']);
+              const projectLegIdx = getIdx(['project_leg', 'project_leg_id']);
+              const legIdx = getIdx(['leg', 'leg_id']);
+              const branchIdx = getIdx(['branch', 'leg_branch']);
               const testTypeIdx = getIdx(['tests', 'test_types', 'test_type', 'test']);
               const testIdIdx = getIdx(['project_leg_tests', 'project_leg_test', 'project_leg_test_id', 'test_id', 'test_name']);
+              const sequenceIdx = getIdx(['sequence', 'test_sequence']);
+              const testNameIdx = getIdx(['test_name', 'test']);
               const fteIdx = getIdx(['fte', 'fte_id', 'resource_id']);
               const equipmentIdx = getIdx(['equipment', 'equipment_id']);
 
@@ -1388,13 +2033,16 @@ document.addEventListener('alpine:init', () => {
                   list.push(value);
               };
 
+              const projects = [];
               const legTypes = [];
               const legs = [];
               const testTypes = [];
               const tests = [];
               const fteResources = [];
               const equipmentResources = [];
+              const testTypeByTest = {};
 
+              const seenProjects = new Set();
               const seenLegTypes = new Set();
               const seenLegs = new Set();
               const seenTestTypes = new Set();
@@ -1405,26 +2053,52 @@ document.addEventListener('alpine:init', () => {
 
               csvData.rows.forEach((row) => {
                   const project = val(row, projectIdx);
-                  const legType = val(row, legTypeIdx);
-                  const legId = val(row, legIdIdx) || ((project && legType) ? `${project}__${legType}` : '');
+                  const legTypeFromCsv = val(row, legTypeIdx);
+                  const legName = val(row, legIdx);
+                  const branch = val(row, branchIdx);
+                  const compositeLeg = val(row, projectLegIdx);
+                  const parsedComposite = parseCompositeLegIdentifier(compositeLeg);
+                  const resolvedProject = project || parsedComposite.project;
+                  const resolvedLeg = legName || parsedComposite.legId;
+                  const resolvedBranch = branch || parsedComposite.branch;
+                  const legType = legTypeFromCsv || resolvedLeg;
+                  const legId = compositeLeg || buildCompositeLegId(resolvedProject, resolvedLeg, resolvedBranch) || ((resolvedProject && legType) ? `${resolvedProject}__${legType}` : '');
                   const testType = val(row, testTypeIdx);
+                  const testName = val(row, testNameIdx) || testType;
                   let testId = val(row, testIdIdx);
-                  if (!testId && legId && testType) {
-                      const base = `${legId}__${testType}`;
-                      const next = (generatedTestCounters.get(base) || 0) + 1;
-                      generatedTestCounters.set(base, next);
-                      testId = `${base}__${next}`;
+
+                  if (!testId && resolvedProject && resolvedLeg && testName) {
+                      const sequenceKey = `${resolvedProject}__${resolvedLeg}__${resolvedBranch}`;
+                      const sequenceFromCsv = val(row, sequenceIdx);
+                      const currentCounter = generatedTestCounters.get(sequenceKey) || 0;
+                      const parsedSequence = Number(sequenceFromCsv);
+                      const sequenceNumber = Number.isFinite(parsedSequence) && parsedSequence > 0
+                          ? parsedSequence
+                          : currentCounter + 1;
+                      generatedTestCounters.set(sequenceKey, Math.max(currentCounter, sequenceNumber));
+                      testId = buildTestIdentifier(resolvedProject, resolvedLeg, resolvedBranch, sequenceNumber, testName);
                   }
 
+                  if (!testId && legId && testName) {
+                      const fallbackKey = `${legId}__${testName}`;
+                      const next = (generatedTestCounters.get(fallbackKey) || 0) + 1;
+                      generatedTestCounters.set(fallbackKey, next);
+                      testId = `${legId}__${testName}__${next}`;
+                  }
+
+                  pushUnique(projects, seenProjects, resolvedProject);
                   pushUnique(legTypes, seenLegTypes, legType);
                   pushUnique(legs, seenLegs, legId);
-                  pushUnique(testTypes, seenTestTypes, testType);
+                  pushUnique(testTypes, seenTestTypes, testType || testName);
                   pushUnique(tests, seenTests, testId);
+                  if (testId && (testType || testName) && testTypeByTest[testId] === undefined) {
+                      testTypeByTest[testId] = testType || testName;
+                  }
                   pushUnique(fteResources, seenFte, val(row, fteIdx));
                   pushUnique(equipmentResources, seenEquipment, val(row, equipmentIdx));
               });
 
-              return { legTypes, legs, testTypes, tests, fteResources, equipmentResources };
+              return { projects, legTypes, legs, testTypes, tests, testTypeByTest, fteResources, equipmentResources };
           },
 
           updateCsvEntities(csvData) {
@@ -1444,6 +2118,7 @@ document.addEventListener('alpine:init', () => {
           syncConfigFromSelectedCsv(csvData) {
               const extracted = this._extractOrderedCsvEntities(csvData);
               const hasMappedValues =
+                  extracted.projects.length > 0 ||
                   extracted.legTypes.length > 0 ||
                   extracted.legs.length > 0 ||
                   extracted.testTypes.length > 0 ||
@@ -1463,6 +2138,9 @@ document.addEventListener('alpine:init', () => {
               const existingLegs = existingHierarchy.legs || {};
               const existingTestTypes = existingHierarchy.testTypes || {};
               const existingTests = existingHierarchy.tests || {};
+
+              const existingProjects = Array.isArray(existingHierarchy.projects) ? existingHierarchy.projects : [];
+              const nextProjects = extracted.projects.length > 0 ? extracted.projects : existingProjects;
 
               extracted.legTypes.forEach((legType) => {
                   const existing = existingLegTypes[legType] || {};
@@ -1497,11 +2175,13 @@ document.addEventListener('alpine:init', () => {
 
               extracted.tests.forEach((testId) => {
                   const existing = existingTests[testId] || {};
+                  const extractedTestType = normalizeOptionText(extracted.testTypeByTest?.[testId]);
                   nextTests[testId] = {
                       displayName: existing.displayName || testId,
                       duration: existing.duration ?? null,
                       priority: existing.priority ?? null,
                       forceStartWeek: existing.forceStartWeek ?? null,
+                      testType: extractedTestType || existing.testType || '',
                       fteResources: Array.isArray(existing.fteResources) ? existing.fteResources : [],
                       equipmentResources: Array.isArray(existing.equipmentResources) ? existing.equipmentResources : []
                   };
@@ -1509,6 +2189,7 @@ document.addEventListener('alpine:init', () => {
 
               this.testHierarchy = {
                   ...this.testHierarchy,
+                  projects: nextProjects,
                   legTypes: nextLegTypes,
                   legs: nextLegs,
                   testTypes: nextTestTypes,
@@ -1540,19 +2221,29 @@ document.addEventListener('alpine:init', () => {
               );
               const todayIsoWeek = convertDateToWeekFormat(new Date().toISOString().slice(0, 10));
 
-              this.config.deadlines = extracted.legs.map((legId) => {
-                  const existing = existingDeadlinesByLeg.get(legId);
-                  if (existing) {
-                      return { ...existing, legId };
-                  }
-                  return {
-                      legId,
-                      startDeadline: todayIsoWeek,
-                      endDeadline: '',
-                      startEnabled: true,
-                      endEnabled: false
-                  };
-              });
+               this.config.deadlines = extracted.legs.map((fullLegId) => {
+                   const parsed = parseCompositeLegIdentifier(fullLegId);
+                   const existing = existingDeadlinesByLeg.get(fullLegId);
+                   if (existing) {
+                       return {
+                           ...existing,
+                           project: parsed.project || existing.project || '',
+                           legId: parsed.legId || fullLegId,
+                           branch: parsed.branch || existing.branch || ''
+                       };
+                   }
+                   return {
+                       project: parsed.project || '',
+                       legId: parsed.legId || fullLegId,
+                       branch: parsed.branch || '',
+                       startDeadline: todayIsoWeek,
+                       endDeadline: '',
+                       deadlinePenalty: 0,
+                       compactness: 0,
+                       startEnabled: true,
+                       endEnabled: false
+                   };
+               });
 
               this.updateOutputSettings();
               return true;
@@ -1768,7 +2459,7 @@ document.addEventListener('alpine:init', () => {
           // ============================================================================
 
           addLegTypeToHierarchy(legType, config = {}) {
-              if (!this.testHierarchy) this.testHierarchy = { projectDefaults: {}, legTypes: {}, legs: {}, testTypes: {} };
+              if (!this.testHierarchy) this.testHierarchy = { projectDefaults: {}, projects: [], legTypes: {}, legs: {}, testTypes: {}, tests: {} };
               if (!this.testHierarchy.legTypes) this.testHierarchy.legTypes = {};
               this.testHierarchy.legTypes[legType] = {
                   duration: config.duration ?? null,
@@ -1786,7 +2477,7 @@ document.addEventListener('alpine:init', () => {
           },
 
           addLegToHierarchy(legId, config = {}) {
-              if (!this.testHierarchy) this.testHierarchy = { projectDefaults: {}, legTypes: {}, legs: {}, testTypes: {} };
+              if (!this.testHierarchy) this.testHierarchy = { projectDefaults: {}, projects: [], legTypes: {}, legs: {}, testTypes: {}, tests: {} };
               if (!this.testHierarchy.legs) this.testHierarchy.legs = {};
               this.testHierarchy.legs[legId] = {
                   duration: config.duration ?? null,
@@ -1804,7 +2495,7 @@ document.addEventListener('alpine:init', () => {
           },
 
           addTestTypeToHierarchy(testType, config = {}) {
-              if (!this.testHierarchy) this.testHierarchy = { projectDefaults: {}, legTypes: {}, legs: {}, testTypes: {} };
+              if (!this.testHierarchy) this.testHierarchy = { projectDefaults: {}, projects: [], legTypes: {}, legs: {}, testTypes: {}, tests: {} };
               if (!this.testHierarchy.testTypes) this.testHierarchy.testTypes = {};
               this.testHierarchy.testTypes[testType] = {
                   duration: config.duration ?? null,
@@ -1898,19 +2589,21 @@ document.addEventListener('alpine:init', () => {
                    { id: 'legTypes', label: 'Leg Types', icon: 'layers', description: 'Leg type-specific settings' },
                    { id: 'legs', label: 'Legs', icon: 'map-pin', description: 'Individual leg overrides' },
                    { id: 'testTypes', label: 'Test Types', icon: 'tag', description: 'Test type patterns' },
-                   { id: 'tests', label: 'Tests', icon: 'file-text', description: 'Individual test configurations' }
+                   { id: 'tests', label: 'Tests', icon: 'file-text', description: 'Individual test configurations' },
+                   { id: 'csv', label: 'CSV', icon: 'table', description: 'Resolved inheritance output in spreadsheet form' }
                ];
            },
 
            // Get editable fields for a specific hierarchy level
            getEditableFields(level) {
                const fieldMap = {
-                   all: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal', 'duration', 'priority'],
+                   all: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
                    projects: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
-                   legTypes: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal', 'duration', 'priority'],
-                   legs: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal', 'duration', 'priority'],
-                   testTypes: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal', 'duration', 'priority'],
-                   tests: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal', 'duration', 'priority', 'forceStartWeek']
+                   legTypes: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
+                   legs: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
+                   testTypes: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
+                   tests: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal', 'forceStartWeek'],
+                   csv: []
                };
                return fieldMap[level] || [];
            },
@@ -1959,33 +2652,8 @@ document.addEventListener('alpine:init', () => {
 
            // Get inherited value by walking up the hierarchy
            getInheritedValue(level, configId, field) {
-               // Define hierarchy order from most specific to most general
-               const hierarchyOrder = ['tests', 'testTypes', 'legs', 'legTypes', 'projects', 'defaults'];
-               const levelIndex = hierarchyOrder.indexOf(level);
-               
-               if (levelIndex === -1) {
-                   return this.testConfig.defaults[field];
-               }
-               
-               // Walk up hierarchy to find inherited value
-               for (let i = levelIndex + 1; i < hierarchyOrder.length; i++) {
-                   const parentLevel = hierarchyOrder[i];
-                   const parentConfig = this.testConfig[parentLevel];
-                   
-                   if (parentConfig) {
-                       if (parentLevel === 'defaults') {
-                           return parentConfig[field];
-                       }
-                       
-                       // For other levels, we need parent ID lookup
-                       // This would need custom logic based on how configIds relate
-                       // For now, return defaults as fallback
-                       return parentConfig[field];
-                   }
-               }
-               
-                return this.testConfig.defaults[field];
-            },
+               return this.getResolvedFieldForLevel(level, configId, field).value;
+           },
 
             // ==================== Data Migration Methods ====================
 

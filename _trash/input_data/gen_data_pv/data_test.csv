@@ -1,0 +1,164 @@
+project_leg_id,sequence_index,test,duration_days,fte_time_pct,fte_assigned,equipment_assigned,test_id,test_description,completion_pct,fte_required,equipment_required,force_start_week_iso
+1,1,PT,,,,,,HV Interlock,0,1,1,*
+1,2,PT,,,,,,Marking,0,1,1,*
+1,3,PT,,,,,,Equipotential Bonding,0,1,1,*
+1,4,PT,,,,,,Conductive Connection to External Electric PSU,0,1,1,*
+1,5,PT,,,,,,Y-Capacitors,0,1,1,*
+1,6,PT,,,,,,Inlet Locking,0,1,1,*
+1,7,PT,,,,,,HV Switching Elements,0,1,1,*
+1,8,PT,,,,,,Line Resistance,0,1,1,*
+1,9,PT,,,,,,Failure of LV Supply Voltage,0,1,1,*
+1,10,PT,,,,,,Isolation Monitoring,0,1,1,*
+1,11,PT,,,,,,Measuring the HV Voltage,0,1,1,*
+1,12,PT,,,,,,Residual Voltage,0,1,1,*
+1,13,PT,,,,,,Voltage Variation in Operational Range,0,1,1,*
+1,14,PT,,,,,,Overvoltage,0,1,1,*
+1,15,PT,,,,,,Undervoltage,0,1,1,*
+1,16,PT,,,,,,Isolation Resistance,0,1,1,*
+1,17,PT,,,,,,Insulation Coordination (Withstand Voltage),0,1,1,*
+1,18,PT,,,,,,Overcurrent Protection,0,1,1,*
+1,19,Leak,,,,,,Leakage,0,1,1,*
+1,20,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+1,21,K-11,,,,,,Steam Jet (IPX9K),0,1,1,*
+1,22,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+1,23,PT,,,,,,Leakage,0,1,1,*
+1,24,PT,,,,,,Isolation Resistance - With Climate Conditions,0,1,1,*
+1,25,P-04,,,,,,Physical Analysis,0,1,1,*
+2.1,1,Leak,,,,,,Leakage,0,1,1,*
+2.1,2,K-01,,,,,,High/low Temperature Storage,0,1,1,*
+2.1,3,K-04,,,,,,Repainting Temperature,0,1,1,*
+2.1,4,P-03,,,,,,Parameter Test Large,0,1,1,*
+2.1,5,K-02,,,,,,Temperature Step,0,1,1,*
+2.1,6,K-05,,,,,,Thermal Shock,0,1,1,*
+2.1,7,P-03-L,,,,,,Parameter Test Large Limited,0,1,1,*
+2.1,8,K-06,,,,,,Salt Spray,0,1,1,*
+2.1,9,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+2.1,10,K-09,,,,,,"Damp Heat, Cyclic",0,1,1,*
+2.1,11,Leak,,,,,,Leakage,0,1,1,*
+2.1,12,P-03-L,,,,,,Parameter Test Large Limited,0,1,1,*
+2.1,13,K-03,,,,,,Low Temperature Operation,0,1,1,*
+2.1,14,P-02,,,,,,Parameter Test Small,0,1,1,*
+2.1,15,M-05,,,,,,Mechanical Shock,0,1,1,*
+2.1,16,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+2.1,17,M-04,,,,,,Vibration,0,1,1,*
+2.1,18,P-03,,,,,,Parameter Test Large,0,1,1,*
+2.1,19,HV S,,,,,,HV Safety,0,1,1,*
+2.1,20,M-03,,,,,,Dust (IP6X),0,1,1,*
+2.1,21,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+2.1,22,K-10,,,,,,Water Protection (IPX6K),0,1,1,*
+2.1,23,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+2.1,24,K-11,,,,,,Steam Jet (IPX9K),0,1,1,*
+2.1,25,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+2.1,26,K-12,,,,,,Thermal Shock Splash Water,0,1,1,*
+2.1,27,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+2.1,28,K-02,,,,,,Temperature Step,0,1,1,*
+2.1,29,P-03-E,,,,,,Parameter Test Large Extended,0,1,1,*
+2.1,30,Leak,,,,,,Leakage,0,1,1,*
+2.1,31,P-04,,,,,,Physical Analysis,0,1,1,*
+2.2,1,Leak,,,,,,Leakage,0,1,1,*
+2.2,2,K-01,,,,,,High/low Temperature Storage,0,1,1,*
+2.2,3,K-04,,,,,,Repainting Temperature,0,1,1,*
+2.2,4,P-03,,,,,,Parameter Test Large,0,1,1,*
+2.2,5,K-02,,,,,,Temperature Step,0,1,1,*
+2.2,6,K-05,,,,,,Thermal Shock,0,1,1,*
+2.2,7,P-03-L,,,,,,Parameter Test Large Limited,0,1,1,*
+2.2,8,K-06,,,,,,Salt Spray,0,1,1,*
+2.2,9,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+2.2,10,K-09,,,,,,"Damp Heat, Cyclic",0,1,1,*
+2.2,11,Leak,,,,,,Leakage,0,1,1,*
+2.2,12,P-03-L,,,,,,Parameter Test Large Limited,0,1,1,*
+2.2,13,K-03,,,,,,Low Temperature Operation,0,1,1,*
+2.2,14,P-02,,,,,,Parameter Test Small,0,1,1,*
+2.2,15,M-05,,,,,,Mechanical Shock,0,1,1,*
+2.2,16,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+2.2,17,M-04,,,,,,Vibration,0,1,1,*
+2.2,18,P-03-E,,,,,,Parameter Test Large Extended,0,1,1,*
+2.2,19,HV S,,,,,,HV Safety,0,1,1,*
+2.2,20,Leak,,,,,,Leakage,0,1,1,*
+2.2,21,P-04,,,,,,Physical Analysis,0,1,1,*
+3,1,Leak,,,,,,Leakage,0,1,1,*
+3,2,K-01,,,,,,High/low Temperature Storage,0,1,1,*
+3,3,K-02,,,,,,Temperature Step,0,1,1,*
+3,4,P-03,,,,,,Parameter Test Large,0,1,1,*
+3,5,L-03,,,,,,Temperature Cycle Endurance [0% - 25%],0,1,1,*
+3,6,P-02,,,,,,Parameter Test Small,0,1,1,*
+3,7,L-03,,,,,,Temperature Cycle Endurance [25% - 50%],0,1,1,*
+3,8,P-02,,,,,,Parameter Test Small,0,1,1,*
+3,9,L-03,,,,,,Temperature Cycle Endurance [50% - 75%],0,1,1,*
+3,10,P-02,,,,,,Parameter Test Small,0,1,1,*
+3,11,L-03,,,,,,Temperature Cycle Endurance [75% - 100%],0,1,1,*
+3,12,P-02,,,,,,Parameter Test Small,0,1,1,*
+3,13,P-03,,,,,,Parameter Test Large,0,1,1,*
+3,14,K-02,,,,,,Temperature Step,0,1,1,*
+3,15,P-03-E,,,,,,Extended Tests of P-03-E,0,1,1,*
+3,16,Leak,,,,,,Leakage,0,1,1,*
+3,17,P-04,,,,,,Physical Analysis,0,1,1,*
+4,1,Leak ,,,,,,Leakage,0,1,1,*
+4,2,K-01,,,,,,High/low Temperature Storage,0,1,1,*
+4,3,P-03,,,,,,Parameter Test Large,0,1,1,*
+4,4,VDA,,,,,,VDA 233-102 Corrosion,0,1,1,*
+4,5,Leakage,,,,,,Leakage,0,1,1,*
+4,6,P-03-E,,,,,,Parameter Test Large Extended,0,1,1,*
+4,7,P-04,,,,,,Physical Analysis,0,1,1,*
+5,1,Leak,,,,,,Leakage,0,1,1,*
+5,2,Leak,,,,,,Leakage,0,1,1,*
+5,3,K-01,,,,,,High/low Temperature Storage,0,1,1,*
+5,4,K-01,,,,,,High/low Temperature Storage,0,1,1,*
+5,5,P-03,,,,,,Parameter Test Large,0,1,1,*
+5,6,P-03,,,,,,Parameter Test Large,0,1,1,*
+5,7,M-07,,,,,,Pressure Change Coolant Circuit,0,1,1,*
+5,8,P-02,,,,,,Parameter Test Small,0,1,1,*
+5,9,C-01,,,,,,Chemicals,0,1,1,*
+5,10,Leak,,,,,,Leakage,0,1,1,*
+5a,11,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+5a,12,K-14,,,,,,"Damp Heat, Steady State",0,1,1,*
+5a,13,Leak,,,,,,Leakage,0,1,1,*
+5a,14,P-03-E,,,,,,Parameter Test Large Extended,0,1,1,*
+5b,15,P-03-E,,,,,,Parameter Test Large Extended,0,1,1,*
+5b,16,P-04,,,,,,Physical Analysis,0,1,1,*
+6,1,Leak,,,,,,Leakage,0,1,1,*
+6,2,K-01,,,,,,High/low Temperature Storage,0,1,1,*
+6,3,P-03,,,,,,Parameter Test Large,0,1,1,*
+6,4,K-10,,,,,,Water Protection (IPX6K),0,1,1,*
+6,5,K-11,,,,,,Steam Jet (IPX9K),0,1,1,*
+6,6,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+6,7,K-12,,,,,,Thermal Shock Splash Water,0,1,1,*
+6,8,Leak,,,,,,Leakage,0,1,1,*
+6,9,P-03-E,,,,,,Parameter Test Large Extended,0,1,1,*
+6,10,P-04,,,,,,Physical Analysis,0,1,1,*
+7,1,Leak,,,,,,Leakage,0,1,1,*
+7,2,K-01,,,,,,High/low Temperature Storage,0,1,1,*
+7,3,K-02,,,,,,Temperature Step,0,1,1,*
+7,4,P-03,,,,,,Parameter Test Large,0,1,1,*
+7,5,L-02,,,,,,Temperature Cycle Endurance [0% - 25%],0,1,1,*
+7,6,P-03,,,,,,Parameter Test Large,0,1,1,*
+7,7,L-02,,,,,,Temperature Cycle Endurance [25% - 50%],0,1,1,*
+7,8,P-03,,,,,,Parameter Test Large,0,1,1,*
+7,9,L-02,,,,,,Temperature Cycle Endurance [50% - 75%],0,1,1,*
+7,10,P-03,,,,,,Parameter Test Large,0,1,1,*
+7,11,L-02,,,,,,Temperature Cycle Endurance [75% - 100%],0,1,1,*
+7,12,P-03,,,,,,Parameter Test Large,0,1,1,*
+7,13,K-02,,,,,,Temperature Step,0,1,1,*
+7,14,P-03-E,,,,,,Extended Tests of P-03-E,0,1,1,*
+7,15,Leak,,,,,,Leakage,0,1,1,*
+7,16,P-04,,,,,,Physical Analysis,0,1,1,*
+8,1,Leak,,,,,,Leakage,0,1,1,*
+8,2,PT,,,,,,Parameter Test: Inlet Locking,0,1,1,*
+8,3,PT,,,,,,Parameter Test: Voltage Measurement,0,1,1,*
+8,4,PT,,,,,,Parameter Test: Current Measurement,0,1,1,*
+8,5,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+8,6,,,,,,,Resonance Search,0,1,1,*
+8,7,M-04,,,,,,Vibration,0,1,1,*
+8,8,Leak,,,,,,Leakage,0,1,1,*
+8,9,PT,,,,,,Parameter Test: Inlet Locking,0,1,1,*
+8,10,PT,,,,,,Parameter Test: Voltage Measurement,0,1,1,*
+8,11,PT,,,,,,Parameter Test: Current Measurement,0,1,1,*
+8,12,P-02-L,,,,,,Parameter Test Small Limited,0,1,1,*
+8,13,P-04,,,,,,Physical Analysis,0,1,1,*
+9,1,Leak,,,,,,Leakage,0,1,1,*
+9,2,K-01,,,,,,High/low Temperature Storage,0,1,1,*
+9,3,P-03 ,,,,,,Parameter Test Large,0,1,1,*
+9,4,T-Saf,,,,,,Thermal Saftey,0,1,1,*
+9,5,Leak,,,,,,Leakage,0,1,1,*
+9,6,P-03-E,,,,,,Extended Tests of P-03-E,0,1,1,*
+9,7,P-04,,,,,,Physical Analysis,0,1,1,*

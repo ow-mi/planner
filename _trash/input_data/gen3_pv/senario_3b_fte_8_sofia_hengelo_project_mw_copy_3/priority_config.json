@@ -1,0 +1,36 @@
+{
+  "mode": "leg_end_dates",
+  "description": "Each leg has a target completion date. Legs can be scheduled in parallel if they don't exceed their deadlines.",
+  "weights": {
+    "makespan_weight": 0.2,
+    "priority_weight": 0.8
+  },
+  "leg_deadlines": {
+    "mwcu_b10_6":   "2027-08-01",
+    "mwcu_a7_6":    "2027-08-01",
+    "mwcu_b10_2.1": "2029-02-15",
+    "mwcu_a7_2.1":  "2029-02-15",
+    "mwcu_b10_2.2": "2028-11-01",
+    "mwcu_a7_2.2":  "2028-11-01",
+    "mwcu_b10_3":   "2028-11-01",
+    "mwcu_a7_3":    "2028-11-01",
+    "mwcu_b10_4":   "2027-06-01",
+    "mwcu_a7_4":    "2027-06-01",
+    "mwcu_b10_5":   "2027-09-01",
+    "mwcu_a7_5":    "2027-09-01",
+    "mwcu_b10_5a":  "2027-12-01",
+    "mwcu_a7_5a":   "2027-12-01",
+    "mwcu_b10_5b":  "2027-12-01",
+    "mwcu_a7_5b":   "2027-12-01",
+    "mwcu_b10_7":   "2029-02-15",
+    "mwcu_a7_7":    "2029-02-15"
+  },
+  "deadline_penalty_per_day": 1000.0,
+  "allow_parallel_within_deadlines": true,
+  "test_proximity_rules": {
+    "patterns": ["K-01", "P-02", "P-03", "P-04", "P-03-E", "P-02-L", "Leak"],
+    "max_gap_days": 10,
+    "proximity_penalty_per_day": 50.0,
+    "enforce_sequence_order": true
+  }
+}

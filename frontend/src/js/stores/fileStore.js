@@ -309,7 +309,15 @@ document.addEventListener('alpine:init', () => {
                 this.importedConfig = importResponse.priority_config || null;
                 this.saveToLocalStorage();
 
+                // Phase 6: Update CSV entities in config store for validation
                 const configStore = typeof Alpine !== 'undefined' && Alpine.store ? Alpine.store('config') : null;
+                if (configStore) {
+                    configStore.updateCsvEntities(this.parsedCsvData);
+                    if (this.selectedCsv && this.parsedCsvData[this.selectedCsv]) {
+                        configStore.syncConfigFromSelectedCsv(this.parsedCsvData[this.selectedCsv]);
+                    }
+                }
+
                 if (this.importedConfig && configStore && typeof configStore.loadJsonConfiguration === 'function') {
                     configStore.loadJsonConfiguration(this.importedConfig);
                 }
@@ -335,6 +343,7 @@ document.addEventListener('alpine:init', () => {
                 // First select locally
                 this.selectedCsv = filename;
                 this.activeCsvData = this.parsedCsvData[filename];
+                this.syncConfigFromSelectedCsv();
                 
                 // Get CSV content for backend validation
                 const csvContent = Papa.unparse({
@@ -364,10 +373,33 @@ document.addEventListener('alpine:init', () => {
             if (this.parsedCsvData[filename]) {
                 this.selectedCsv = filename;
                 this.activeCsvData = this.parsedCsvData[filename];
+                this.syncConfigFromSelectedCsv();
                 this.saveToLocalStorage();
                 return true;
             }
             return false;
+        },
+
+        // Backward-compatible alias used by upload flows
+        setSelectedCsv(filename) {
+            if (!this.parsedCsvData[filename]) {
+                return false;
+            }
+            this.selectedCsv = filename;
+            this.activeCsvData = this.parsedCsvData[filename];
+            this.syncConfigFromSelectedCsv();
+            this.saveToLocalStorage();
+            return true;
+        },
+
+        syncConfigFromSelectedCsv() {
+            const configStore = typeof Alpine !== 'undefined' && Alpine.store ? Alpine.store('config') : null;
+            if (!configStore || !this.selectedCsv || !this.parsedCsvData[this.selectedCsv]) {
+                return false;
+            }
+
+            configStore.updateCsvEntities({ [this.selectedCsv]: this.parsedCsvData[this.selectedCsv] });
+            return configStore.syncConfigFromSelectedCsv(this.parsedCsvData[this.selectedCsv]);
         },
 
         // Display CSV data in table format
@@ -410,6 +442,10 @@ document.addEventListener('alpine:init', () => {
             this.parsedCsvData = {};
             this.selectedCsv = '';
             this.activeCsvData = { headers: [], rows: [] };
+            
+            // Clear uploaded files storage (for drag-drop uploads)
+            localStorage.removeItem('ui_v2_exp__files__directUploads');
+            this.directUploads = [];
             
             // Clear validation
             const validationStore = Alpine.store('validation');
@@ -476,6 +512,241 @@ document.addEventListener('alpine:init', () => {
 
         applyRectangularPaste(rows, startRow, startCol, pastedMatrix, columnCount) {
             return applyRectangularPaste(rows, startRow, startCol, pastedMatrix, columnCount);
+        },
+
+        // ========== DIRECT FILE UPLOAD METHODS (Phase A) ==========
+        
+        // Store for directly uploaded files (not from folder)
+        directUploads: [],
+        isUploading: false,
+        uploadError: null,
+        uploadProgress: 0,
+
+        // Upload a single file via API
+        async uploadFile(file) {
+            console.log('[fileStore] Starting file upload:', file.name);
+            this.isUploading = true;
+            this.uploadError = null;
+            this.uploadProgress = 0;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                if (this.sessionId) {
+                    formData.append('session_id', this.sessionId);
+                }
+
+                const response = await window.apiService.uploadFile(formData, (progress) => {
+                    this.uploadProgress = progress;
+                });
+
+                if (response.success) {
+                    // Backend wraps data in "data" field
+                    const data = response.data || {};
+                    
+                    // Add to direct uploads list
+                    const uploadInfo = {
+                        fileId: data.file_id,
+                        filename: data.filename,
+                        fileType: data.file_type, // 'spreadsheet' or 'config'
+                        extension: data.extension,
+                        sizeBytes: data.size_bytes,
+                        uploadedAt: new Date().toISOString(),
+                        parsedData: data.parsed_data
+                    };
+
+                    // Check if file already exists (by name)
+                    const existingIndex = this.directUploads.findIndex(u => u.filename === data.filename);
+                    if (existingIndex >= 0) {
+                        this.directUploads[existingIndex] = uploadInfo;
+                    } else {
+                        this.directUploads.push(uploadInfo);
+                    }
+
+                    // Save to localStorage
+                    this.saveDirectUploadsToLocalStorage();
+
+                    // If it's a spreadsheet, also add to parsedCsvData
+                    if (data.parsed_data && data.parsed_data.type === 'spreadsheet') {
+                        this.parsedCsvData[data.filename] = {
+                            headers: data.parsed_data.columns || [],
+                            rows: this._convertRecordsToRows(data.parsed_data.data || [], data.parsed_data.columns || []),
+                            entities: data.parsed_data.entities
+                        };
+                        
+                        // Auto-select if first spreadsheet
+                        if (!this.selectedCsv) {
+                            this.setSelectedCsv(data.filename);
+                        }
+                        
+                        this.saveToLocalStorage();
+                        
+                        // Dispatch event for other components
+                        window.dispatchEvent(new CustomEvent('csv-data-ready', {
+                            detail: { filename: data.filename, data: this.parsedCsvData[data.filename] }
+                        }));
+                    }
+
+                    // If it's a config JSON, store it separately
+                    if (data.parsed_data && data.parsed_data.type === 'config') {
+                        this.importedConfig = data.parsed_data.content;
+                        
+                        // Dispatch event for config editor
+                        window.dispatchEvent(new CustomEvent('config-json-loaded', {
+                            detail: { config: data.parsed_data.content }
+                        }));
+                    }
+
+                    console.log('[fileStore] File upload successful:', data.filename);
+                    return { success: true, data: uploadInfo };
+                } else {
+                    throw new Error(response.message || 'Upload failed');
+                }
+            } catch (error) {
+                console.error('[fileStore] File upload failed:', error);
+                this.uploadError = error.message || 'Upload failed';
+                return { success: false, error: this.uploadError };
+            } finally {
+                this.isUploading = false;
+                this.uploadProgress = 0;
+            }
+        },
+
+        // Upload multiple files
+        async uploadMultipleFiles(files) {
+            console.log('[fileStore] Starting batch upload of', files.length, 'files');
+            const results = [];
+            
+            for (const file of files) {
+                const result = await this.uploadFile(file);
+                results.push({ filename: file.name, ...result });
+            }
+            
+            const successful = results.filter(r => r.success);
+            const failed = results.filter(r => !r.success);
+            
+            console.log('[fileStore] Batch upload complete:', successful.length, 'successful,', failed.length, 'failed');
+            
+            return {
+                total: files.length,
+                successful: successful.length,
+                failed: failed.length,
+                results: results
+            };
+        },
+
+        // Handle drag and drop files
+        async handleDropFiles(fileList) {
+            console.log('[fileStore] Handling dropped files:', fileList.length);
+            const files = Array.from(fileList);
+            return await this.uploadMultipleFiles(files);
+        },
+
+        // Set active file from uploads
+        setActiveUploadedFile(filename) {
+            const upload = this.directUploads.find(u => u.filename === filename);
+            if (!upload) {
+                console.warn('[fileStore] Uploaded file not found:', filename);
+                return false;
+            }
+
+            // If it's a spreadsheet, select it
+            if (upload.fileType === 'spreadsheet' && this.parsedCsvData[filename]) {
+                this.setSelectedCsv(filename);
+                return true;
+            }
+
+            // If it's a config, trigger config load
+            if (upload.fileType === 'config' && upload.parsedData?.content) {
+                this.importedConfig = upload.parsedData.content;
+                window.dispatchEvent(new CustomEvent('config-json-loaded', {
+                    detail: { config: upload.parsedData.content, filename: filename }
+                }));
+                return true;
+            }
+
+            return false;
+        },
+
+        // Remove uploaded file
+        removeUploadedFile(filename) {
+            console.log('[fileStore] Removing uploaded file:', filename);
+            
+            // Remove from direct uploads
+            this.directUploads = this.directUploads.filter(u => u.filename !== filename);
+            
+            // Remove from parsed data
+            if (this.parsedCsvData[filename]) {
+                delete this.parsedCsvData[filename];
+            }
+            
+            // Update selection if needed
+            if (this.selectedCsv === filename) {
+                const remainingFiles = Object.keys(this.parsedCsvData);
+                this.selectedCsv = remainingFiles.length > 0 ? remainingFiles[0] : '';
+                this.activeCsvData = this.selectedCsv ? this.parsedCsvData[this.selectedCsv] : { headers: [], rows: [] };
+                if (this.selectedCsv) {
+                    this.syncConfigFromSelectedCsv();
+                }
+            }
+            
+            // Save to storage
+            this.saveDirectUploadsToLocalStorage();
+            this.saveToLocalStorage();
+        },
+
+        // Get list of uploaded spreadsheet files
+        getUploadedSpreadsheets() {
+            return this.directUploads.filter(u => u.fileType === 'spreadsheet');
+        },
+
+        // Get list of uploaded config files
+        getUploadedConfigs() {
+            return this.directUploads.filter(u => u.fileType === 'config');
+        },
+
+        // Save direct uploads to localStorage
+        saveDirectUploadsToLocalStorage() {
+            try {
+                localStorage.setItem('ui_v2_exp__files__directUploads', JSON.stringify(this.directUploads));
+            } catch (error) {
+                console.error('[fileStore] Failed to save direct uploads to localStorage:', error);
+            }
+        },
+
+        // Load direct uploads from localStorage
+        loadDirectUploadsFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('ui_v2_exp__files__directUploads');
+                if (saved) {
+                    this.directUploads = JSON.parse(saved);
+                }
+            } catch (error) {
+                console.error('[fileStore] Failed to load direct uploads from localStorage:', error);
+                this.directUploads = [];
+            }
+        },
+
+        // Get supported file formats
+        getSupportedFormats() {
+            return ['.csv', '.xlsx', '.xls', '.json'];
+        },
+
+        // Validate file type
+        isValidFileType(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            return ['csv', 'xlsx', 'xls', 'json'].includes(ext);
+        },
+
+        // Helper: Convert records (array of objects) to rows (array of arrays)
+        _convertRecordsToRows(records, headers) {
+            if (!Array.isArray(records) || !Array.isArray(headers)) {
+                return [];
+            }
+            return records.map(record => 
+                headers.map(header => record[header] !== undefined ? String(record[header]) : '')
+            );
         }
     });
 });

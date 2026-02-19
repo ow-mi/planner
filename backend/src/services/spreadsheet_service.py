@@ -1,11 +1,21 @@
 """Service for spreadsheet discovery and validation."""
+
 import os
-import re
 import tempfile
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
+
+from backend.src.api.models.responses import (
+    ColumnValidationError,
+    ExtractedEntities,
+    HeaderValidationError,
+    SpreadsheetFileInfo,
+    SpreadsheetFileTypeEnum,
+    SpreadsheetValidationResult,
+    ValidationErrorCategory,
+)
 
 
 REQUIRED_COLUMNS = [
@@ -53,7 +63,9 @@ class SpreadsheetService:
             # For now, we'll assume session files are stored in a temp directory
             session_path = os.path.join(tempfile.gettempdir(), f"session_{session_id}")
             if os.path.isdir(session_path):
-                spreadsheets.extend(self._scan_path(session_path, source="uploaded_session"))
+                spreadsheets.extend(
+                    self._scan_path(session_path, source="uploaded_session")
+                )
 
         return spreadsheets
 
@@ -85,15 +97,15 @@ class SpreadsheetService:
 
         return spreadsheets
 
-    def _detect_file_type(self, filename: str) -> Optional[str]:
+    def _detect_file_type(self, filename: str) -> Optional[SpreadsheetFileTypeEnum]:
         """Detect file type from extension."""
         ext = filename.lower().strip()
         if ext.endswith(".csv"):
-            return "CSV"
+            return SpreadsheetFileTypeEnum.CSV
         elif ext.endswith(".xlsx"):
-            return "XLSX"
+            return SpreadsheetFileTypeEnum.XLSX
         elif ext.endswith(".xls"):
-            return "XLS"
+            return SpreadsheetFileTypeEnum.XLS
         return None
 
     def validate_spreadsheet(self, request) -> "SpreadsheetValidationResult":
@@ -160,19 +172,17 @@ class SpreadsheetService:
 
     def _parse_file_content(
         self, content: str, spreadsheet_id: str
-    ) -> Tuple[pd.DataFrame, Optional[HeaderValidationError]]:
+    ) -> Tuple[pd.DataFrame, Optional["HeaderValidationError"]]:
         """Parse file content into DataFrame."""
         try:
             # Try CSV first
             df = pd.read_csv(pd.io.StringIO(content))
             return df, None
-        except Exception as e:
+        except Exception:
             # Try Excel
             try:
                 # Create a temp file for Excel
-                with tempfile.NamedTemporaryFile(
-                    suffix=".xlsx", delete=False
-                ) as tmp:
+                with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
                     tmp.write(content.encode("utf-8"))
                     tmp.flush()
                     df = pd.read_excel(tmp.name)
@@ -184,11 +194,11 @@ class SpreadsheetService:
                     HeaderValidationError(
                         column_name="_file_",
                         error_message=str(excel_error),
-                        category="FormatError",
+                        category=ValidationErrorCategory.FormatError,
                     ),
                 )
 
-    def _validate_headers(self, columns: List[str]) -> List[HeaderValidationError]:
+    def _validate_headers(self, columns: List[str]) -> List["HeaderValidationError"]:
         """Validate required headers are present."""
         errors = []
         # Normalize column names (lowercase, strip whitespace)
@@ -200,13 +210,13 @@ class SpreadsheetService:
                     HeaderValidationError(
                         column_name=required,
                         error_message=f"Missing required column: {required}",
-                        category="MissingRequiredColumn",
+                        category=ValidationErrorCategory.MissingRequiredColumn,
                     )
                 )
 
         return errors
 
-    def _validate_row_values(self, df: pd.DataFrame) -> List[ColumnValidationError]:
+    def _validate_row_values(self, df: pd.DataFrame) -> List["ColumnValidationError"]:
         """Validate row-level values for type and format."""
         errors = []
 
@@ -225,7 +235,7 @@ class SpreadsheetService:
                                     value=str(val),
                                     expected_type="positive number",
                                     error_message="duration_days must be a positive number",
-                                    category="InvalidValue",
+                                    category=ValidationErrorCategory.InvalidValue,
                                 )
                             )
                     except (ValueError, TypeError):
@@ -236,102 +246,11 @@ class SpreadsheetService:
                                 value=str(val),
                                 expected_type="number",
                                 error_message="duration_days must be a numeric value",
-                                category="InvalidColumnType",
+                                category=ValidationErrorCategory.InvalidColumnType,
                             )
                         )
 
         return errors
-
-
-# ============================================================================
-# Response Models (defined here to avoid circular import issues)
-# ============================================================================
-
-
-class ValidationErrorCategory:
-    MissingRequiredColumn = "MissingRequiredColumn"
-    InvalidColumnType = "InvalidColumnType"
-    InvalidValue = "InvalidValue"
-    FormatError = "FormatError"
-
-
-class SpreadsheetFileTypeEnum:
-    CSV = "CSV"
-    XLSX = "XLSX"
-    XLS = "XLS"
-
-
-class SpreadsheetFileInfo:
-    def __init__(
-        self,
-        filename: str,
-        file_type: str,
-        size_bytes: int,
-        modified_at: Optional[str] = None,
-        source: Optional[str] = None,
-    ):
-        self.filename = filename
-        self.file_type = file_type
-        self.size_bytes = size_bytes
-        self.modified_at = modified_at
-        self.source = source
-
-
-class HeaderValidationError:
-    def __init__(self, column_name: str, error_message: str, category: str):
-        self.column_name = column_name
-        self.error_message = error_message
-        self.category = category
-
-
-class ColumnValidationError:
-    def __init__(
-        self,
-        row_index: int,
-        column_name: str,
-        value: Optional[str],
-        expected_type: Optional[str],
-        error_message: str,
-        category: str,
-    ):
-        self.row_index = row_index
-        self.column_name = column_name
-        self.value = value
-        self.expected_type = expected_type
-        self.error_message = error_message
-        self.category = category
-
-
-class ExtractedEntities:
-    def __init__(
-        self,
-        projects: List[str],
-        leg_types: List[str],
-        leg_names: List[str],
-        test_types: List[str],
-        computed_test_names: List[str],
-    ):
-        self.projects = projects
-        self.leg_types = leg_types
-        self.leg_names = leg_names
-        self.test_types = test_types
-        self.computed_test_names = computed_test_names
-
-
-class SpreadsheetValidationResult:
-    def __init__(
-        self,
-        is_valid: bool,
-        headers_valid: bool,
-        header_errors: List[HeaderValidationError],
-        row_errors: List[ColumnValidationError],
-        extracted_entities: Optional[ExtractedEntities],
-    ):
-        self.is_valid = is_valid
-        self.headers_valid = headers_valid
-        self.header_errors = header_errors
-        self.row_errors = row_errors
-        self.extracted_entities = extracted_entities
 
 
 # Global instance

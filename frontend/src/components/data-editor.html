@@ -16,17 +16,17 @@
       .cell-input, .cell-hint { pointer-events: auto; }
   </style>
  
- <div x-data="dataEditorComponent()" x-init="init()" x-cloak>
+ <div x-data="dataEditorComponent()" x-cloak>
      <!-- Data Editor Section -->
      <div class="section">
           <div x-show="dedupedUploadedFilenames.length === 0">
-              <p>Please import a folder from the "Input Data" tab to edit CSV files here.</p>
+              <p>No files available to edit. Please upload a file in the "Input Data" tab or import a folder.</p>
           </div>
 
           <div x-show="dedupedUploadedFilenames.length > 0">
               <div class="form-group">
                   <label for="csv-select">Select a CSV to edit:</label>
-                  <select id="csv-select" x-model="selectedCsv" @change="displayCsvData()" class="form-control">
+                  <select id="csv-select" x-model="selectedCsv" @change="onCsvSelectionChanged()" class="form-control">
                       <option value="">-- Select a file --</option>
                      <template x-for="fileName in dedupedUploadedFilenames" :key="fileName">
                          <option :value="fileName" x-text="fileName"></option>
@@ -103,35 +103,42 @@ function dataEditorComponent() {
              return this.$store.files.uploadedFiles || [];
          },
 
-         get dedupedUploadedFilenames() {
-             // Get unique filenames directly from parsedCsvData keys
-             const parsedData = this.$store.files.parsedCsvData || {};
-             const fileNames = Object.keys(parsedData);
-             
-             console.log('[dataEditor] dedupedUploadedFilenames:');
-             console.log('  - parsedCsvData keys:', fileNames);
-             console.log('  - uploadedFiles count:', this.$store.files.uploadedFiles?.length || 0);
-             console.log('  - uploadedFiles names:', this.$store.files.uploadedFiles?.map(f => f.name) || []);
-             
-             // Also check for size mismatches
-             if (fileNames.length !== (this.$store.files.uploadedFiles?.length || 0)) {
-                 console.warn('[dataEditor] Size mismatch! May indicate duplicate files in uploadedFiles array');
-             }
-             
-             return fileNames.sort();
-         },
+        get dedupedUploadedFilenames() {
+            // Editing UI is driven by parsed spreadsheet content, not legacy uploadedFiles.
+            const parsedData = this.$store.files.parsedCsvData || {};
+            return Object.keys(parsedData).sort();
+        },
  
         init() {
-            console.log('Data editor component initialized');
+            console.log('[data-editor] Component initialized');
             this.loadRowSelectionState();
+
+            // Debug: Log available data
+            console.log('[data-editor] Available parsedCsvData:', Object.keys(this.$store.files.parsedCsvData || {}));
+            console.log('[data-editor] Direct uploads:', this.$store.files.directUploads?.length || 0);
 
             // Watch for file changes
             this.$watch('$store.files.selectedCsv', (newVal) => {
+                console.log('[data-editor] selectedCsv changed:', newVal);
                 if (newVal) {
                     this.selectedCsv = newVal;
                     this.displayCsvData();
                 }
             });
+        },
+
+        onCsvSelectionChanged() {
+            if (!this.selectedCsv) {
+                this.activeCsvData = { headers: [], rows: [] };
+                this.originalData = null;
+                this.selectedRowIndex = -1;
+                this.validationErrors = {};
+                this.columnTypes = [];
+                return false;
+            }
+
+            this.$store.files.setSelectedCsv(this.selectedCsv);
+            return this.displayCsvData();
         },
 
          displayCsvData() {

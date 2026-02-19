@@ -86,6 +86,7 @@ class TestSchedule:
         Day offsets are relative to the project start date. Duration may differ
         from the original test duration due to scheduling constraints and weekends.
     """
+
     test_id: str
     project_leg_id: str
     test_name: str
@@ -101,16 +102,19 @@ class TestSchedule:
 @dataclass
 class SolutionResult:
     """Contains the complete solution from the solver."""
+
     status: str  # "OPTIMAL", "FEASIBLE", "INFEASIBLE", "UNKNOWN"
     makespan_days: int
     objective_value: int
     solve_time_seconds: float
     test_schedules: List[TestSchedule]
     resource_utilization: Dict[str, float]
+    start_date: Optional[date] = None
 
 
 class SolutionCallback(cp_model.CpSolverSolutionCallback):
     """Callback to log intermediate solutions."""
+
     def __init__(self, model: ScheduleModel):
         super().__init__()
         self._model = model
@@ -118,14 +122,20 @@ class SolutionCallback(cp_model.CpSolverSolutionCallback):
 
     def on_solution_callback(self):
         self._solution_count += 1
-        print(f"Solution {self._solution_count}: makespan={self.Value(self._model.makespan_var)}")
+        print(
+            f"Solution {self._solution_count}: makespan={self.Value(self._model.makespan_var)}"
+        )
 
     def solution_count(self) -> int:
         return self._solution_count
 
 
-def extract_solution(model: ScheduleModel, solver: cp_model.CpSolver,
-                    data: PlanningData, start_date: date, status: int) -> SolutionResult:
+def extract_solution(
+    model: ScheduleModel,
+    solver: cp_model.CpSolver,
+    data: PlanningData,
+    status: int,
+) -> SolutionResult:
     """
     Extract the solution from the solved model.
 
@@ -133,11 +143,10 @@ def extract_solution(model: ScheduleModel, solver: cp_model.CpSolver,
         model: The solved ScheduleModel
         solver: The CP-SAT solver with solution
         data: Original planning data
-        start_date: The reference start date for the schedule
-
     Returns:
         SolutionResult with extracted schedule information
     """
+    start_date = min(leg.start_monday for leg in data.legs.values() if leg.start_monday)
     test_schedules = []
 
     # Extract test schedules
@@ -157,7 +166,11 @@ def extract_solution(model: ScheduleModel, solver: cp_model.CpSolver,
             assigned_fte = []
             assigned_equipment = []
 
-            for (tid, resource_type, resource_id), assignment_var in model.resource_assignments.items():        
+            for (
+                tid,
+                resource_type,
+                resource_id,
+            ), assignment_var in model.resource_assignments.items():
                 if tid == test_id and solver.Value(assignment_var):
                     if resource_type == "fte":
                         assigned_fte.append(resource_id)
@@ -174,7 +187,7 @@ def extract_solution(model: ScheduleModel, solver: cp_model.CpSolver,
                 start_date=start_date_actual,
                 end_date=end_date_actual,
                 assigned_fte=assigned_fte,
-                assigned_equipment=assigned_equipment
+                assigned_equipment=assigned_equipment,
             )
             test_schedules.append(schedule)
 
@@ -189,23 +202,27 @@ def extract_solution(model: ScheduleModel, solver: cp_model.CpSolver,
         cp_model.OPTIMAL: "OPTIMAL",
         cp_model.FEASIBLE: "FEASIBLE",
         cp_model.INFEASIBLE: "INFEASIBLE",
-        cp_model.UNKNOWN: "UNKNOWN"
+        cp_model.UNKNOWN: "UNKNOWN",
     }
 
     solution = SolutionResult(
         status=status_map.get(status, "UNKNOWN"),
-        makespan_days=solver.Value(model.makespan_var) if model.makespan_var is not None else 0,
+        makespan_days=solver.Value(model.makespan_var)
+        if model.makespan_var is not None
+        else 0,
         objective_value=solver.ObjectiveValue(),
         solve_time_seconds=solver.WallTime(),
         test_schedules=test_schedules,
-        resource_utilization=resource_utilization
+        resource_utilization=resource_utilization,
+        start_date=start_date,
     )
 
     return solution
 
 
-def calculate_resource_utilization(test_schedules: List[TestSchedule],
-                                 data: PlanningData) -> Dict[str, float]:
+def calculate_resource_utilization(
+    test_schedules: List[TestSchedule], data: PlanningData
+) -> Dict[str, float]:
     """
     Calculate utilization percentage for each resource.
 
@@ -260,15 +277,18 @@ def calculate_resource_utilization(test_schedules: List[TestSchedule],
 
     # Calculate utilization percentages
     for resource_id in all_resources:
-        available = resource_available_days.get(resource_id, 1)  # Avoid division by zero
+        available = resource_available_days.get(
+            resource_id, 1
+        )  # Avoid division by zero
         used = resource_used_days.get(resource_id, 0)
         utilization[resource_id] = (used / available) * 100.0 if available > 0 else 0.0
 
     return utilization
 
 
-def solve_model(model: ScheduleModel, data: PlanningData,
-                time_limit_seconds: float = None) -> SolutionResult:
+def solve_model(
+    model: ScheduleModel, data: PlanningData, time_limit_seconds: float = None
+) -> Tuple[SolutionResult, date]:
     """
     Execute the CP-SAT optimization and return comprehensive solution results.
 
@@ -292,12 +312,14 @@ def solve_model(model: ScheduleModel, data: PlanningData,
             Defaults to SOLVER_TIME_LIMIT_SECONDS from configuration.
 
     Returns:
-        SolutionResult: Comprehensive solution container with:
+        Tuple[SolutionResult, date]: A tuple containing:
+            - Comprehensive solution container with:
             - Solution status (OPTIMAL, FEASIBLE, INFEASIBLE, NO_SOLUTION, TIMEOUT)
             - Makespan (total project duration) if solution found
             - Complete test schedule list with resource assignments
             - Solver performance statistics and timing information
             - Resource utilization data for reporting
+            - Start date used for schedule conversion
 
     Raises:
         RuntimeError: When solver encounters critical internal errors
@@ -334,12 +356,12 @@ def solve_model(model: ScheduleModel, data: PlanningData,
 
     # Create a solution callback to log intermediate solutions
     solution_callback = SolutionCallback(model)
-    
+
     # Solve the model
     status = solver.Solve(model.model, solution_callback)
 
     # Print solver statistics
-    print(f"Solver finished with status: {solver.StatusName()}")
+    print(f"Solver finished with status: {solver.StatusName(status)}")
     print(f"Solve time: {solver.WallTime():.2f} seconds")
     print(f"Branches explored: {solver.NumBranches()}")
     print(f"Conflicts: {solver.NumConflicts()}")
@@ -348,10 +370,12 @@ def solve_model(model: ScheduleModel, data: PlanningData,
         print(f"Objective value (makespan): {solver.ObjectiveValue()} days")
 
         # Calculate start date for solution extraction
-        start_date = min(leg.start_monday for leg in data.legs.values() if leg.start_monday)
+        start_date = min(
+            leg.start_monday for leg in data.legs.values() if leg.start_monday
+        )
 
         # Extract solution
-        solution = extract_solution(model, solver, data, start_date, status)
+        solution = extract_solution(model, solver, data, status)
 
         print(f"Successfully scheduled {len(solution.test_schedules)} tests")
         print(f"Final makespan: {solution.makespan_days} days")
@@ -363,19 +387,23 @@ def solve_model(model: ScheduleModel, data: PlanningData,
         print("No solution found!")
 
         if status == cp_model.INFEASIBLE:
-            print("The problem is infeasible - no valid schedule exists with the given constraints")
+            print(
+                "The problem is infeasible - no valid schedule exists with the given constraints"
+            )
         else:
             print("Solver could not find a solution within the time limit")
 
         # Calculate start date even for failed solutions
-        start_date = min(leg.start_monday for leg in data.legs.values() if leg.start_monday)
+        start_date = min(
+            leg.start_monday for leg in data.legs.values() if leg.start_monday
+        )
 
         # Return empty solution with status
         status_map = {
             cp_model.OPTIMAL: "OPTIMAL",
             cp_model.FEASIBLE: "FEASIBLE",
             cp_model.INFEASIBLE: "INFEASIBLE",
-            cp_model.UNKNOWN: "UNKNOWN"
+            cp_model.UNKNOWN: "UNKNOWN",
         }
 
         return SolutionResult(
@@ -384,5 +412,6 @@ def solve_model(model: ScheduleModel, data: PlanningData,
             objective_value=0,
             solve_time_seconds=solver.WallTime(),
             test_schedules=[],
-            resource_utilization={}
+            resource_utilization={},
+            start_date=start_date,
         ), start_date
