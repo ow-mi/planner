@@ -66,9 +66,13 @@ origins = [
     "http://127.0.0.1:3000",
 ]
 
+# Allow any localhost port for dev servers (e.g., 3000, 5173)
+localhost_origin_regex = r"^http://(localhost|127\\.0\\.0\\.1)(:\\d+)?$"
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=localhost_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

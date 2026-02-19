@@ -60,10 +60,7 @@ REM ========================================
 echo Starting Frontend on port %FRONTEND_PORT%...
 
 start "Frontend Server" cmd /c "cd /d %SCRIPT_DIR%frontend && %PYTHON_CMD% -m http.server %FRONTEND_PORT%"
-if %ERRORLEVEL% NEQ 0 (
-    echo Error: Failed to start Frontend
-    exit /b 1
-)
+REM start does not reliably set ERRORLEVEL; avoid false negatives
 echo [OK] Frontend started on port %FRONTEND_PORT%
 echo.
 
@@ -102,11 +99,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 start "Backend Server" cmd /c "%PYTHON_CMD% -m uvicorn backend.src.api.main:app --host 0.0.0.0 --port %BACKEND_PORT% --reload --reload-dir backend/src"
-if %ERRORLEVEL% NEQ 0 (
-    echo Error: Failed to start Backend
-    taskkill /FI "WINDOWTITLE eq Frontend Server" /F /T >nul 2>nul
-    exit /b 1
-)
+REM start does not reliably set ERRORLEVEL; avoid false negatives
 echo [OK] Backend started on port %BACKEND_PORT%
 echo.
 
