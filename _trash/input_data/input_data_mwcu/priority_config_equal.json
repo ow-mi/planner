@@ -1,4 +1,0 @@
-{
-  "priority_mode": "equal_weight",
-  "description": "Treat all legs equally - no priority weighting, just minimize total end times"
-}
