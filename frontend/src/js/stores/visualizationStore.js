@@ -7,7 +7,8 @@
 // Storage key constants for consistency
 const VIS_STORAGE_KEYS = {
     VIS_ACTIVE_DATA_SOURCE: 'ui_v2_exp__vis__activeDataSource',
-    VIS_CURRENT_TEMPLATE: 'ui_v2_exp__vis__currentTemplate'
+    VIS_CURRENT_TEMPLATE: 'ui_v2_exp__vis__currentTemplate',
+    VIS_SELECTED_SOLVER_RUN: 'ui_v2_exp__vis__selectedSolverRun'
 };
 
 // Get storage key for template code
@@ -52,6 +53,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.store('visualization', {
         // State
         solverData: null,
+        selectedSolverRunId: '',
         csvData: null,
         activeDataSource: 'solver', // 'solver' or 'csv'
         currentTemplateId: 'gantt-tests',
@@ -84,7 +86,7 @@ document.addEventListener('alpine:init', () => {
                 migrateLegacyVisualizationStorage();
                 this.loadTemplates();
                 this.setActivePlotTab(this.currentTemplateId);
-                // this.loadFromLocalStorage(); // Disabled - no persistence
+                this.loadFromLocalStorage();
                 this.isInitialized = true;
             } catch (error) {
                 console.error('VisualizationStore init failed:', error);
@@ -121,6 +123,10 @@ document.addEventListener('alpine:init', () => {
                 if (savedDataSource) {
                     this.activeDataSource = savedDataSource;
                 }
+                const savedSelectedSolverRun = localStorage.getItem(VIS_STORAGE_KEYS.VIS_SELECTED_SOLVER_RUN);
+                if (savedSelectedSolverRun !== null) {
+                    this.selectedSolverRunId = savedSelectedSolverRun;
+                }
             } catch (error) {
                 console.error('Failed to load visualization state from localStorage:', error);
             }
@@ -131,13 +137,30 @@ document.addEventListener('alpine:init', () => {
             try {
                 localStorage.setItem(VIS_STORAGE_KEYS.VIS_ACTIVE_DATA_SOURCE, this.activeDataSource);
                 localStorage.setItem(VIS_STORAGE_KEYS.VIS_CURRENT_TEMPLATE, this.currentTemplateId);
+                localStorage.setItem(VIS_STORAGE_KEYS.VIS_SELECTED_SOLVER_RUN, this.selectedSolverRunId || '');
                 localStorage.setItem(getVisCodeKey(this.currentTemplateId), this.code);
             } catch (error) {
                 console.error('Failed to save visualization state to localStorage:', error);
             }
         },
 
-         // Template renderer map - safe, static implementations
+        // Reset template code to default
+        resetTemplateCode(templateId = this.currentTemplateId) {
+            if (this.templates && this.templates[templateId]) {
+                this.code = this.templates[templateId].code;
+                this.saveToLocalStorage();
+                
+                // Update editor if initialized
+                if (this.editor && this.editor.setValue) {
+                    this.editor.setValue(this.code);
+                }
+                
+                return true;
+            }
+            return false;
+        },
+
+         // Template renderer - executes template code with data and container
          getTemplateRenderer(templateId = this.currentTemplateId) {
              
              // Only allow allowlisted templates
@@ -146,24 +169,45 @@ document.addEventListener('alpine:init', () => {
                  throw new Error(`Invalid template: ${templateId}. Only built-in templates are allowed.`);
              }
              
-             // Verify template exists in templates object
+             // Verify template exists
              if (!this.templates || !this.templates[templateId]) {
                  throw new Error(`Template not found: ${templateId}`);
              }
              
-             // Return the appropriate renderer based on template ID
-             switch (templateId) {
-                 case 'gantt-tests':
-                     return this.renderGanttTests;
-                 case 'equipment':
-                     return this.renderEquipment;
-                 case 'fte':
-                     return this.renderFTE;
-                 case 'concurrency':
-                     return this.renderConcurrency;
-                 default:
-                     throw new Error(`Unsupported template: ${templateId}`);
-             }
+             // Return renderer that executes template code
+             return function(data, container) {
+                 // Use edited code if available, otherwise fall back to template default
+                 const code = this.code || this.templates[templateId]?.code || '';
+                 if (!code) {
+                     throw new Error(`No code available for template: ${templateId}`);
+                 }
+                 
+                 try {
+                     // Execute template code with data, container, and d3 in scope
+                     const renderFn = new Function('data', 'container', 'd3', code);
+                     renderFn(data, container, d3);
+                 } catch (err) {
+                     console.error(`Template execution error in ${templateId}:`, err);
+                     // Display user-friendly error in container
+                     d3.select(container).html('');
+                     d3.select(container).append('div')
+                         .attr('class', 'template-error')
+                         .style('padding', '20px')
+                         .style('color', '#cc0000')
+                         .style('font-family', 'monospace')
+                         .style('background', '#fff5f5')
+                         .style('border', '1px solid #cc0000')
+                         .style('border-radius', '4px')
+                         .html(`<strong>Template Error:</strong><br><pre style="margin: 8px 0; white-space: pre-wrap;">${err.message}</pre>`);
+                 }
+             };
+         },
+         
+         // Helper to escape HTML in error messages
+         escapeHtml(str) {
+             const div = document.createElement('div');
+             div.textContent = str;
+             return div.innerHTML;
          },
 
          registerPlotContainer(templateId, containerElement) {
@@ -191,401 +235,6 @@ document.addEventListener('alpine:init', () => {
 
          isPlotRendered(templateId) {
              return !!this.renderedPlots[templateId];
-         },
-
-         // Gantt chart renderer - Tests by Leg
-         renderGanttTests(data, container) {
-             d3.select(container).html('');
-
-             if (!data || !data.testSchedules || data.testSchedules.length === 0) {
-                 const text = d3.select(container).append('text')
-                     .attr('x', 400)
-                     .attr('y', 200)
-                     .attr('text-anchor', 'middle')
-                     .style('font-size', '18px')
-                     .style('fill', '#666')
-                     .text('No test schedule data available');
-                 return;
-             }
-
-             const processed = data.testSchedules.map(d => {
-                 const start = d.startDate ? new Date(d.startDate) : new Date();
-                 const end = d.endDate ? new Date(d.endDate) : new Date();
-                 return {
-                     id: `${d.projectLegId}-${d.testName || d.testId}`,
-                     leg: d.projectLegId || 'Unknown',
-                     test: d.testName || d.testId || 'Test',
-                     start,
-                     end,
-                     equipment: d.assignedEquipmentId || '',
-                     fte: d.assignedFteId || ''
-                 };
-             });
-
-             const rect = container.getBoundingClientRect();
-             const availableWidth = Math.max(400, rect.width - 40);
-             const availableHeight = Math.max(300, rect.height - 40);
-
-             const margin = { top: 100, right: 80, bottom: 80, left: 150 };
-             const width = availableWidth - margin.left - margin.right;
-             const height = availableHeight - margin.top - margin.bottom;
-
-             const svg = d3.select(container)
-                 .append('svg')
-                 .attr('width', availableWidth)
-                 .attr('height', availableHeight);
-
-             const g = svg.append('g')
-                 .attr('transform', `translate(${margin.left},${margin.top})`);
-
-             const legs = [...new Set(processed.map(d => d.leg))].sort();
-             const yScale = d3.scaleBand()
-                 .domain(legs)
-                 .range([0, height])
-                 .padding(0.1);
-
-             const minStart = d3.min(processed, d => d.start);
-             const maxEnd = d3.max(processed, d => d.end);
-             const xScale = d3.scaleTime()
-                 .domain([minStart, maxEnd])
-                 .range([0, width])
-                 .nice();
-
-             g.selectAll('rect.bar')
-                 .data(processed)
-                 .enter()
-                 .append('rect')
-                 .attr('class', 'bar')
-                 .attr('x', d => xScale(d.start))
-                 .attr('y', d => yScale(d.leg))
-                 .attr('width', d => Math.max(1, xScale(d.end) - xScale(d.start)))
-                 .attr('height', yScale.bandwidth())
-                 .attr('fill', '#4a90e2')
-                 .attr('stroke', '#333')
-                 .attr('stroke-width', 1)
-                 .append('title')
-                 .text(d => `${d.test}\n${d.leg}\nDuration: ${Math.round((d.end - d.start) / 86400000)} days`);
-
-             g.append('g')
-                 .attr('class', 'x-axis')
-                 .attr('transform', `translate(0,${height})`)
-                 .call(d3.axisBottom(xScale));
-
-             g.append('g')
-                 .attr('class', 'y-axis')
-                 .call(d3.axisLeft(yScale));
-
-             svg.append('text')
-                 .attr('x', availableWidth / 2)
-                 .attr('y', 30)
-                 .attr('text-anchor', 'middle')
-                 .style('font-size', '20px')
-                 .style('font-weight', 'bold')
-                 .text('Tests by Leg - Gantt Chart');
-         },
-
-         // Equipment utilization renderer
-         renderEquipment(data, container) {
-             d3.select(container).html('');
-
-             if (!data || !data.equipmentUsage || data.equipmentUsage.length === 0) {
-                 const text = d3.select(container).append('text')
-                     .attr('x', 400)
-                     .attr('y', 200)
-                     .attr('text-anchor', 'middle')
-                     .style('font-size', '18px')
-                     .style('fill', '#666')
-                     .text('No equipment usage data available');
-                 return;
-             }
-
-             const processed = data.equipmentUsage.map(d => {
-                 const start = d.startDate ? new Date(d.startDate) : new Date();
-                 const end = d.endDate ? new Date(d.endDate) : new Date();
-                 return {
-                     equipment: d.equipmentId || 'Unknown',
-                     test: d.testName || d.testId || 'Test',
-                     start,
-                     end
-                 };
-             });
-
-             const rect = container.getBoundingClientRect();
-             const availableWidth = Math.max(400, rect.width - 40);
-             const availableHeight = Math.max(300, rect.height - 40);
-
-             const margin = { top: 50, right: 80, bottom: 100, left: 120 };
-             const width = availableWidth - margin.left - margin.right;
-             const height = availableHeight - margin.top - margin.bottom;
-
-             const svg = d3.select(container)
-                 .append('svg')
-                 .attr('width', availableWidth)
-                 .attr('height', availableHeight);
-
-             const g = svg.append('g')
-                 .attr('transform', `translate(${margin.left},${margin.top})`);
-
-             const equipmentList = [...new Set(processed.map(d => d.equipment))];
-             const yScale = d3.scaleBand()
-                 .domain(equipmentList)
-                 .range([0, height])
-                 .padding(0.2);
-
-             const minStart = d3.min(processed, d => d.start);
-             const maxEnd = d3.max(processed, d => d.end);
-             const xScale = d3.scaleTime()
-                 .domain([minStart, maxEnd])
-                 .range([0, width])
-                 .nice();
-
-             const colorScale = d3.scaleOrdinal(d3.schemeTableau10);
-
-             g.selectAll('rect.bar')
-                 .data(processed)
-                 .enter()
-                 .append('rect')
-                 .attr('class', 'bar')
-                 .attr('x', d => xScale(d.start))
-                 .attr('y', d => yScale(d.equipment))
-                 .attr('width', d => Math.max(1, xScale(d.end) - xScale(d.start)))
-                 .attr('height', yScale.bandwidth())
-                 .attr('fill', d => colorScale(d.equipment))
-                 .attr('stroke', '#333')
-                 .attr('stroke-width', 1)
-                 .append('title')
-                 .text(d => `${d.test}\nEquipment: ${d.equipment}`);
-
-             g.append('g')
-                 .attr('transform', `translate(0,${height})`)
-                 .call(d3.axisBottom(xScale));
-
-             g.append('g')
-                 .call(d3.axisLeft(yScale));
-
-             svg.append('text')
-                 .attr('x', availableWidth / 2)
-                 .attr('y', 28)
-                 .attr('text-anchor', 'middle')
-                 .style('font-size', '18px')
-                 .style('font-weight', 'bold')
-                 .text('Equipment Utilization');
-         },
-
-         // FTE utilization renderer
-         renderFTE(data, container) {
-             d3.select(container).html('');
-
-             if (!data || !data.fteUsage || data.fteUsage.length === 0) {
-                 const text = d3.select(container).append('text')
-                     .attr('x', 400)
-                     .attr('y', 200)
-                     .attr('text-anchor', 'middle')
-                     .style('font-size', '18px')
-                     .style('fill', '#666')
-                     .text('No FTE usage data available');
-                 return;
-             }
-
-             const processed = data.fteUsage.map(d => {
-                 const start = d.startDate ? new Date(d.startDate) : new Date();
-                 const end = d.endDate ? new Date(d.endDate) : new Date();
-                 return {
-                     fte: d.fteId || 'Unknown',
-                     test: d.testName || d.testId || 'Test',
-                     start,
-                     end
-                 };
-             });
-
-             const rect = container.getBoundingClientRect();
-             const availableWidth = Math.max(400, rect.width - 40);
-             const availableHeight = Math.max(300, rect.height - 40);
-
-             const margin = { top: 50, right: 80, bottom: 100, left: 120 };
-             const width = availableWidth - margin.left - margin.right;
-             const height = availableHeight - margin.top - margin.bottom;
-
-             const svg = d3.select(container)
-                 .append('svg')
-                 .attr('width', availableWidth)
-                 .attr('height', availableHeight);
-
-             const g = svg.append('g')
-                 .attr('transform', `translate(${margin.left},${margin.top})`);
-
-             const ftes = [...new Set(processed.map(d => d.fte))];
-             const yScale = d3.scaleBand()
-                 .domain(ftes)
-                 .range([0, height])
-                 .padding(0.2);
-
-             const minStart = d3.min(processed, d => d.start);
-             const maxEnd = d3.max(processed, d => d.end);
-             const xScale = d3.scaleTime()
-                 .domain([minStart, maxEnd])
-                 .range([0, width])
-                 .nice();
-
-             const colorScale = d3.scaleOrdinal(d3.schemeSet2);
-
-             g.selectAll('rect.bar')
-                 .data(processed)
-                 .enter()
-                 .append('rect')
-                 .attr('class', 'bar')
-                 .attr('x', d => xScale(d.start))
-                 .attr('y', d => yScale(d.fte))
-                 .attr('width', d => Math.max(1, xScale(d.end) - xScale(d.start)))
-                 .attr('height', yScale.bandwidth())
-                 .attr('fill', d => colorScale(d.fte))
-                 .attr('stroke', '#333')
-                 .attr('stroke-width', 1)
-                 .append('title')
-                 .text(d => `${d.test}\nFTE: ${d.fte}`);
-
-             g.append('g')
-                 .attr('transform', `translate(0,${height})`)
-                 .call(d3.axisBottom(xScale));
-
-             g.append('g')
-                 .call(d3.axisLeft(yScale));
-
-             svg.append('text')
-                 .attr('x', availableWidth / 2)
-                 .attr('y', 28)
-                 .attr('text-anchor', 'middle')
-                 .style('font-size', '18px')
-                 .style('font-weight', 'bold')
-                 .text('FTE Utilization');
-         },
-
-         // Concurrency timeseries renderer
-         renderConcurrency(data, container) {
-             d3.select(container).html('');
-
-             if (!data || !data.concurrencyTimeseries || data.concurrencyTimeseries.length === 0) {
-                 const text = d3.select(container).append('text')
-                     .attr('x', 400)
-                     .attr('y', 200)
-                     .attr('text-anchor', 'middle')
-                     .style('font-size', '18px')
-                     .style('fill', '#666')
-                     .text('No concurrency data available');
-                 return;
-             }
-
-             const processed = data.concurrencyTimeseries.map(d => ({
-                 timestamp: d.timestamp ? new Date(d.timestamp) : new Date(),
-                 activeTests: +d.activeTests || 0,
-                 capacityMin: +d.capacityMin || 0
-             }));
-
-             const rect = container.getBoundingClientRect();
-             const availableWidth = Math.max(400, rect.width - 40);
-             const availableHeight = Math.max(300, rect.height - 40);
-
-             const margin = { top: 50, right: 80, bottom: 100, left: 120 };
-             const width = availableWidth - margin.left - margin.right;
-             const height = availableHeight - margin.top - margin.bottom;
-
-             const svg = d3.select(container)
-                 .append('svg')
-                 .attr('width', availableWidth)
-                 .attr('height', availableHeight);
-
-             const g = svg.append('g')
-                 .attr('transform', `translate(${margin.left},${margin.top})`);
-
-             const minTime = d3.min(processed, d => d.timestamp);
-             const maxTime = d3.max(processed, d => d.timestamp);
-             const maxValue = d3.max(processed, d => Math.max(d.activeTests, d.capacityMin)) * 1.1;
-
-             const xScale = d3.scaleTime()
-                 .domain([minTime, maxTime])
-                 .range([0, width])
-                 .nice();
-
-             const yScale = d3.scaleLinear()
-                 .domain([0, maxValue])
-                 .range([height, 0])
-                 .nice();
-
-             const capacityLine = d3.line()
-                 .x(d => xScale(d.timestamp))
-                 .y(d => yScale(d.capacityMin))
-                 .curve(d3.curveStepAfter);
-
-             g.append('path')
-                 .datum(processed)
-                 .attr('class', 'capacity-line')
-                 .attr('fill', 'none')
-                 .attr('stroke', '#ff0000')
-                 .attr('stroke-width', 2)
-                 .attr('stroke-dasharray', '5,5')
-                 .attr('d', capacityLine);
-
-             const activeLine = d3.line()
-                 .x(d => xScale(d.timestamp))
-                 .y(d => yScale(d.activeTests))
-                 .curve(d3.curveMonotoneX);
-
-             g.append('path')
-                 .datum(processed)
-                 .attr('class', 'active-line')
-                 .attr('fill', 'none')
-                 .attr('stroke', '#1f77b4')
-                 .attr('stroke-width', 2)
-                 .attr('d', activeLine);
-
-             g.append('g')
-                 .attr('transform', `translate(0,${height})`)
-                 .call(d3.axisBottom(xScale));
-
-             g.append('g')
-                 .call(d3.axisLeft(yScale));
-
-             const legend = g.append('g')
-                 .attr('transform', `translate(${width - 120}, 20)`);
-
-             legend.append('line')
-                 .attr('x1', 0)
-                 .attr('x2', 20)
-                 .attr('y1', 0)
-                 .attr('y2', 0)
-                 .attr('stroke', '#1f77b4')
-                 .attr('stroke-width', 2);
-
-             legend.append('text')
-                 .attr('x', 25)
-                 .attr('y', 0)
-                 .attr('dy', '0.35em')
-                 .style('font-size', '12px')
-                 .text('Active Tests');
-
-             legend.append('line')
-                 .attr('x1', 0)
-                 .attr('x2', 20)
-                 .attr('y1', 20)
-                 .attr('y2', 20)
-                 .attr('stroke', '#ff0000')
-                 .attr('stroke-width', 2)
-                 .attr('stroke-dasharray', '5,5');
-
-             legend.append('text')
-                 .attr('x', 25)
-                 .attr('y', 20)
-                 .attr('dy', '0.35em')
-                 .style('font-size', '12px')
-                 .text('Capacity');
-
-             svg.append('text')
-                 .attr('x', availableWidth / 2)
-                 .attr('y', 28)
-                 .attr('text-anchor', 'middle')
-                 .style('font-size', '18px')
-                 .style('font-weight', 'bold')
-                 .text('Active Tests vs Capacity Over Time');
          },
 
          // Watch for solver data changes
@@ -757,8 +406,14 @@ document.addEventListener('alpine:init', () => {
                 throw new Error('Solver results data is null or undefined');
             }
 
-            // Handle both field names for compatibility
-            const testSchedulesArray = solutionResult.testSchedules || solutionResult.testSchedule || [];
+            // Handle both field names for compatibility.
+            // Backend responses are snake_case (`test_schedule`).
+            const testSchedulesArray =
+                solutionResult.test_schedule ||
+                solutionResult.test_schedules ||
+                solutionResult.testSchedules ||
+                solutionResult.testSchedule ||
+                [];
 
             if (!Array.isArray(testSchedulesArray)) {
                 console.warn('Solver results missing testSchedules array, using empty array', solutionResult);
@@ -770,16 +425,48 @@ document.addEventListener('alpine:init', () => {
                 };
             }
 
+            const fallbackBaseDate = (() => {
+                const candidates = testSchedulesArray
+                    .map((row) => row?.start_date)
+                    .filter((value) => typeof value === 'string' && value.trim().length > 0)
+                    .map((value) => new Date(value))
+                    .filter((value) => !Number.isNaN(value.getTime()));
+                if (candidates.length > 0) {
+                    candidates.sort((a, b) => a.getTime() - b.getTime());
+                    return candidates[0];
+                }
+                return new Date();
+            })();
+
+            const toIsoDateFromDay = (dayValue) => {
+                const day = Number(dayValue);
+                if (!Number.isFinite(day)) {
+                    return null;
+                }
+                const date = new Date(fallbackBaseDate);
+                date.setDate(date.getDate() + day);
+                return date.toISOString().split('T')[0];
+            };
+
             // Transform SolutionResult JSON to match legacy CSV format (with camelCase)
+            const concurrencyFromOutput = this.parseConcurrencyTimeseriesFromOutputFiles(solutionResult);
             const transformed = {
                 testSchedules: testSchedulesArray.map(s => ({
                     testId: s.test_id,
                     projectLegId: s.project_leg_id,
                     testName: s.test_name,
-                    startDate: s.start_date ? (typeof s.start_date === 'string' ? s.start_date : s.start_date.toISOString().split('T')[0]) : null,
-                    startTime: s.start_date ? (typeof s.start_date === 'string' ? s.start_date.split('T')[1]?.split('.')[0] || '00:00:00' : '00:00:00') : '00:00:00',
-                    endDate: s.end_date ? (typeof s.end_date === 'string' ? s.end_date : s.end_date.toISOString().split('T')[0]) : null,
-                    endTime: s.end_date ? (typeof s.end_date === 'string' ? s.end_date.split('T')[1]?.split('.')[0] || '00:00:00' : '00:00:00') : '00:00:00',
+                    startDate: s.start_date
+                        ? (typeof s.start_date === 'string' ? s.start_date : s.start_date.toISOString().split('T')[0])
+                        : toIsoDateFromDay(s.start_day),
+                    startTime: s.start_date
+                        ? (typeof s.start_date === 'string' ? s.start_date.split('T')[1]?.split('.')[0] || '00:00:00' : '00:00:00')
+                        : '00:00:00',
+                    endDate: s.end_date
+                        ? (typeof s.end_date === 'string' ? s.end_date : s.end_date.toISOString().split('T')[0])
+                        : toIsoDateFromDay(s.end_day),
+                    endTime: s.end_date
+                        ? (typeof s.end_date === 'string' ? s.end_date.split('T')[1]?.split('.')[0] || '00:00:00' : '00:00:00')
+                        : '00:00:00',
                     assignedEquipmentId: Array.isArray(s.assigned_equipment) ? s.assigned_equipment[0] : (s.assigned_equipment || ''),
                     assignedFteId: Array.isArray(s.assigned_fte) ? s.assigned_fte[0] : (s.assigned_fte || ''),
                     assignedEquipment: Array.isArray(s.assigned_equipment) ? s.assigned_equipment.join(';') : (s.assigned_equipment || ''),
@@ -787,15 +474,69 @@ document.addEventListener('alpine:init', () => {
                 })),
                 equipmentUsage: this.generateEquipmentUsage(solutionResult, testSchedulesArray),
                 fteUsage: this.generateFTEUsage(solutionResult, testSchedulesArray),
-                concurrencyTimeseries: this.generateConcurrencyTimeseries(solutionResult, testSchedulesArray)
+                concurrencyTimeseries: concurrencyFromOutput.length > 0
+                    ? concurrencyFromOutput
+                    : this.generateConcurrencyTimeseries(solutionResult, testSchedulesArray)
             };
+            const missingDateCount = testSchedulesArray.filter(
+                (s) => !s?.start_date || !s?.end_date
+            ).length;
+            if (missingDateCount > 0) {
+                console.info('[visualizationStore] Applied day->date fallback for schedules', {
+                    missingDateCount,
+                    total: testSchedulesArray.length
+                });
+            }
             return transformed;
+        },
+
+        parseConcurrencyTimeseriesFromOutputFiles(solutionResult) {
+            const csvText = solutionResult?.output_files?.['concurrency_timeseries.csv'];
+            if (!csvText || typeof csvText !== 'string') {
+                return [];
+            }
+            const lines = csvText
+                .split(/\r?\n/)
+                .map((line) => line.trim())
+                .filter((line) => line.length > 0);
+            if (lines.length < 2) {
+                return [];
+            }
+
+            const headers = lines[0].split(',').map((header) => String(header || '').trim().toLowerCase());
+            const idx = {
+                timestamp: headers.indexOf('timestamp'),
+                activeTests: headers.indexOf('active_tests'),
+                availableFte: headers.indexOf('available_fte'),
+                availableEquipment: headers.indexOf('available_equipment'),
+                capacityMin: headers.indexOf('capacity_min')
+            };
+            if (idx.timestamp < 0 || idx.activeTests < 0) {
+                return [];
+            }
+
+            return lines.slice(1).map((line) => {
+                const cells = line.split(',');
+                return {
+                    timestamp: String(cells[idx.timestamp] || '').trim(),
+                    activeTests: Number(cells[idx.activeTests] || 0) || 0,
+                    availableFte: idx.availableFte >= 0 ? (Number(cells[idx.availableFte] || 0) || 0) : 0,
+                    availableEquipment: idx.availableEquipment >= 0 ? (Number(cells[idx.availableEquipment] || 0) || 0) : 0,
+                    capacityMin: idx.capacityMin >= 0 ? (Number(cells[idx.capacityMin] || 0) || 0) : 0
+                };
+            });
         },
 
         // Generate equipment usage data
         generateEquipmentUsage(solutionResult, testSchedulesArray = null) {
             const usage = [];
-            const schedules = testSchedulesArray || solutionResult.testSchedules || solutionResult.testSchedule || [];
+            const schedules =
+                testSchedulesArray ||
+                solutionResult.test_schedule ||
+                solutionResult.test_schedules ||
+                solutionResult.testSchedules ||
+                solutionResult.testSchedule ||
+                [];
             schedules.forEach(schedule => {
                 const equipmentList = Array.isArray(schedule.assigned_equipment) ? schedule.assigned_equipment : [schedule.assigned_equipment].filter(Boolean);
                 equipmentList.forEach(eqId => {
@@ -814,7 +555,13 @@ document.addEventListener('alpine:init', () => {
         // Generate FTE usage data
         generateFTEUsage(solutionResult, testSchedulesArray = null) {
             const usage = [];
-            const schedules = testSchedulesArray || solutionResult.testSchedules || solutionResult.testSchedule || [];
+            const schedules =
+                testSchedulesArray ||
+                solutionResult.test_schedule ||
+                solutionResult.test_schedules ||
+                solutionResult.testSchedules ||
+                solutionResult.testSchedule ||
+                [];
             schedules.forEach(schedule => {
                 const fteList = Array.isArray(schedule.assigned_fte) ? schedule.assigned_fte : [schedule.assigned_fte].filter(Boolean);
                 fteList.forEach(fteId => {
@@ -833,7 +580,13 @@ document.addEventListener('alpine:init', () => {
         // Generate concurrency timeseries data
         generateConcurrencyTimeseries(solutionResult, testSchedulesArray = null) {
             const timeseries = [];
-            const schedules = testSchedulesArray || solutionResult.testSchedules || solutionResult.testSchedule || [];
+            const schedules =
+                testSchedulesArray ||
+                solutionResult.test_schedule ||
+                solutionResult.test_schedules ||
+                solutionResult.testSchedules ||
+                solutionResult.testSchedule ||
+                [];
 
             if (schedules.length === 0) return timeseries;
 
@@ -847,6 +600,30 @@ document.addEventListener('alpine:init', () => {
 
             const minDate = new Date(Math.min(...dates));
             const maxDate = new Date(Math.max(...dates));
+            const totalFteCapacity = new Set(
+                schedules.flatMap((schedule) => {
+                    const assigned = schedule.assigned_fte;
+                    if (Array.isArray(assigned)) {
+                        return assigned.map((id) => String(id || '').trim()).filter(Boolean);
+                    }
+                    return String(assigned || '')
+                        .split(';')
+                        .map((id) => id.trim())
+                        .filter(Boolean);
+                })
+            ).size;
+            const totalEquipmentCapacity = new Set(
+                schedules.flatMap((schedule) => {
+                    const assigned = schedule.assigned_equipment;
+                    if (Array.isArray(assigned)) {
+                        return assigned.map((id) => String(id || '').trim()).filter(Boolean);
+                    }
+                    return String(assigned || '')
+                        .split(';')
+                        .map((id) => id.trim())
+                        .filter(Boolean);
+                })
+            ).size;
 
             // Generate daily timestamps
             for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
@@ -864,9 +641,9 @@ document.addEventListener('alpine:init', () => {
                 timeseries.push({
                     timestamp: timestamp.toISOString(),
                     activeTests: activeTests,
-                    availableFte: 10, // Placeholder
-                    availableEquipment: 10, // Placeholder
-                    capacityMin: 10 // Placeholder
+                    availableFte: totalFteCapacity,
+                    availableEquipment: totalEquipmentCapacity,
+                    capacityMin: Math.min(totalFteCapacity, totalEquipmentCapacity)
                 });
             }
 
@@ -1037,6 +814,22 @@ document.addEventListener('alpine:init', () => {
 
             const minDate = new Date(Math.min(...dates));
             const maxDate = new Date(Math.max(...dates));
+            const fteCapacity = new Set(
+                testSchedules.flatMap((schedule) =>
+                    String(schedule.assigned_fte || '')
+                        .split(';')
+                        .map((id) => id.trim())
+                        .filter(Boolean)
+                )
+            ).size;
+            const equipmentCapacity = new Set(
+                testSchedules.flatMap((schedule) =>
+                    String(schedule.assigned_equipment || '')
+                        .split(';')
+                        .map((id) => id.trim())
+                        .filter(Boolean)
+                )
+            ).size;
 
             // Generate daily timestamps
             for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
@@ -1054,9 +847,9 @@ document.addEventListener('alpine:init', () => {
                 timeseries.push({
                     timestamp: timestamp.toISOString(),
                     activeTests: activeTests,
-                    availableFte: 10, // Placeholder
-                    availableEquipment: 10, // Placeholder
-                    capacityMin: 10 // Placeholder
+                    availableFte: fteCapacity,
+                    availableEquipment: equipmentCapacity,
+                    capacityMin: Math.min(fteCapacity, equipmentCapacity)
                 });
             }
 

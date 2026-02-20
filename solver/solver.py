@@ -38,7 +38,8 @@ Solver Configuration:
 """
 
 from datetime import date, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
+import hashlib
 from dataclasses import dataclass
 from ortools.sat.python import cp_model
 from .model_builder import ScheduleModel
@@ -115,16 +116,89 @@ class SolutionResult:
 class SolutionCallback(cp_model.CpSolverSolutionCallback):
     """Callback to log intermediate solutions."""
 
-    def __init__(self, model: ScheduleModel):
+    def __init__(
+        self,
+        model: ScheduleModel,
+        data: PlanningData,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ):
         super().__init__()
         self._model = model
+        self._data = data
         self._solution_count = 0
+        self._progress_callback = progress_callback
+        self._test_preview_refs = [
+            (test.test_id, test.project_leg_id, test.test_name)
+            for test in data.tests
+            if test.test_id in model.test_vars
+        ]
+        leg_starts = [
+            leg.start_monday
+            for leg in getattr(data, "legs", {}).values()
+            if getattr(leg, "start_monday", None)
+        ]
+        self._project_start_date = min(leg_starts) if leg_starts else None
 
     def on_solution_callback(self):
         self._solution_count += 1
-        print(
-            f"Solution {self._solution_count}: makespan={self.Value(self._model.makespan_var)}"
-        )
+        makespan = self.Value(self._model.makespan_var)
+        objective_value = None
+        best_bound = None
+        try:
+            objective_value = float(self.ObjectiveValue())
+        except Exception:
+            objective_value = None
+        try:
+            best_bound = float(self.BestObjectiveBound())
+        except Exception:
+            best_bound = None
+
+        print(f"Solution {self._solution_count}: makespan={makespan}")
+        schedule_preview = []
+        for test_id, project_leg_id, test_name in self._test_preview_refs:
+            start_var, end_var, duration = self._model.test_vars[test_id]
+            start_day = int(self.Value(start_var))
+            end_day = int(self.Value(end_var))
+            schedule_preview.append(
+                {
+                    "test_id": test_id,
+                    "project_leg_id": project_leg_id,
+                    "test_name": test_name,
+                    "start_day": start_day,
+                    "end_day": end_day,
+                    "duration_days": int(duration),
+                    "start_date": (
+                        (self._project_start_date + timedelta(days=start_day)).isoformat()
+                        if self._project_start_date is not None
+                        else None
+                    ),
+                    "end_date": (
+                        (self._project_start_date + timedelta(days=end_day)).isoformat()
+                        if self._project_start_date is not None
+                        else None
+                    ),
+                }
+            )
+        schedule_preview.sort(key=lambda row: (row["start_day"], row["test_id"]))
+        schedule_hash = hashlib.sha1(
+            "|".join(
+                f'{row["test_id"]}:{row["start_day"]}:{row["end_day"]}'
+                for row in schedule_preview
+            ).encode("utf-8")
+        ).hexdigest()
+
+        if callable(self._progress_callback):
+            self._progress_callback(
+                {
+                    "solution_count": self._solution_count,
+                    "makespan": int(makespan),
+                    "objective_value": objective_value,
+                    "best_bound": best_bound,
+                    "wall_time_seconds": float(self.WallTime()),
+                    "schedule_preview": schedule_preview,
+                    "schedule_hash": schedule_hash,
+                }
+            )
 
     def solution_count(self) -> int:
         return self._solution_count
@@ -287,7 +361,10 @@ def calculate_resource_utilization(
 
 
 def solve_model(
-    model: ScheduleModel, data: PlanningData, time_limit_seconds: float = None
+    model: ScheduleModel,
+    data: PlanningData,
+    time_limit_seconds: float = None,
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
 ) -> Tuple[SolutionResult, date]:
     """
     Execute the CP-SAT optimization and return comprehensive solution results.
@@ -355,7 +432,9 @@ def solve_model(
     print(f"Model has {len(model.resource_assignments)} resource assignment variables")
 
     # Create a solution callback to log intermediate solutions
-    solution_callback = SolutionCallback(model)
+    solution_callback = SolutionCallback(
+        model, data, progress_callback=progress_callback
+    )
 
     # Solve the model
     status = solver.Solve(model.model, solution_callback)

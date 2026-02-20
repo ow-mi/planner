@@ -1,0 +1,67 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - heading "Priority Configuration Editor v2" [level=1] [ref=e4]
+    - button "Change theme" [ref=e7] [cursor=pointer]:
+      - img [ref=e8]
+      - text: Light
+      - img [ref=e10]
+  - generic [ref=e13]:
+    - tablist "Application tabs" [ref=e16]:
+      - tab "Data" [ref=e17] [cursor=pointer]
+      - tab "Configuration" [ref=e18] [cursor=pointer]
+      - tab "Solver" [selected] [ref=e19] [cursor=pointer]
+      - tab "Visualizer" [ref=e20] [cursor=pointer]
+      - tab "Output Data" [ref=e21] [cursor=pointer]
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - generic "Run 1 (QUEUED)" [ref=e27] [cursor=pointer]:
+            - generic [ref=e28]: ⏳
+            - generic [ref=e29]: Run 1
+            - button "×" [ref=e30]
+          - generic "Run 2 (QUEUED)" [ref=e31] [cursor=pointer]:
+            - generic [ref=e32]: ⏳
+            - generic [ref=e33]: Run 2
+            - button "×" [ref=e34]
+        - button "Add" [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+          - text: Add
+      - generic [ref=e38]:
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - heading "Run 2" [level=3] [ref=e42]
+            - generic [ref=e44]:
+              - text: "Status:"
+              - generic [ref=e45]: QUEUED
+          - button "Run Scenario" [ref=e47] [cursor=pointer]:
+            - img [ref=e48]
+            - text: Run Scenario
+        - generic [ref=e50]:
+          - generic [ref=e51]:
+            - heading "Solver Settings" [level=4] [ref=e52]
+            - generic [ref=e53]:
+              - generic [ref=e54]:
+                - generic [ref=e55]: Time Limit (seconds)
+                - spinbutton "Time Limit (seconds)" [ref=e56]: "300"
+              - generic [ref=e57]:
+                - generic [ref=e58]: Debug Level
+                - combobox "Debug Level" [ref=e59]:
+                  - option "DEBUG"
+                  - option "INFO" [selected]
+                  - option "WARNING"
+                  - option "ERROR"
+          - generic [ref=e60]:
+            - generic [ref=e61]: Run Name
+            - textbox "Run 2" [ref=e62]
+            - text: This name will identify the solver output
+      - generic [ref=e63]:
+        - generic [ref=e64]: 2 scenario(s) | 2 queued | 0 completed
+        - generic [ref=e65]:
+          - button "Clear Completed" [disabled]
+          - button "Run All Scenarios" [ref=e66] [cursor=pointer]:
+            - img [ref=e67]
+            - text: Run All Scenarios
+```

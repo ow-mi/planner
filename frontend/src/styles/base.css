@@ -119,6 +119,35 @@ h1, h2, h3 {
     background-color: var(--secondary-color);
 }
 
+/* Resource calendar day cells: enforce consistent boxed controls */
+.fte-day-cell,
+.equipment-day-cell {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 100% !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    box-sizing: border-box;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 4px;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 1;
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.fte-day-cell.available,
+.equipment-day-cell.available {
+    border-color: var(--border-color) !important;
+}
+
+.fte-day-cell.unavailable,
+.equipment-day-cell.unavailable {
+    border-color: var(--border-color) !important;
+}
+
 .btn-danger {
     background-color: var(--danger-color);
 }
@@ -197,10 +226,27 @@ h1, h2, h3 {
 }
 
 .tab-content.active {
-    display: block;
+    display: flex;
+    flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
-    overflow: auto;
+    overflow: hidden; /* Changed from auto - prevents expansion beyond viewport */
+}
+
+/* Ensure tab root content can stretch to full available height */
+.tab-content.active > [x-data] {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* Stretch the primary tab surface/card to the bottom of the viewport */
+.tab-content.active > [x-data] > .section:first-of-type,
+.tab-content.active > [x-data] > .subtab-container:first-of-type,
+.tab-content.active > [x-data] > .scenario-container:first-of-type {
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .section {
@@ -258,6 +304,26 @@ input:focus, select:focus, textarea:focus {
 .flex-item {
     flex-grow: 1;
     min-width: 200px;
+}
+
+.floating-reset-btn {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1200;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--bg-elevated);
+    color: var(--text-color);
+    padding: 0.45rem 0.8rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    box-shadow: 0 6px 16px var(--shadow-color);
+}
+
+.floating-reset-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
 }
 
 .checkbox-label {
@@ -382,7 +448,8 @@ th {
 .full-view-container {
     display: flex;
     gap: 1rem;
-    min-height: 500px;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .split-view-container {
@@ -644,6 +711,90 @@ th {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Data Source Tab Styles */
+.data-source-tabs {
+    display: inline-flex;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: var(--bg-secondary);
+    box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+.data-source-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    background-color: var(--bg-secondary);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    border-right: 1px solid var(--border-color);
+}
+
+.data-source-tab:last-child {
+    border-right: none;
+}
+
+.data-source-tab:hover {
+    background-color: var(--bg-elevated);
+    color: var(--text-color);
+}
+
+.data-source-tab.active {
+    background-color: var(--primary-color);
+    color: var(--button-text-color);
+}
+
+.data-source-tab svg {
+    flex-shrink: 0;
+}
+
+/* Toggle Button Styles */
+.toggle-button-wrapper {
+    display: inline-block;
+}
+
+.toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px var(--shadow-color);
+    white-space: nowrap;
+}
+
+.toggle-btn:hover {
+    background-color: var(--bg-elevated);
+    color: var(--text-color);
+    border-color: var(--primary-color);
+}
+
+.toggle-btn.active {
+    background-color: var(--primary-color);
+    color: var(--button-text-color);
+    border-color: var(--primary-color);
+}
+
+.toggle-btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Print styles for configuration sections */

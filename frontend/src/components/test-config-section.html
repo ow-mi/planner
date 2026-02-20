@@ -14,7 +14,7 @@
             testTypes: '',
             tests: ''
         },
-        fieldOrder: ['fteResources', 'fteTimePercentage', 'equipmentResources', 'equipmentTimePercentage', 'isExternal', 'forceStartWeek'],
+        fieldOrder: ['fteResources', 'fteRequired', 'fteTimePercentage', 'equipmentResources', 'equipmentRequired', 'equipmentTimePercentage', 'forceStartWeek'],
         getVisibleFields(level) {
             const editable = $store.config.getEditableFields(level) || [];
             return this.fieldOrder.filter(field => editable.includes(field));
@@ -95,16 +95,16 @@
         getFieldLabel(field) {
             const labelMap = {
                 fteResources: 'FTE Resources',
+                fteRequired: 'FTE Required',
                 fteTimePercentage: 'FTE Time Percentage',
                 equipmentResources: 'Equipment Resources',
+                equipmentRequired: 'Equipment Required',
                 equipmentTimePercentage: 'Equipment Time Percentage',
-                isExternal: 'External Test',
                 forceStartWeek: 'Force Start Week'
             };
             return labelMap[field] || field;
         },
         getFieldHelp(field) {
-            if (field === 'isExternal') return 'Tests run externally without consuming internal resources';
             if (field === 'forceStartWeek') return 'Format: YYYY-Www';
             return '';
         },
@@ -215,9 +215,10 @@
                                     <th style="white-space: nowrap;">name</th>
                                     <th style="white-space: nowrap;">fte_resources</th>
                                     <th style="white-space: nowrap;">equipment_resources</th>
+                                    <th style="white-space: nowrap;">fte_required</th>
+                                    <th style="white-space: nowrap;">equipment_required</th>
                                     <th style="white-space: nowrap;">fte_time_percentage</th>
                                     <th style="white-space: nowrap;">equipment_time_percentage</th>
-                                    <th style="white-space: nowrap;">is_external</th>
                                     <th style="white-space: nowrap;">force_start_week</th>
                                 </tr>
                             </thead>
@@ -233,14 +234,15 @@
                                         <td x-text="row.name"></td>
                                         <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.fteResources || 'all')" x-text="(row.fteResourcesDisplay || []).join(';')"></td>
                                         <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.equipmentResources || 'all')" x-text="(row.equipmentResourcesDisplay || []).join(';')"></td>
+                                        <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.fteRequired || 'all')" x-text="row.fteRequired"></td>
+                                        <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.equipmentRequired || 'all')" x-text="row.equipmentRequired"></td>
                                         <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.fteTimePercentage || 'all')" x-text="row.fteTimePercentage"></td>
                                         <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.equipmentTimePercentage || 'all')" x-text="row.equipmentTimePercentage"></td>
-                                        <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.isExternal || 'all')" x-text="row.isExternal ? 'true' : 'false'"></td>
                                         <td :style="'background:' + $store.config.getInheritanceBackground(row.origins?.forceStartWeek || 'all')" x-text="row.forceStartWeek"></td>
                                     </tr>
                                 </template>
                                 <tr x-show="($store.config.getResolvedTestConfigRows() || []).length === 0">
-                                    <td colspan="13" style="text-align: center; color: var(--text-light); padding: 1rem;">No resolved test data available.</td>
+                                    <td colspan="14" style="text-align: center; color: var(--text-light); padding: 1rem;">No resolved test data available.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -304,15 +306,15 @@
                                     </div>
                                 </template>
 
-                                <template x-if="field === 'isExternal'">
+                                <template x-if="field === 'fteRequired' || field === 'equipmentRequired'">
                                     <div>
-                                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem;">
-                                            <input type="checkbox"
-                                                   :checked="!!getFieldValue(activeHierarchyLevel, field)"
-                                                   @change="setFieldValue(activeHierarchyLevel, field, $event.target.checked)">
-                                            <span x-text="getFieldLabel(field)"></span>
-                                        </label>
-                                        <p style="margin: 0.25rem 0 0 1.5rem; font-size: 0.75rem; color: var(--text-light);" x-text="getFieldHelp(field)"></p>
+                                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;" x-text="getFieldLabel(field)"></label>
+                                        <input type="number"
+                                               class="form-control"
+                                               min="0"
+                                               step="1"
+                                               :value="getFieldValue(activeHierarchyLevel, field)"
+                                               @input="setFieldValue(activeHierarchyLevel, field, Number($event.target.value))">
                                     </div>
                                 </template>
 

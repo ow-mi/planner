@@ -8,7 +8,13 @@
 const CONFIG_STORAGE_KEYS = {
     SOLVER_CONFIG: 'ui_v2_exp__config__solverConfig',
     CONFIG_SECTION_STATES: 'ui_v2_exp__config__sectionStates',
-    CONFIG_SECTION_ENABLED: 'ui_v2_exp__config__sectionEnabled'
+    CONFIG_SECTION_ENABLED: 'ui_v2_exp__config__sectionEnabled',
+    FTE: 'ui_v2_exp__config__fte',
+    EQUIPMENT: 'ui_v2_exp__config__equipment',
+    TESTS: 'ui_v2_exp__config__tests',
+    TEST_DEFAULTS: 'ui_v2_exp__config__testDefaults',
+    TEST_HIERARCHY: 'ui_v2_exp__config__testHierarchy',
+    TEST_CONFIG: 'ui_v2_exp__config__testConfig'
 };
 
 function isValidWeekDeadlineFormat(value) {
@@ -341,6 +347,10 @@ function csvEscape(value) {
     return `"${stringValue.replace(/"/g, '""')}"`;
 }
 
+function deepClone(value) {
+    return JSON.parse(JSON.stringify(value));
+}
+
 document.addEventListener('alpine:init', () => {
     Alpine.store('config', {
          // State
@@ -392,9 +402,10 @@ document.addEventListener('alpine:init', () => {
              projectDefaults: {
                  fteResources: [],
                  equipmentResources: [],
+                 fteRequired: 1,
+                 equipmentRequired: 1,
                  fteTimePercentage: 100,
-                 equipmentTimePercentage: 100,
-                 isExternal: false
+                 equipmentTimePercentage: 100
              },
              legTypes: {},
              legs: {},
@@ -419,9 +430,10 @@ document.addEventListener('alpine:init', () => {
               defaults: {
                   fteResources: [],
                   equipmentResources: [],
+                  fteRequired: 1,
+                  equipmentRequired: 1,
                   fteTimePercentage: 100,
                   equipmentTimePercentage: 100,
-                  isExternal: false,
                   duration: 5,
                   priority: 5,
                   forceStartWeek: null
@@ -454,7 +466,7 @@ document.addEventListener('alpine:init', () => {
                  }
                  console.log('Configuration store initialized');
                  migrateLegacyStorage();
-                 // this.loadFromLocalStorage(); // Disabled - no persistence
+                 this.loadFromLocalStorage();
                  this.config.deadlines = (this.config.deadlines || [])
                      .map(normalizeDeadlineEntry)
                      .filter(Boolean);
@@ -498,6 +510,36 @@ document.addEventListener('alpine:init', () => {
                 const savedSectionEnabled = localStorage.getItem(CONFIG_STORAGE_KEYS.CONFIG_SECTION_ENABLED);
                 if (savedSectionEnabled) {
                    this.sectionEnabled = JSON.parse(savedSectionEnabled);
+                }
+
+                const savedFte = localStorage.getItem(CONFIG_STORAGE_KEYS.FTE);
+                if (savedFte) {
+                    this.fte = JSON.parse(savedFte);
+                }
+
+                const savedEquipment = localStorage.getItem(CONFIG_STORAGE_KEYS.EQUIPMENT);
+                if (savedEquipment) {
+                    this.equipment = JSON.parse(savedEquipment);
+                }
+
+                const savedTests = localStorage.getItem(CONFIG_STORAGE_KEYS.TESTS);
+                if (savedTests) {
+                    this.tests = JSON.parse(savedTests);
+                }
+
+                const savedTestDefaults = localStorage.getItem(CONFIG_STORAGE_KEYS.TEST_DEFAULTS);
+                if (savedTestDefaults) {
+                    this.testDefaults = JSON.parse(savedTestDefaults);
+                }
+
+                const savedTestHierarchy = localStorage.getItem(CONFIG_STORAGE_KEYS.TEST_HIERARCHY);
+                if (savedTestHierarchy) {
+                    this.testHierarchy = JSON.parse(savedTestHierarchy);
+                }
+
+                const savedTestConfig = localStorage.getItem(CONFIG_STORAGE_KEYS.TEST_CONFIG);
+                if (savedTestConfig) {
+                    this.testConfig = JSON.parse(savedTestConfig);
                 }
              } catch (error) {
                 console.error('Failed to load configuration from localStorage:', error);
@@ -547,6 +589,12 @@ document.addEventListener('alpine:init', () => {
                 localStorage.setItem(CONFIG_STORAGE_KEYS.SOLVER_CONFIG, JSON.stringify(this.config));
                 localStorage.setItem(CONFIG_STORAGE_KEYS.CONFIG_SECTION_STATES, JSON.stringify(this.sectionStates));
                 localStorage.setItem(CONFIG_STORAGE_KEYS.CONFIG_SECTION_ENABLED, JSON.stringify(this.sectionEnabled));
+                localStorage.setItem(CONFIG_STORAGE_KEYS.FTE, JSON.stringify(this.fte));
+                localStorage.setItem(CONFIG_STORAGE_KEYS.EQUIPMENT, JSON.stringify(this.equipment));
+                localStorage.setItem(CONFIG_STORAGE_KEYS.TESTS, JSON.stringify(this.tests));
+                localStorage.setItem(CONFIG_STORAGE_KEYS.TEST_DEFAULTS, JSON.stringify(this.testDefaults));
+                localStorage.setItem(CONFIG_STORAGE_KEYS.TEST_HIERARCHY, JSON.stringify(this.testHierarchy));
+                localStorage.setItem(CONFIG_STORAGE_KEYS.TEST_CONFIG, JSON.stringify(this.testConfig));
              } catch (error) {
                 console.error('Failed to save configuration to localStorage:', error);
                 this.error = 'Failed to save configuration';
@@ -569,6 +617,8 @@ document.addEventListener('alpine:init', () => {
              if (this.sectionEnabled.deadlinesEnabled && this.config.deadlines.length > 0) {
                  const startDeadlines = {};
                  const endDeadlines = {};
+                 const deadlinePenaltiesByLeg = {};
+                 const compactnessByLeg = {};
 
                  this.config.deadlines.forEach(deadline => {
                     if (!deadline || !deadline.legId) {
@@ -579,12 +629,28 @@ document.addEventListener('alpine:init', () => {
                         return;
                     }
 
-                    if (deadline.startEnabled && isValidWeekDeadlineFormat(deadline.startDeadline)) {
-                        startDeadlines[deadlineKey] = deadline.startDeadline;
+                    const normalizedStartDeadline = normalizeDeadlineValue(
+                        deadline.startDeadline || deadline.startDate || ''
+                    );
+                    if (normalizedStartDeadline) {
+                        startDeadlines[deadlineKey] = normalizedStartDeadline;
                     }
 
-                    if (deadline.endEnabled && isValidWeekDeadlineFormat(deadline.endDeadline)) {
-                        endDeadlines[deadlineKey] = deadline.endDeadline;
+                    const normalizedEndDeadline = normalizeDeadlineValue(
+                        deadline.endDeadline || deadline.deadlineDate || deadline.endDate || ''
+                    );
+                    if (normalizedEndDeadline) {
+                        endDeadlines[deadlineKey] = normalizedEndDeadline;
+                    }
+
+                    const deadlinePenalty = Number(deadline.deadlinePenalty);
+                    if (Number.isFinite(deadlinePenalty) && deadlinePenalty >= 0) {
+                        deadlinePenaltiesByLeg[deadlineKey] = deadlinePenalty;
+                    }
+
+                    const compactnessPenalty = Number(deadline.compactness);
+                    if (Number.isFinite(compactnessPenalty) && compactnessPenalty >= 0) {
+                        compactnessByLeg[deadlineKey] = compactnessPenalty;
                     }
                  });
 
@@ -595,6 +661,14 @@ document.addEventListener('alpine:init', () => {
 
                  if (Object.keys(startDeadlines).length > 0) {
                      this.priorityConfigSettings.legStartDeadlines = startDeadlines;
+                 }
+
+                 if (Object.keys(deadlinePenaltiesByLeg).length > 0) {
+                     this.priorityConfigSettings.legDeadlinePenalties = deadlinePenaltiesByLeg;
+                 }
+
+                 if (Object.keys(compactnessByLeg).length > 0) {
+                     this.priorityConfigSettings.legCompactnessPenalties = compactnessByLeg;
                  }
              }
 
@@ -812,6 +886,11 @@ document.addEventListener('alpine:init', () => {
             this.error = null;
 
             try {
+                if (jsonData && jsonData.snapshot_type === 'run_config' && jsonData.config_snapshot) {
+                    this.applyRunConfigSnapshot(jsonData.config_snapshot);
+                    return;
+                }
+
                 // Validate JSON structure
                 this.validateJsonStructure(jsonData);
 
@@ -915,6 +994,48 @@ document.addEventListener('alpine:init', () => {
         // Get current configuration for export
         getCurrentConfig() {
             return this.priorityConfigSettings;
+        },
+
+        getRunConfigSnapshot() {
+            return {
+                version: '1.0',
+                saved_at: new Date().toISOString(),
+                priority_config: deepClone(this.priorityConfigSettings || {}),
+                config: deepClone(this.config || {}),
+                section_enabled: deepClone(this.sectionEnabled || {}),
+                section_states: deepClone(this.sectionStates || {}),
+                fte: deepClone(this.fte || { resources: [], holidays: [], aliases: {} }),
+                equipment: deepClone(this.equipment || { resources: [], holidays: [], aliases: {} }),
+                test_config: deepClone(this.testConfig || {
+                    defaults: {},
+                    projects: {},
+                    legTypes: {},
+                    legs: {},
+                    testTypes: {},
+                    tests: {}
+                })
+            };
+        },
+
+        applyRunConfigSnapshot(snapshot) {
+            if (!snapshot || typeof snapshot !== 'object') {
+                throw new Error('Invalid run config snapshot');
+            }
+
+            this.config = deepClone(snapshot.config || this.config);
+            this.sectionEnabled = {
+                ...this.sectionEnabled,
+                ...(snapshot.section_enabled || {})
+            };
+            this.sectionStates = {
+                ...this.sectionStates,
+                ...(snapshot.section_states || {})
+            };
+            this.fte = deepClone(snapshot.fte || this.fte);
+            this.equipment = deepClone(snapshot.equipment || this.equipment);
+            this.testConfig = deepClone(snapshot.test_config || this.testConfig);
+            this.updateOutputSettings();
+            this.saveToLocalStorage();
         },
 
          // Reset to default configuration
@@ -1232,9 +1353,10 @@ document.addEventListener('alpine:init', () => {
               const defaults = {
                   fteResources: [],
                   equipmentResources: [],
+                  fteRequired: 1,
+                  equipmentRequired: 1,
                   fteTimePercentage: 100,
-                  equipmentTimePercentage: 100,
-                  isExternal: false
+                  equipmentTimePercentage: 100
               };
 
               // Check level-specific overrides first
@@ -1616,13 +1738,14 @@ document.addEventListener('alpine:init', () => {
                   return Array.isArray(value) ? value.map(normalizeOptionText).filter(Boolean) : [];
               }
 
+              if (field === 'fteRequired' || field === 'equipmentRequired') {
+                  const numberValue = Number(value);
+                  return Number.isFinite(numberValue) ? Math.max(0, Math.round(numberValue)) : 1;
+              }
+
               if (field === 'fteTimePercentage' || field === 'equipmentTimePercentage') {
                   const numberValue = Number(value);
                   return Number.isFinite(numberValue) ? numberValue : 100;
-              }
-
-              if (field === 'isExternal') {
-                  return Boolean(value);
               }
 
               if (field === 'forceStartWeek') {
@@ -1668,9 +1791,10 @@ document.addEventListener('alpine:init', () => {
                   const testType = context.testType || normalizeOptionText(testsById[testId]?.displayName || '');
                   const fteResourcesResolved = this.resolveTestFieldWithOrigin(testId, 'fteResources');
                   const equipmentResourcesResolved = this.resolveTestFieldWithOrigin(testId, 'equipmentResources');
+                  const fteRequiredResolved = this.resolveTestFieldWithOrigin(testId, 'fteRequired');
+                  const equipmentRequiredResolved = this.resolveTestFieldWithOrigin(testId, 'equipmentRequired');
                   const fteTimePercentageResolved = this.resolveTestFieldWithOrigin(testId, 'fteTimePercentage');
                   const equipmentTimePercentageResolved = this.resolveTestFieldWithOrigin(testId, 'equipmentTimePercentage');
-                  const isExternalResolved = this.resolveTestFieldWithOrigin(testId, 'isExternal');
                   const forceStartWeekResolved = this.resolveTestFieldWithOrigin(testId, 'forceStartWeek');
                   const fteResourceIds = this.normalizeResolvedFieldValue('fteResources', fteResourcesResolved.value);
                   const equipmentResourceIds = this.normalizeResolvedFieldValue('equipmentResources', equipmentResourcesResolved.value);
@@ -1687,16 +1811,18 @@ document.addEventListener('alpine:init', () => {
                       equipmentResources: equipmentResourceIds,
                       fteResourcesDisplay: this.resolveResourceNames('fteResources', fteResourceIds),
                       equipmentResourcesDisplay: this.resolveResourceNames('equipmentResources', equipmentResourceIds),
+                      fteRequired: this.normalizeResolvedFieldValue('fteRequired', fteRequiredResolved.value),
+                      equipmentRequired: this.normalizeResolvedFieldValue('equipmentRequired', equipmentRequiredResolved.value),
                       fteTimePercentage: this.normalizeResolvedFieldValue('fteTimePercentage', fteTimePercentageResolved.value),
                       equipmentTimePercentage: this.normalizeResolvedFieldValue('equipmentTimePercentage', equipmentTimePercentageResolved.value),
-                      isExternal: this.normalizeResolvedFieldValue('isExternal', isExternalResolved.value),
                       forceStartWeek: this.normalizeResolvedFieldValue('forceStartWeek', forceStartWeekResolved.value),
                       origins: {
                           fteResources: fteResourcesResolved.originKey,
                           equipmentResources: equipmentResourcesResolved.originKey,
+                          fteRequired: fteRequiredResolved.originKey,
+                          equipmentRequired: equipmentRequiredResolved.originKey,
                           fteTimePercentage: fteTimePercentageResolved.originKey,
                           equipmentTimePercentage: equipmentTimePercentageResolved.originKey,
-                          isExternal: isExternalResolved.originKey,
                           forceStartWeek: forceStartWeekResolved.originKey
                       }
                   };
@@ -1716,9 +1842,10 @@ document.addEventListener('alpine:init', () => {
                   'name',
                   'fte_resources',
                   'equipment_resources',
+                  'fte_required',
+                  'equipment_required',
                   'fte_time_percentage',
                   'equipment_time_percentage',
-                  'is_external',
                   'force_start_week'
               ];
 
@@ -1735,9 +1862,10 @@ document.addEventListener('alpine:init', () => {
                       row.name,
                       (row.fteResourcesDisplay || []).join(';'),
                       (row.equipmentResourcesDisplay || []).join(';'),
+                      row.fteRequired,
+                      row.equipmentRequired,
                       row.fteTimePercentage,
                       row.equipmentTimePercentage,
-                      row.isExternal ? 'true' : 'false',
                       row.forceStartWeek
                   ];
                   lines.push(cells.map(csvEscape).join(','));
@@ -2336,9 +2464,47 @@ document.addEventListener('alpine:init', () => {
           },
 
           removeFteResource(index) {
-              if (!this.fte?.resources) return;
+              if (!this.fte?.resources) {
+                  console.warn('[configStore][fte] removeFteResource skipped: resources unavailable', { index });
+                  return;
+              }
+              const beforeCount = this.fte.resources.length;
+              if (index < 0 || index >= beforeCount) {
+                  console.warn('[configStore][fte] removeFteResource skipped: index out of range', {
+                      index,
+                      resourceCount: beforeCount
+                  });
+                  return;
+              }
+              const removed = this.fte.resources[index] || null;
+              console.info('[configStore][fte] Removing resource', {
+                  index,
+                  beforeCount,
+                  removedFteId: removed?.id || null,
+                  removedFteName: removed?.name || null
+              });
               this.fte.resources.splice(index, 1);
+              console.info('[configStore][fte] Resource removed', {
+                  index,
+                  afterCount: this.fte.resources.length
+              });
               this.updateOutputSettings();
+          },
+
+          removeFteResourceById(fteId) {
+              if (!this.fte?.resources) {
+                  console.warn('[configStore][fte] removeFteResourceById skipped: resources unavailable', { fteId });
+                  return;
+              }
+              const index = this.fte.resources.findIndex(resource => resource?.id === fteId);
+              if (index < 0) {
+                  console.warn('[configStore][fte] removeFteResourceById skipped: resource not found', {
+                      fteId,
+                      resourceCount: this.fte.resources.length
+                  });
+                  return;
+              }
+              this.removeFteResource(index);
           },
 
           updateFteCalendar(year, fteId, dateKey, available) {
@@ -2401,9 +2567,47 @@ document.addEventListener('alpine:init', () => {
           },
 
           removeEquipmentResource(index) {
-              if (!this.equipment?.resources) return;
+              if (!this.equipment?.resources) {
+                  console.warn('[configStore][equipment] removeEquipmentResource skipped: resources unavailable', { index });
+                  return;
+              }
+              const beforeCount = this.equipment.resources.length;
+              if (index < 0 || index >= beforeCount) {
+                  console.warn('[configStore][equipment] removeEquipmentResource skipped: index out of range', {
+                      index,
+                      resourceCount: beforeCount
+                  });
+                  return;
+              }
+              const removed = this.equipment.resources[index] || null;
+              console.info('[configStore][equipment] Removing resource', {
+                  index,
+                  beforeCount,
+                  removedEquipmentId: removed?.id || null,
+                  removedEquipmentName: removed?.name || null
+              });
               this.equipment.resources.splice(index, 1);
+              console.info('[configStore][equipment] Resource removed', {
+                  index,
+                  afterCount: this.equipment.resources.length
+              });
               this.updateOutputSettings();
+          },
+
+          removeEquipmentResourceById(equipmentId) {
+              if (!this.equipment?.resources) {
+                  console.warn('[configStore][equipment] removeEquipmentResourceById skipped: resources unavailable', { equipmentId });
+                  return;
+              }
+              const index = this.equipment.resources.findIndex(resource => resource?.id === equipmentId);
+              if (index < 0) {
+                  console.warn('[configStore][equipment] removeEquipmentResourceById skipped: resource not found', {
+                      equipmentId,
+                      resourceCount: this.equipment.resources.length
+                  });
+                  return;
+              }
+              this.removeEquipmentResource(index);
           },
 
           updateEquipmentCalendar(year, equipmentId, dateKey, available) {
@@ -2597,12 +2801,12 @@ document.addEventListener('alpine:init', () => {
            // Get editable fields for a specific hierarchy level
            getEditableFields(level) {
                const fieldMap = {
-                   all: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
-                   projects: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
-                   legTypes: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
-                   legs: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
-                   testTypes: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal'],
-                   tests: ['fteResources', 'equipmentResources', 'fteTimePercentage', 'equipmentTimePercentage', 'isExternal', 'forceStartWeek'],
+                   all: ['fteResources', 'equipmentResources', 'fteRequired', 'equipmentRequired', 'fteTimePercentage', 'equipmentTimePercentage'],
+                   projects: ['fteResources', 'equipmentResources', 'fteRequired', 'equipmentRequired', 'fteTimePercentage', 'equipmentTimePercentage'],
+                   legTypes: ['fteResources', 'equipmentResources', 'fteRequired', 'equipmentRequired', 'fteTimePercentage', 'equipmentTimePercentage'],
+                   legs: ['fteResources', 'equipmentResources', 'fteRequired', 'equipmentRequired', 'fteTimePercentage', 'equipmentTimePercentage'],
+                   testTypes: ['fteResources', 'equipmentResources', 'fteRequired', 'equipmentRequired', 'fteTimePercentage', 'equipmentTimePercentage'],
+                   tests: ['fteResources', 'equipmentResources', 'fteRequired', 'equipmentRequired', 'fteTimePercentage', 'equipmentTimePercentage', 'forceStartWeek'],
                    csv: []
                };
                return fieldMap[level] || [];
@@ -2714,9 +2918,10 @@ document.addEventListener('alpine:init', () => {
                     const projDefaults = oldData.testDefaults.projectDefaults || {};
                     migrated.defaults.fteResources = projDefaults.fteResources || [];
                     migrated.defaults.equipmentResources = projDefaults.equipmentResources || [];
+                    migrated.defaults.fteRequired = projDefaults.fteRequired ?? 1;
+                    migrated.defaults.equipmentRequired = projDefaults.equipmentRequired ?? 1;
                     migrated.defaults.fteTimePercentage = projDefaults.fteTimePercentage ?? 100;
                     migrated.defaults.equipmentTimePercentage = projDefaults.equipmentTimePercentage ?? 100;
-                    migrated.defaults.isExternal = projDefaults.isExternal ?? false;
 
                     // Migrate leg type resource assignments
                     if (oldData.testDefaults.legTypes) {
@@ -2730,14 +2935,17 @@ document.addEventListener('alpine:init', () => {
                             if (config.equipmentResources) {
                                 migrated.legTypes[id].equipmentResources = config.equipmentResources;
                             }
+                            if (config.fteRequired !== undefined) {
+                                migrated.legTypes[id].fteRequired = config.fteRequired;
+                            }
+                            if (config.equipmentRequired !== undefined) {
+                                migrated.legTypes[id].equipmentRequired = config.equipmentRequired;
+                            }
                             if (config.fteTimePercentage !== undefined) {
                                 migrated.legTypes[id].fteTimePercentage = config.fteTimePercentage;
                             }
                             if (config.equipmentTimePercentage !== undefined) {
                                 migrated.legTypes[id].equipmentTimePercentage = config.equipmentTimePercentage;
-                            }
-                            if (config.isExternal !== undefined) {
-                                migrated.legTypes[id].isExternal = config.isExternal;
                             }
                         });
                     }
@@ -2754,14 +2962,17 @@ document.addEventListener('alpine:init', () => {
                             if (config.equipmentResources) {
                                 migrated.legs[id].equipmentResources = config.equipmentResources;
                             }
+                            if (config.fteRequired !== undefined) {
+                                migrated.legs[id].fteRequired = config.fteRequired;
+                            }
+                            if (config.equipmentRequired !== undefined) {
+                                migrated.legs[id].equipmentRequired = config.equipmentRequired;
+                            }
                             if (config.fteTimePercentage !== undefined) {
                                 migrated.legs[id].fteTimePercentage = config.fteTimePercentage;
                             }
                             if (config.equipmentTimePercentage !== undefined) {
                                 migrated.legs[id].equipmentTimePercentage = config.equipmentTimePercentage;
-                            }
-                            if (config.isExternal !== undefined) {
-                                migrated.legs[id].isExternal = config.isExternal;
                             }
                         });
                     }
@@ -2778,14 +2989,17 @@ document.addEventListener('alpine:init', () => {
                             if (config.equipmentResources) {
                                 migrated.testTypes[id].equipmentResources = config.equipmentResources;
                             }
+                            if (config.fteRequired !== undefined) {
+                                migrated.testTypes[id].fteRequired = config.fteRequired;
+                            }
+                            if (config.equipmentRequired !== undefined) {
+                                migrated.testTypes[id].equipmentRequired = config.equipmentRequired;
+                            }
                             if (config.fteTimePercentage !== undefined) {
                                 migrated.testTypes[id].fteTimePercentage = config.fteTimePercentage;
                             }
                             if (config.equipmentTimePercentage !== undefined) {
                                 migrated.testTypes[id].equipmentTimePercentage = config.equipmentTimePercentage;
-                            }
-                            if (config.isExternal !== undefined) {
-                                migrated.testTypes[id].isExternal = config.isExternal;
                             }
                         });
                     }

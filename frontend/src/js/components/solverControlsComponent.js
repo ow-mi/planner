@@ -9,6 +9,11 @@ function solverControlsComponent() {
     return {
         init() {
             console.log('Solver controls component initialized');
+            this.$watch(() => JSON.stringify(this.$store.solver.config), () => {
+                if (this.$store?.solver?.saveToLocalStorage) {
+                    this.$store.solver.saveToLocalStorage();
+                }
+            });
         },
 
         // Access store properties
@@ -41,7 +46,7 @@ function solverControlsComponent() {
         },
 
         get errorMessage() {
-            return this.$store.solver.error?.message || 'Unknown error';
+            return this.$store.solver.error?.message || this.$store.solver.error || 'Unknown error';
         },
 
         get errorGuidance() {

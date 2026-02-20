@@ -5,7 +5,7 @@ import time
 import traceback
 import uuid
 from datetime import datetime
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Set
 
 from backend.src.api.models.requests import SolverRequest
 from backend.src.api.models.responses import (
@@ -61,6 +61,8 @@ class ExecutionOrchestrator:
         self._queue = queue_service
         self._stop_event = threading.Event()
         self._worker_thread: Optional[threading.Thread] = None
+        self._cancelled_execution_ids: Set[str] = set()
+        self._cancel_lock = threading.RLock()
 
     # =========================================================================
     # SECTION: Public API
@@ -88,9 +90,33 @@ class ExecutionOrchestrator:
         Raises:
             ValueError: If CSV files or priority config fail validation.
         """
-        csv_errors = ValidationUtils.validate_csv_files(request.csv_files)
-        if csv_errors:
-            raise ValueError(f"CSV Validation Error: {'; '.join(csv_errors)}")
+        resolved_csv_files: Dict[str, str] = {}
+        if request.csv_files:
+            resolved_csv_files = request.csv_files
+        elif request.input_data and request.input_data.tables:
+            fte_table = request.input_data.tables.get("fte")
+            equipment_table = request.input_data.tables.get("equipment")
+            if fte_table:
+                logging.info(
+                    "[execution] Received FTE input table: rows=%s headers=%s",
+                    len(fte_table.rows or []),
+                    fte_table.headers,
+                )
+            if equipment_table:
+                logging.info(
+                    "[execution] Received equipment input table: rows=%s headers=%s",
+                    len(equipment_table.rows or []),
+                    equipment_table.headers,
+                )
+            resolved_csv_files = ValidationUtils.convert_input_tables_to_csv_files(
+                request.input_data.model_dump().get("tables", {})
+            )
+
+        requires_input_bundle_validation = not bool(request.input_folder)
+        if requires_input_bundle_validation:
+            csv_errors = ValidationUtils.validate_csv_files(resolved_csv_files)
+            if csv_errors:
+                raise ValueError(f"CSV Validation Error: {'; '.join(csv_errors)}")
 
         priority_errors = ValidationUtils.validate_priority_config(
             request.priority_config
@@ -116,8 +142,13 @@ class ExecutionOrchestrator:
                 created_at=execution.created_at,
             )
 
-        execution_state.request_payload = request.model_dump()
+        execution_state.request_payload = request.model_copy(
+            update={"csv_files": resolved_csv_files}
+        ).model_dump()
         execution_state.queue_position = queue_position
+        execution_state.progress_data = {
+            "progress_interval_seconds": request.progress_interval_seconds or 10
+        }
         self._state.set_execution(execution_state)
 
         persisted = self._state.get_execution(execution_id)
@@ -145,6 +176,47 @@ class ExecutionOrchestrator:
             return execution.results
         return None
 
+    def request_cancellation(self, execution_id: str) -> str:
+        """Request execution cancellation, returning state code for API handling."""
+        execution = self._state.get_execution(execution_id)
+        if not execution:
+            return "not_found"
+
+        if execution.status in (
+            StateExecutionStatusEnum.CANCELLED,
+            StateExecutionStatusEnum.COMPLETED,
+            StateExecutionStatusEnum.FAILED,
+            StateExecutionStatusEnum.TIMEOUT,
+        ):
+            return "already_terminal"
+
+        if execution.status == StateExecutionStatusEnum.CANCELLATION_REQUESTED:
+            return "already_requested"
+
+        with self._cancel_lock:
+            self._cancelled_execution_ids.add(execution_id)
+
+        self._state.update_execution_status(
+            execution_id,
+            StateExecutionStatusEnum.CANCELLATION_REQUESTED,
+            current_phase="Cancellation requested",
+            progress_data={
+                **(execution.progress_data or {}),
+                "cancel_requested_at": datetime.utcnow().isoformat(),
+            },
+        )
+        return "accepted"
+
+    def is_cancellation_requested(self, execution_id: str) -> bool:
+        with self._cancel_lock:
+            if execution_id in self._cancelled_execution_ids:
+                return True
+        execution = self._state.get_execution(execution_id)
+        return bool(
+            execution
+            and execution.status == StateExecutionStatusEnum.CANCELLATION_REQUESTED
+        )
+
     # =========================================================================
     # SECTION: Queue Processing & Worker Lifecycle
     # =========================================================================
@@ -169,6 +241,11 @@ class ExecutionOrchestrator:
         if not exec_state:
             return
 
+        if self.is_cancellation_requested(execution_id):
+            self._mark_execution_cancelled(execution_id, "Cancelled before execution start")
+            self._queue.complete_execution(execution_id)
+            return
+
         started_at = datetime.utcnow()
         self._state.update_execution_status(
             execution_id,
@@ -189,17 +266,85 @@ class ExecutionOrchestrator:
 
         try:
             request = SolverRequest(**request_payload)
+            priority_payload = request.priority_config or {}
+            mode = priority_payload.get("mode")
+            leg_deadlines = priority_payload.get("leg_deadlines") or {}
+            leg_start_deadlines = priority_payload.get("leg_start_deadlines") or {}
+            leg_deadline_penalties = (
+                priority_payload.get("leg_deadline_penalties") or {}
+            )
+            leg_compactness_penalties = (
+                priority_payload.get("leg_compactness_penalties") or {}
+            )
+            logging.info(
+                "Execution %s priority config: mode=%s deadlines=%d start_deadlines=%d deadline_penalty_per_day=%s leg_compactness_penalty_per_day=%s leg_deadline_penalties=%d leg_compactness_penalties=%d",
+                execution_id,
+                mode,
+                len(leg_deadlines),
+                len(leg_start_deadlines),
+                priority_payload.get("deadline_penalty_per_day"),
+                priority_payload.get("leg_compactness_penalty_per_day"),
+                len(leg_deadline_penalties),
+                len(leg_compactness_penalties),
+            )
+            if leg_deadlines:
+                logging.info(
+                    "Execution %s deadline keys sample: %s",
+                    execution_id,
+                    list(leg_deadlines.keys())[:10],
+                )
+            elif leg_deadline_penalties:
+                logging.warning(
+                    "Execution %s has per-leg deadline penalties but no leg_deadlines; late penalties cannot apply without end dates",
+                    execution_id,
+                )
+            if leg_start_deadlines:
+                logging.info(
+                    "Execution %s start deadline keys sample: %s",
+                    execution_id,
+                    list(leg_start_deadlines.items())[:10],
+                )
+            if leg_deadline_penalties:
+                logging.info(
+                    "Execution %s deadline penalty keys sample: %s",
+                    execution_id,
+                    list(leg_deadline_penalties.items())[:10],
+                )
+            if leg_compactness_penalties:
+                logging.info(
+                    "Execution %s compactness penalty keys sample: %s",
+                    execution_id,
+                    list(leg_compactness_penalties.items())[:10],
+                )
             run_context = self._prepare_run_context(execution_id, exec_state, request)
             artifact_paths = run_context["artifact_paths"]
             input_effective_path = run_context["input_effective_path"]
             output_path = run_context["output_path"]
 
+            if self.is_cancellation_requested(execution_id):
+                self._mark_execution_cancelled(
+                    execution_id,
+                    "Cancelled before solver start",
+                    output_path=output_path,
+                )
+                return
+
             solution = self._invoke_solver(
                 execution_id, request, input_effective_path, output_path
             )
+
             results = self._process_results(
                 execution_id, solution, output_path, artifact_paths
             )
+
+            if self.is_cancellation_requested(execution_id):
+                self._mark_execution_cancelled(
+                    execution_id,
+                    "Cancelled after solver run (latest plan preserved)",
+                    output_path=output_path,
+                    partial_results=results.model_dump(),
+                )
+                return
 
             completed_at = datetime.utcnow()
             latest_state = self._state.get_execution(execution_id)
@@ -210,10 +355,25 @@ class ExecutionOrchestrator:
                 latest_state.current_phase = "Completed"
                 latest_state.results = results.model_dump()
                 latest_state.request_payload = None
+                latest_state.progress_data = {
+                    **(latest_state.progress_data or {}),
+                    "makespan": results.makespan,
+                    "objective_value": (
+                        (results.solver_stats or {}).get("objective_value")
+                        if results.solver_stats
+                        else None
+                    ),
+                    "progress_interval_seconds": request.progress_interval_seconds
+                    if request
+                    else 10,
+                }
                 self._state.set_execution(latest_state)
 
         except Exception as exc:
             traceback.print_exc()
+            if self.is_cancellation_requested(execution_id):
+                self._mark_execution_cancelled(execution_id, "Cancelled due to user request")
+                return
             self._handle_error(
                 execution_id,
                 "SolverError",
@@ -225,6 +385,8 @@ class ExecutionOrchestrator:
             if artifact_paths and request is not None:
                 self._write_run_metadata(execution_id, request, artifact_paths)
             self._queue.complete_execution(execution_id)
+            with self._cancel_lock:
+                self._cancelled_execution_ids.discard(execution_id)
 
     def _run_solver(self, execution_id: str) -> None:
         """Backward-compatible alias for older callers."""
@@ -291,6 +453,12 @@ class ExecutionOrchestrator:
             input_effective_path = request.input_folder
             output_path = request.output_folder or request.input_folder
             os.makedirs(output_path, exist_ok=True)
+            self._persist_debug_request_payload_artifact(
+                execution_id=execution_id,
+                request=request,
+                output_path=output_path,
+                artifact_paths=None,
+            )
             return {
                 "artifact_paths": None,
                 "input_effective_path": input_effective_path,
@@ -327,6 +495,12 @@ class ExecutionOrchestrator:
             request.csv_files,
             request.priority_config,
         )
+        self._persist_debug_request_payload_artifact(
+            execution_id=execution_id,
+            request=request,
+            output_path=output_path,
+            artifact_paths=artifact_paths,
+        )
         return {
             "artifact_paths": artifact_paths,
             "input_effective_path": input_effective_path,
@@ -354,13 +528,93 @@ class ExecutionOrchestrator:
             progress_percentage=10,
         )
         runner = self._solver_runner or planner_main
-        return runner(
-            input_folder=input_effective_path,
-            output_folder=output_path,
-            debug_level=request.debug_level.value if request.debug_level else "INFO",
-            time_limit=request.time_limit,
-            priority_config=priority_config,
-        )
+        solver_kwargs = {
+            "input_folder": input_effective_path,
+            "output_folder": output_path,
+            "debug_level": request.debug_level.value if request.debug_level else "INFO",
+            "time_limit": request.time_limit,
+            "priority_config": priority_config,
+            "progress_callback": self._build_solver_progress_callback(
+                execution_id, request
+            ),
+        }
+        try:
+            return runner(**solver_kwargs)
+        except TypeError:
+            solver_kwargs.pop("progress_callback", None)
+            return runner(**solver_kwargs)
+
+    def _build_solver_progress_callback(
+        self, execution_id: str, request: SolverRequest
+    ):
+        interval_seconds = max(1, int(request.progress_interval_seconds or 10))
+        state = {"last_emit_monotonic": 0.0, "last_schedule_hash": None, "last_makespan": None}
+
+        def on_progress(update: Dict[str, Any]) -> None:
+            schedule_hash = update.get("schedule_hash")
+            now = time.monotonic()
+            makespan = update.get("makespan")
+            changed = (schedule_hash and schedule_hash != state["last_schedule_hash"]) or (
+                makespan != state["last_makespan"]
+            )
+            if not changed:
+                return
+            if (now - state["last_emit_monotonic"]) < interval_seconds:
+                return
+            state["last_emit_monotonic"] = now
+            state["last_schedule_hash"] = schedule_hash
+            state["last_makespan"] = makespan
+
+            objective_value = update.get("objective_value")
+            best_bound = update.get("best_bound")
+            schedule_preview = update.get("schedule_preview") or []
+            gap_percent = None
+            if (
+                isinstance(objective_value, (int, float))
+                and isinstance(best_bound, (int, float))
+                and objective_value not in (0, None)
+            ):
+                try:
+                    gap_percent = abs(objective_value - best_bound) / max(
+                        abs(objective_value), 1e-9
+                    ) * 100.0
+                except Exception:
+                    gap_percent = None
+
+            execution = self._state.get_execution(execution_id)
+            if not execution:
+                return
+            merged_progress = {
+                **(execution.progress_data or {}),
+                "makespan": makespan,
+                "objective_value": objective_value,
+                "best_bound": best_bound,
+                "gap_percent": gap_percent,
+                "last_solution_count": update.get("solution_count"),
+                "progress_interval_seconds": interval_seconds,
+                "latest_test_schedule_preview": schedule_preview,
+                "latest_schedule_hash": schedule_hash,
+            }
+            current_phase = (
+                f"Running solver (best makespan: {makespan})"
+                if makespan is not None
+                else "Running solver"
+            )
+            logging.info(
+                "[execution:%s] Stream progress update sent: makespan=%s solutions=%s preview_rows=%s",
+                execution_id,
+                makespan,
+                update.get("solution_count"),
+                len(schedule_preview) if isinstance(schedule_preview, list) else 0,
+            )
+            self._state.update_execution_status(
+                execution_id,
+                StateExecutionStatusEnum.RUNNING,
+                current_phase=current_phase,
+                progress_data=merged_progress,
+            )
+
+        return on_progress
 
     # =========================================================================
     # SECTION: Result Processing
@@ -392,6 +646,23 @@ class ExecutionOrchestrator:
         output_artifacts = self._file_ops.read_output_files(output_path)
         output_files = output_artifacts["output_files"]
         written_output_paths = output_artifacts["written_output_paths"]
+        execution_state = self._state.get_execution(execution_id)
+        request_payload_path = (
+            (execution_state.progress_data or {}).get("request_payload_path")
+            if execution_state
+            else None
+        )
+        if request_payload_path and os.path.exists(request_payload_path):
+            try:
+                with open(request_payload_path, "r", encoding="utf-8") as artifact_file:
+                    output_files["solver_request_payload.json"] = artifact_file.read()
+                written_output_paths["solver_request_payload.json"] = request_payload_path
+            except Exception as exc:
+                logging.warning(
+                    "Failed to read request payload artifact for %s: %s",
+                    execution_id,
+                    exc,
+                )
 
         missing_files = {
             "tests_schedule.csv",
@@ -436,6 +707,33 @@ class ExecutionOrchestrator:
                 else 0,
             },
         )
+
+    def _persist_debug_request_payload_artifact(
+        self,
+        execution_id: str,
+        request: SolverRequest,
+        output_path: str,
+        artifact_paths: Optional[Dict[str, str]],
+    ) -> None:
+        if not request.debug_level or request.debug_level.value != "DEBUG":
+            return
+
+        request_payload_path = (
+            os.path.join(artifact_paths["run_root"], "solver_request_payload.json")
+            if artifact_paths and artifact_paths.get("run_root")
+            else os.path.join(output_path, "solver_request_payload.json")
+        )
+        self._file_ops.write_json(request_payload_path, request.model_dump(mode="json"))
+
+        latest_state = self._state.get_execution(execution_id)
+        if not latest_state:
+            return
+        latest_state.progress_data = {
+            **(latest_state.progress_data or {}),
+            "request_payload_path": request_payload_path,
+            "request_payload_saved_at": datetime.utcnow().isoformat(),
+        }
+        self._state.set_execution(latest_state)
 
     def _extract_test_schedule(self, solution: Any) -> list[Dict[str, Any]]:
         rows = []
@@ -527,6 +825,61 @@ class ExecutionOrchestrator:
                 handler.close()
                 root_logger.removeHandler(handler)
 
+    def _build_partial_results_payload(
+        self,
+        execution_id: str,
+        output_path: str,
+        solution: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        makespan = getattr(solution, "makespan_days", None) if solution else None
+        objective = getattr(solution, "objective_value", None) if solution else None
+        return {
+            "execution_id": execution_id,
+            "status": SolverStatusEnum.NO_SOLUTION.value,
+            "makespan": makespan,
+            "test_schedule": [],
+            "resource_utilization": {},
+            "output_files": {},
+            "output_root": output_path,
+            "written_output_paths": {},
+            "solver_stats": {
+                "partial": True,
+                "objective_value": objective,
+            },
+        }
+
+    def _mark_execution_cancelled(
+        self,
+        execution_id: str,
+        phase: str,
+        output_path: Optional[str] = None,
+        partial_results: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        execution = self._state.get_execution(execution_id)
+        if not execution:
+            return
+
+        checkpoint = {
+            "execution_id": execution_id,
+            "cancelled_at": datetime.utcnow().isoformat(),
+            "phase": phase,
+            "output_root": output_path,
+        }
+        merged_progress = {
+            **(execution.progress_data or {}),
+            "checkpoint": checkpoint,
+        }
+        if partial_results:
+            merged_progress["partial_results"] = partial_results
+            if partial_results.get("makespan") is not None:
+                merged_progress["makespan"] = partial_results.get("makespan")
+        execution.status = StateExecutionStatusEnum.CANCELLED
+        execution.completed_at = datetime.utcnow()
+        execution.current_phase = phase
+        execution.request_payload = None
+        execution.progress_data = merged_progress
+        self._state.set_execution(execution)
+
     def _handle_error(
         self,
         execution_id: str,
@@ -550,6 +903,33 @@ class ExecutionOrchestrator:
         if not execution:
             return
 
+        lower_message = str(message or "").lower()
+        guidance = "Check input data and configuration."
+        if "requires" in lower_message and "compatible option" in lower_message:
+            guidance = (
+                "Resource assignment failed. Assign FTE/equipment options for each required "
+                "test, or set required counts to 0 for tests that should not consume resources."
+            )
+
+        error_details = details or {}
+        error_details = {
+            **error_details,
+            "execution_id": execution_id,
+            "current_phase": execution.current_phase,
+            "progress_data": execution.progress_data or {},
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+        logging.error(
+            "Execution failed",
+            extra={
+                "execution_id": execution_id,
+                "category": category,
+                "message": message,
+                "phase": execution.current_phase,
+            },
+        )
+
         execution.status = StateExecutionStatusEnum.FAILED
         execution.completed_at = datetime.utcnow()
         execution.error = ErrorDetails(
@@ -557,9 +937,9 @@ class ExecutionOrchestrator:
             if category in ErrorCategory.__members__
             else ErrorCategory.SystemError,
             message=message,
-            guidance="Check input data and configuration.",
+            guidance=guidance,
             error_code=category.upper(),
-            details=details,
+            details=error_details,
         ).model_dump()
         execution.request_payload = None
         self._state.set_execution(execution)

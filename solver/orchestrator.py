@@ -55,6 +55,7 @@ def run_planning_pipeline(
     generate_concurrency_timeseries_csv_fn: Callable[
         [SolutionResult, PlanningData, date, str], str
     ] = generate_concurrency_timeseries_csv,
+    progress_callback: Optional[Callable[[dict], None]] = None,
 ) -> SolutionResult:
     """Run load->build->solve->report planning pipeline."""
     os.makedirs(output_folder, exist_ok=True)
@@ -115,6 +116,11 @@ def run_planning_pipeline(
                 logger.info(
                     f"  - Leg deadlines: {len(priority_config.leg_deadlines)} legs"
                 )
+                if hasattr(priority_config, "leg_start_deadlines"):
+                    logger.info(
+                        "  - Leg start deadlines: "
+                        f"{len(priority_config.leg_start_deadlines)} legs"
+                    )
                 logger.info(
                     f"  - Deadline penalty per day: {priority_config.deadline_penalty_per_day}"
                 )
@@ -137,7 +143,12 @@ def run_planning_pipeline(
         logger.info(f"  - Time horizon: {model.horizon} days")
 
         logger.info("Step 3: Solving optimization problem...")
-        solve_output = solve_model_fn(model, data, time_limit)
+        try:
+            solve_output = solve_model_fn(
+                model, data, time_limit, progress_callback=progress_callback
+            )
+        except TypeError:
+            solve_output = solve_model_fn(model, data, time_limit)
         if isinstance(solve_output, tuple):
             solution = solve_output[0]
         else:

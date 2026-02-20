@@ -122,6 +122,41 @@ def test_loader_paths_store_canonical_week_values(tmp_path):
     assert equipment_windows[0].end_iso_week == "2026-W10.0"
 
 
+def test_load_resource_windows_accepts_date_based_availability(tmp_path):
+    pd.DataFrame(
+        [
+            {
+                "fte_id": "fte_a",
+                "available_start_date": "2026-01-10",
+                "available_end_date_exclusive": "2026-01-15",
+            }
+        ]
+    ).to_csv(tmp_path / "data_fte.csv", index=False)
+
+    pd.DataFrame(
+        [
+            {
+                "equipment_id": "setup_a",
+                "available_start_date": "2026-02-01",
+                "available_end_date_exclusive": "2026-02-05",
+            }
+        ]
+    ).to_csv(tmp_path / "data_equipment.csv", index=False)
+
+    fte_windows = load_resource_windows(str(tmp_path), "fte")
+    equipment_windows = load_resource_windows(str(tmp_path), "equipment")
+
+    assert len(fte_windows) == 1
+    assert fte_windows[0].resource_id == "fte_a"
+    assert fte_windows[0].start_monday.isoformat() == "2026-01-10"
+    assert fte_windows[0].end_monday.isoformat() == "2026-01-15"
+
+    assert len(equipment_windows) == 1
+    assert equipment_windows[0].resource_id == "setup_a"
+    assert equipment_windows[0].start_monday.isoformat() == "2026-02-01"
+    assert equipment_windows[0].end_monday.isoformat() == "2026-02-05"
+
+
 def test_rejects_duplicate_dut_entries(tmp_path):
     # Create test data with duplicate DUT entries for same test_id
     pd.DataFrame(

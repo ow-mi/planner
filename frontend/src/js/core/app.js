@@ -1,3 +1,7 @@
+const APP_STORAGE_KEYS = {
+    ACTIVE_TAB: 'ui_v2_exp__app__activeTab'
+};
+
 export function app() {
     return {
         activeTab: 'data',
@@ -27,8 +31,12 @@ export function app() {
 
         initApp() {
             console.log('[app] Initializing Priority Configuration Editor v2');
-
-            this.activeTab = this.getTabFromHash();
+            const savedTab = localStorage.getItem(APP_STORAGE_KEYS.ACTIVE_TAB);
+            const hashTab = window.location.hash.replace('#', '').trim();
+            const hasValidHashTab = this.getValidTabs().includes(hashTab);
+            this.activeTab = hasValidHashTab
+                ? hashTab
+                : (this.getValidTabs().includes(savedTab) ? savedTab : 'data');
             console.log('[app] Initial tab from hash:', this.activeTab);
 
             window.addEventListener('hashchange', () => {
@@ -258,6 +266,17 @@ export function app() {
             this.error = null;
         },
 
+        resetUiState() {
+            const confirmed = window.confirm(
+                'Reset all saved UI state? This will remove uploaded CSV data and all saved inputs.'
+            );
+            if (!confirmed) {
+                return;
+            }
+            localStorage.clear();
+            window.location.reload();
+        },
+
         setActiveTab(tabName) {
             if (!this.getValidTabs().includes(tabName)) {
                 console.warn('[app] setActiveTab rejected invalid tab', {
@@ -269,6 +288,7 @@ export function app() {
 
             console.log('[app] setActiveTab', { from: this.activeTab, to: tabName });
             this.activeTab = tabName;
+            localStorage.setItem(APP_STORAGE_KEYS.ACTIVE_TAB, tabName);
             this.setHashForTab(tabName);
             this.updateTabVisibility(tabName);
         },

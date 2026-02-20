@@ -45,7 +45,7 @@ def test_run_solver_persists_artifacts_under_contract(monkeypatch, tmp_path):
     state_store = StateStore()
     queue_service = ExecutionQueueService(state_store=state_store)
     service = SolverService(state_store=state_store, queue_service=queue_service)
-    service._stop_event.set()
+    service._orchestrator._stop_event.set()
 
     execution = SolverExecution(
         execution_id="run-abc",
@@ -58,7 +58,7 @@ def test_run_solver_persists_artifacts_under_contract(monkeypatch, tmp_path):
         csv_files=_valid_csv_files(),
         priority_config={"mode": "makespan", "weights": {"makespan_weight": 1.0}},
         time_limit=120.0,
-        debug_level="INFO",
+        debug_level="DEBUG",
         output_folder="batch-run",
     )
 
@@ -135,8 +135,11 @@ def test_run_solver_persists_artifacts_under_contract(monkeypatch, tmp_path):
     assert (run_root / "output").exists()
     assert (run_root / "plots").exists()
     assert settings_path.exists()
+    assert (run_root / "solver_request_payload.json").exists()
     assert (run_root / "output" / "data" / "schedule.csv").exists()
     assert (run_root / "plots" / "gantt.png").exists()
+    assert final_state.results is not None
+    assert "solver_request_payload.json" in final_state.results["output_files"]
 
     with open(settings_path, "r", encoding="utf-8") as settings_file:
         settings = json.load(settings_file)

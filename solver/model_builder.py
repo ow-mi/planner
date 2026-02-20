@@ -39,6 +39,7 @@ Constraint Types:
 """
 
 import math
+import logging
 from datetime import date, timedelta
 from typing import Dict, List, Tuple, Set, Optional
 from ortools.sat.python import cp_model
@@ -54,9 +55,12 @@ from .config.priority_modes import (
     TestProximityConfig,
     create_priority_config,
 )
+from .config.settings import ForcedStartConflict
 from .utils.profiling import timeit
 from .utils.intervals import merge_intervals
 from .utils.week_utils import parse_iso_week
+
+logger = logging.getLogger(__name__)
 
 
 class ScheduleModel:
@@ -73,6 +77,7 @@ class ScheduleModel:
         resource_assignments (Dict): Resource assignment variables
             {(test_id, resource_type, resource_id) -> bool_var}
         makespan_var (IntVar): Variable representing total project duration
+        conflicts (List[ForcedStartConflict]): List of detected conflicts for tests with forced start times
         horizon (int): Maximum time horizon in days for the scheduling problem
         test_to_index (Dict): Mapping from test_id to array index for efficient access
         resource_to_tests (Dict): Mapping from resource_id to list of compatible test_ids
@@ -99,6 +104,7 @@ class ScheduleModel:
         self.test_vars = {}  # test_id -> (start_var, end_var, duration)
         self.resource_assignments = {}  # (test_id, resource_type, resource_id) -> bool_var
         self.makespan_var = None
+        self.conflicts: List[ForcedStartConflict] = []
         self.horizon = 0
 
         # Mappings for easy lookup
@@ -173,25 +179,44 @@ def build_resource_assignments(
     for test in data.tests:
         test_id = test.test_id
 
+        def resolve_compatible_resources(
+            assignment_value,
+            available_ids,
+            prefix,
+        ):
+            normalized_values = (
+                assignment_value
+                if isinstance(assignment_value, list)
+                else [assignment_value]
+            )
+            compatible_ids = set()
+            for value in normalized_values:
+                token = str(value).strip()
+                if not token:
+                    continue
+                if token == "*":
+                    compatible_ids.update(available_ids)
+                    continue
+                if token.startswith(prefix):
+                    if token in available_ids:
+                        compatible_ids.add(token)
+                        continue
+                    compatible_ids.update(
+                        rid for rid in available_ids if rid.startswith(token + "_")
+                    )
+                    continue
+                if token in available_ids:
+                    compatible_ids.add(token)
+            return sorted(compatible_ids)
+
         # FTE assignments
-        if test.fte_assigned == "*":
-            # Can be assigned to any FTE
-            compatible_ftes = list(fte_ids)
-        elif test.fte_assigned.startswith("fte_"):
-            # Can be assigned to any FTE matching the type (e.g., fte_sofia matches fte_sofia_1, fte_sofia_2, etc.)
-            prefix = test.fte_assigned
-            if prefix in fte_ids:
-                # Exact match
-                compatible_ftes = [prefix]
-            else:
-                # Pattern match - find FTEs that start with the prefix + "_"
-                compatible_ftes = [
-                    fid for fid in fte_ids if fid.startswith(prefix + "_")
-                ]
-        else:
-            # Specific FTE assignment
-            compatible_ftes = (
-                [test.fte_assigned] if test.fte_assigned in fte_ids else []
+        compatible_ftes = resolve_compatible_resources(
+            test.fte_assigned, fte_ids, "fte_"
+        )
+        if test.fte_required > len(compatible_ftes):
+            raise ValueError(
+                f"Test {test_id} requires {test.fte_required} FTE resource(s) "
+                f"but only {len(compatible_ftes)} compatible option(s) were found"
             )
 
         for fte_id in compatible_ftes:
@@ -205,26 +230,13 @@ def build_resource_assignments(
             model.resource_to_tests[fte_id].append(test_id)
 
         # Equipment assignments
-        if test.equipment_assigned == "*":
-            # Can be assigned to any equipment
-            compatible_equipment = list(equipment_ids)
-        elif test.equipment_assigned.startswith("setup_"):
-            # Can be assigned to any equipment matching the type (e.g., setup_sofia matches setup_sofia_1, setup_sofia_2, etc.)
-            prefix = test.equipment_assigned
-            if prefix in equipment_ids:
-                # Exact match
-                compatible_equipment = [prefix]
-            else:
-                # Pattern match - find equipment that starts with the prefix + "_"
-                compatible_equipment = [
-                    eid for eid in equipment_ids if eid.startswith(prefix + "_")
-                ]
-        else:
-            # Specific equipment assignment
-            compatible_equipment = (
-                [test.equipment_assigned]
-                if test.equipment_assigned in equipment_ids
-                else []
+        compatible_equipment = resolve_compatible_resources(
+            test.equipment_assigned, equipment_ids, "setup_"
+        )
+        if test.equipment_required > len(compatible_equipment):
+            raise ValueError(
+                f"Test {test_id} requires {test.equipment_required} equipment resource(s) "
+                f"but only {len(compatible_equipment)} compatible option(s) were found"
             )
 
         for eq_id in compatible_equipment:
@@ -357,23 +369,37 @@ def _build_resource_windows(
 def _add_window_membership_constraint(
     model: ScheduleModel,
     start_var: cp_model.IntVar,
-    end_expr,
+    duration_days: int,
     assignment_var: cp_model.IntVar,
     allowed_windows: List[Tuple[int, int]],
     window_name_prefix: str,
 ):
-    """Require a scheduled interval to fit within one allowed window."""
-    if assignment_var is None or not allowed_windows:
+    """Require a scheduled interval to fit within one allowed window.
+
+    Uses a single domain constraint on start_var (conditioned on assignment_var)
+    rather than one BoolVar per window, which scales much better with many windows.
+    """
+    if assignment_var is None:
+        return
+    if not allowed_windows:
+        # If no availability window exists for this resource, forbid assignment.
+        model.model.Add(assignment_var == 0)
         return
 
-    window_bools = []
+    feasible_start_intervals = []
     for start, end in allowed_windows:
-        in_window = model.model.NewBoolVar(f"{window_name_prefix}_{start}_{end}")
-        model.model.Add(start_var >= start).OnlyEnforceIf(in_window)
-        model.model.Add(end_expr <= end).OnlyEnforceIf(in_window)
-        window_bools.append(in_window)
+        latest_start = end - int(duration_days)
+        if latest_start >= start:
+            feasible_start_intervals.append([int(start), int(latest_start)])
 
-    model.model.AddBoolOr(window_bools).OnlyEnforceIf(assignment_var)
+    if not feasible_start_intervals:
+        model.model.Add(assignment_var == 0)
+        return
+
+    domain = cp_model.Domain.FromIntervals(feasible_start_intervals)
+    model.model.AddLinearExpressionInDomain(start_var, domain).OnlyEnforceIf(
+        assignment_var
+    )
 
 
 @timeit
@@ -382,63 +408,39 @@ def add_resource_availability_constraints(
 ):
     """Restrict assigned test execution to each resource's availability windows."""
     resource_windows = _build_resource_windows(data, start_date)
-    fte_ids = {
-        w.resource_id
-        for w in data.fte_windows
-        if w.resource_id in model.resource_to_tests
-    }
-    equipment_ids = {
-        w.resource_id
-        for w in data.equipment_windows
-        if w.resource_id in model.resource_to_tests
-    }
+    tests_by_id = {test.test_id: test for test in data.tests}
 
-    # Add availability constraints
-    for test in data.tests:
-        test_id = test.test_id
-        start_var, end_var, duration = model.test_vars[test_id]
+    # Add availability constraints per assignment variable (avoids O(tests * resources)).
+    for (test_id, resource_type, resource_id), assignment_var in (
+        model.resource_assignments.items()
+    ):
+        test = tests_by_id.get(test_id)
+        if not test:
+            continue
 
-        # Constraints for FTE
-        for fte_id in fte_ids:
-            assignment_var = model.resource_assignments.get((test_id, "fte", fte_id))
-            if assignment_var is not None:
-                # Calculate FTE duration for availability window check
-                fte_duration = duration
-                if test.fte_time_pct < 100.0:
-                    calc_duration = math.ceil(
-                        test.duration_days * test.fte_time_pct / 100.0
-                    )
-                    fte_duration = int(max(1, calc_duration))
+        start_var, _end_var, duration = model.test_vars[test_id]
+        resource_duration = int(duration)
+        if resource_type == "fte" and test.fte_time_pct < 100.0:
+            calc_duration = math.ceil(test.duration_days * test.fte_time_pct / 100.0)
+            resource_duration = int(max(1, calc_duration))
 
-                allowed_windows = resource_windows.get(fte_id, [])
-                _add_window_membership_constraint(
-                    model,
-                    start_var,
-                    start_var + fte_duration,
-                    assignment_var,
-                    allowed_windows,
-                    f"{test_id}_in_fte_window_{fte_id}",
-                )
-
-        # Constraints for Equipment
-        for eq_id in equipment_ids:
-            assignment_var = model.resource_assignments.get(
-                (test_id, "equipment", eq_id)
-            )
-            allowed_windows = resource_windows.get(eq_id, [])
-            _add_window_membership_constraint(
-                model,
-                start_var,
-                end_var,
-                assignment_var,
-                allowed_windows,
-                f"{test_id}_in_eq_window_{eq_id}",
-            )
+        allowed_windows = resource_windows.get(resource_id, [])
+        _add_window_membership_constraint(
+            model,
+            start_var,
+            resource_duration,
+            assignment_var,
+            allowed_windows,
+            f"{test_id}_in_{resource_type}_window_{resource_id}",
+        )
 
 
 @timeit
 def add_leg_start_constraints(
-    model: ScheduleModel, data: PlanningData, start_date: date
+    model: ScheduleModel,
+    data: PlanningData,
+    start_date: date,
+    priority_config: Optional[BasePriorityConfig] = None,
 ):
     """
     Add constraints for leg start times and forced test start times.
@@ -450,20 +452,49 @@ def add_leg_start_constraints(
             leg_tests[test.project_leg_id] = []
         leg_tests[test.project_leg_id].append(test)
 
+    configured_leg_starts: Dict[str, date] = {}
+    if (
+        priority_config
+        and getattr(priority_config, "mode", None) == PriorityMode.LEG_END_DATES
+    ):
+        raw_leg_starts = getattr(priority_config, "leg_start_deadlines", {}) or {}
+        configured_leg_starts, unmatched_leg_start_keys = resolve_leg_deadline_ids(
+            raw_leg_starts,
+            set(data.legs.keys()),
+        )
+        if unmatched_leg_start_keys:
+            logger.warning(
+                "LEG_END_DATES: %d start deadline key(s) did not match any loaded leg id: %s",
+                len(unmatched_leg_start_keys),
+                unmatched_leg_start_keys[:10],
+            )
+        logger.info(
+            "LEG_END_DATES: resolved %d/%d configured start deadline key(s) to loaded legs",
+            len(configured_leg_starts),
+            len(raw_leg_starts),
+        )
+
     # Leg start time constraints
     for leg_id, tests in leg_tests.items():
         leg = data.legs[leg_id]
-        if leg.start_monday:
-            leg_start_day = date_to_day_offset(leg.start_monday, start_date)
+        effective_leg_start = leg.start_monday
+        configured_start = configured_leg_starts.get(leg_id)
+        if configured_start and (
+            effective_leg_start is None or configured_start > effective_leg_start
+        ):
+            effective_leg_start = configured_start
 
-            # Find first test in leg (sequence_index = 1)
-            first_test = min(tests, key=lambda t: t.sequence_index)
-            if first_test.test_id in model.test_vars:
-                first_test_start = model.test_vars[first_test.test_id][0]
-                model.model.Add(first_test_start >= leg_start_day)
+        if not effective_leg_start:
+            continue
 
-    # Forced start time constraints - HARD CONSTRAINT (exact match)
-    # Tests with force_start_week_iso MUST start exactly at that week
+        leg_start_day = date_to_day_offset(effective_leg_start, start_date)
+        for test in tests:
+            if test.test_id in model.test_vars:
+                test_start = model.test_vars[test.test_id][0]
+                model.model.Add(test_start >= leg_start_day)
+
+    # Forced start time constraints - FLEXIBLE CONSTRAINT (at or after)
+    # Tests with force_start_week_iso MUST start at or after that week
     forced_tests: List[
         Tuple[str, int]
     ] = []  # Track (test_id, forced_day) for conflict detection
@@ -474,24 +505,18 @@ def add_leg_start_constraints(
             if forced_start_date:
                 forced_start_day = date_to_day_offset(forced_start_date, start_date)
                 test_start = model.test_vars[test.test_id][0]
-                test_end = model.test_vars[test.test_id][1]
-                duration = model.test_vars[test.test_id][2]
 
-                # HARD CONSTRAINT: Test must start EXACTLY at forced week (not just >=)
-                model.model.Add(test_start == forced_start_day)
-
-                # Also constraint end time based on duration
-                model.model.Add(test_end == test_start + duration)
+                # CONSTRAINT: Test must start AT OR AFTER the forced week (flexible)
+                model.model.Add(test_start >= forced_start_day)
 
                 forced_tests.append((test.test_id, forced_start_day))
                 print(
-                    f"  HARD: Forced test {test.test_id} to start exactly at day {forced_start_day} (week {test.force_start_week_iso})"
+                    f"  FLEXIBLE: Forced test {test.test_id} to start at or after day {forced_start_day} (week {test.force_start_week_iso})"
                 )
 
     # Detect potential conflicts: Multiple tests forced to same time with overlapping resources
     if len(forced_tests) >= 2:
-        print(f"  Checking for conflicts among {len(forced_tests)} forced tests...")
-        # Note: Full conflict detection happens during solve, but we can warn here
+        # Note: Full conflict detection happens during solve, but we can record conflicts here
         day_groups: Dict[int, List[str]] = {}
         for test_id, day in forced_tests:
             if day not in day_groups:
@@ -500,10 +525,12 @@ def add_leg_start_constraints(
 
         for day, tests_at_day in day_groups.items():
             if len(tests_at_day) > 1:
-                print(
-                    f"    WARNING: {len(tests_at_day)} tests forced to same day {day}: {tests_at_day}"
+                conflict = ForcedStartConflict(
+                    day=day,
+                    test_ids=tests_at_day.copy(),
+                    message=f"{len(tests_at_day)} tests forced to same day {day}: {tests_at_day}. This may cause resource conflicts or infeasibility.",
                 )
-                print(f"    This may cause resource conflicts or infeasibility")
+                model.conflicts.append(conflict)
 
 
 @timeit
@@ -916,50 +943,105 @@ def setup_leg_end_dates_objective(
     leg_completion_vars = {}
     deadline_penalties = []
     compactness_penalties = []
+    tests_by_leg: Dict[str, List] = {}
+    for test in data.tests:
+        tests_by_leg.setdefault(test.project_leg_id, []).append(test)
 
-    for leg_id, deadline in config.leg_deadlines.items():
-        if leg_id not in data.legs:
+    resolved_deadline_penalties, unmatched_deadline_penalty_keys = resolve_leg_numeric_ids(
+        config.leg_deadline_penalties,
+        set(data.legs.keys()),
+    )
+    resolved_compactness_penalties, unmatched_compactness_penalty_keys = resolve_leg_numeric_ids(
+        config.leg_compactness_penalties,
+        set(data.legs.keys()),
+    )
+    if unmatched_deadline_penalty_keys:
+        logger.warning(
+            "LEG_END_DATES: %d deadline penalty key(s) did not match any loaded leg id: %s",
+            len(unmatched_deadline_penalty_keys),
+            unmatched_deadline_penalty_keys[:10],
+        )
+    if unmatched_compactness_penalty_keys:
+        logger.warning(
+            "LEG_END_DATES: %d compactness penalty key(s) did not match any loaded leg id: %s",
+            len(unmatched_compactness_penalty_keys),
+            unmatched_compactness_penalty_keys[:10],
+        )
+    logger.info(
+        "LEG_END_DATES: resolved penalty overrides deadline=%d compactness=%d",
+        len(resolved_deadline_penalties),
+        len(resolved_compactness_penalties),
+    )
+
+    # Build per-leg completion and compactness terms.
+    for leg_id in data.legs.keys():
+        leg_tests = tests_by_leg.get(leg_id) or []
+        if not leg_tests:
             continue
 
-        deadline_day = date_to_day_offset(deadline, start_date)
-
-        # Leg completion variable
-        leg_completion_vars[leg_id] = model.model.NewIntVar(
+        leg_completion_var = model.model.NewIntVar(
             0, model.horizon, f"leg_completion_{leg_id}"
         )
+        leg_completion_vars[leg_id] = leg_completion_var
 
-        # Leg completion is the max end time of any test in the leg
         leg_test_end_vars = []
         leg_test_start_vars = []
-        for test in data.tests:
-            if test.project_leg_id == leg_id:
-                start_var, end_var, _ = model.test_vars[test.test_id]
-                leg_test_end_vars.append(end_var)
-                leg_test_start_vars.append(start_var)
+        for test in leg_tests:
+            start_var, end_var, _ = model.test_vars[test.test_id]
+            leg_test_end_vars.append(end_var)
+            leg_test_start_vars.append(start_var)
 
-        if leg_test_end_vars and leg_test_start_vars:
-            model.model.AddMaxEquality(leg_completion_vars[leg_id], leg_test_end_vars)
-            leg_start_var = model.model.NewIntVar(
-                0, model.horizon, f"leg_start_{leg_id}"
-            )
-            model.model.AddMinEquality(leg_start_var, leg_test_start_vars)
+        model.model.AddMaxEquality(leg_completion_var, leg_test_end_vars)
+        leg_start_var = model.model.NewIntVar(0, model.horizon, f"leg_start_{leg_id}")
+        model.model.AddMinEquality(leg_start_var, leg_test_start_vars)
 
-            leg_span = model.model.NewIntVar(0, model.horizon, f"leg_span_{leg_id}")
-            model.model.Add(leg_span == leg_completion_vars[leg_id] - leg_start_var)
-            compactness_penalties.append(
-                config.leg_compactness_penalty_per_day * leg_span
-            )
+        compactness_penalty_per_day = resolved_compactness_penalties.get(
+            leg_id, config.leg_compactness_penalty_per_day
+        )
+        if compactness_penalty_per_day > 0:
+            sorted_leg_tests = sorted(leg_tests, key=lambda item: item.sequence_index)
+            for current_test, next_test in zip(sorted_leg_tests, sorted_leg_tests[1:]):
+                current_end = model.test_vars[current_test.test_id][1]
+                next_start = model.test_vars[next_test.test_id][0]
+                gap_var = model.model.NewIntVar(
+                    0,
+                    model.horizon,
+                    f"leg_gap_{leg_id}_{current_test.test_id}_{next_test.test_id}",
+                )
+                model.model.Add(gap_var == next_start - current_end)
+                compactness_penalties.append(compactness_penalty_per_day * gap_var)
 
-        # HARD CONSTRAINT: Leg must finish by deadline (only for critical legs)
-        # For now, make all constraints soft to allow the solver to find a solution
-        # model.model.Add(leg_completion_vars[leg_id] <= deadline_day)
+    resolved_deadlines, unmatched_deadline_keys = resolve_leg_deadline_ids(
+        config.leg_deadlines,
+        set(data.legs.keys()),
+    )
+    if unmatched_deadline_keys:
+        logger.warning(
+            "LEG_END_DATES: %d deadline key(s) did not match any loaded leg id: %s",
+            len(unmatched_deadline_keys),
+            unmatched_deadline_keys[:10],
+        )
+    logger.info(
+        "LEG_END_DATES: resolved %d/%d configured deadline key(s) to loaded legs",
+        len(resolved_deadlines),
+        len(config.leg_deadlines),
+    )
 
-        # Deadline violation penalty (0 if on time, positive if late) - for objective only
+    for leg_id, deadline in resolved_deadlines.items():
+        leg_completion_var = leg_completion_vars.get(leg_id)
+        if leg_completion_var is None:
+            continue
+
+        deadline_penalty_per_day = resolved_deadline_penalties.get(
+            leg_id, config.deadline_penalty_per_day
+        )
+        if deadline_penalty_per_day <= 0:
+            continue
+        deadline_day = date_to_day_offset(deadline, start_date)
         late_days = model.model.NewIntVar(0, model.horizon, f"late_days_{leg_id}")
-        model.model.Add(late_days >= leg_completion_vars[leg_id] - deadline_day)
+        model.model.Add(late_days >= leg_completion_var - deadline_day)
         model.model.Add(late_days >= 0)
-
-        deadline_penalties.append(config.deadline_penalty_per_day * late_days)
+        deadline_penalties.append(deadline_penalty_per_day * late_days)
 
     # Objective: makespan weight + deadline penalties
     makespan_term = config.weights["makespan_weight"] * model.makespan_var
@@ -968,6 +1050,73 @@ def setup_leg_end_dates_objective(
     )
 
     return [makespan_term, penalty_term]
+
+
+def _normalize_leg_deadline_key(raw_key: str) -> str:
+    normalized = "".join(
+        char.lower() if char.isalnum() else "_" for char in str(raw_key or "").strip()
+    )
+    while "__" in normalized:
+        normalized = normalized.replace("__", "_")
+    return normalized.strip("_")
+
+
+def resolve_leg_deadline_ids(
+    configured_deadlines: Dict[str, date],
+    available_leg_ids: Set[str],
+) -> Tuple[Dict[str, date], List[str]]:
+    resolved: Dict[str, date] = {}
+    unmatched: List[str] = []
+    normalized_lookup: Dict[str, str] = {
+        _normalize_leg_deadline_key(leg_id): leg_id for leg_id in available_leg_ids
+    }
+
+    for configured_key, deadline in (configured_deadlines or {}).items():
+        if configured_key in available_leg_ids:
+            resolved[configured_key] = deadline
+            continue
+
+        mapped_leg_id = normalized_lookup.get(_normalize_leg_deadline_key(configured_key))
+        if mapped_leg_id:
+            resolved[mapped_leg_id] = deadline
+        else:
+            unmatched.append(str(configured_key))
+
+    return resolved, unmatched
+
+
+def resolve_leg_numeric_ids(
+    configured_values: Dict[str, float],
+    available_leg_ids: Set[str],
+) -> Tuple[Dict[str, float], List[str]]:
+    resolved: Dict[str, float] = {}
+    unmatched: List[str] = []
+    normalized_lookup: Dict[str, str] = {
+        _normalize_leg_deadline_key(leg_id): leg_id for leg_id in available_leg_ids
+    }
+
+    for configured_key, raw_value in (configured_values or {}).items():
+        try:
+            numeric_value = float(raw_value)
+        except (TypeError, ValueError):
+            unmatched.append(str(configured_key))
+            continue
+
+        if numeric_value < 0:
+            unmatched.append(str(configured_key))
+            continue
+
+        if configured_key in available_leg_ids:
+            resolved[configured_key] = numeric_value
+            continue
+
+        mapped_leg_id = normalized_lookup.get(_normalize_leg_deadline_key(configured_key))
+        if mapped_leg_id:
+            resolved[mapped_leg_id] = numeric_value
+        else:
+            unmatched.append(str(configured_key))
+
+    return resolved, unmatched
 
 
 def setup_resource_bottleneck_objective(
@@ -1147,7 +1296,7 @@ def build_model(
     add_resource_availability_constraints(model, data, start_date)
 
     # Add leg start and forced start constraints
-    add_leg_start_constraints(model, data, start_date)
+    add_leg_start_constraints(model, data, start_date, priority_config)
 
     # Add leg dependency constraints
     add_leg_dependency_constraints(model, data)

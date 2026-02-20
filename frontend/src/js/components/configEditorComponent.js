@@ -97,6 +97,51 @@
             this.$store.config.copyToClipboard();
         },
 
+        downloadRunSnapshot() {
+            const configStore = this.$store.config;
+            const filesStore = this.$store.files;
+            if (!configStore || !filesStore) {
+                this.error = 'Configuration or file store is unavailable.';
+                return;
+            }
+
+            const csvSnapshot = filesStore.getActiveCsvSnapshot
+                ? filesStore.getActiveCsvSnapshot()
+                : null;
+            if (!csvSnapshot) {
+                this.error = 'No CSV data available to export.';
+                return;
+            }
+
+            const configSnapshot = configStore.getRunConfigSnapshot
+                ? configStore.getRunConfigSnapshot()
+                : { priority_config: configStore.getCurrentConfig() };
+
+            const runConfigFile = {
+                snapshot_type: 'run_config',
+                version: '1.0',
+                config_snapshot: configSnapshot
+            };
+
+            const download = (filename, content, mimeType) => {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = filename;
+                document.body.appendChild(anchor);
+                anchor.click();
+                document.body.removeChild(anchor);
+                URL.revokeObjectURL(url);
+            };
+
+            download('run_config.json', JSON.stringify(runConfigFile, null, 2), 'application/json;charset=utf-8');
+            download('run_data.csv', csvSnapshot.csvText, 'text/csv;charset=utf-8');
+
+            this.successMessage = 'Downloaded run_config.json and run_data.csv';
+            setTimeout(() => this.clearSuccessMessage(), 3000);
+        },
+
         resetToDefaults() {
             if (confirm('Are you sure you want to reset all configuration settings to defaults?')) {
                 this.$store.config.resetToDefaults();
@@ -391,13 +436,20 @@
                  return true; // Empty is valid (optional fields)
              }
 
-             const match = value.match(/^(\d{4})-W(\d{2})\.(\d)$/);
-             if (!match) {
+             const trimmed = value.trim();
+             const isoDateMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+             if (isoDateMatch) {
+                 const date = new Date(`${trimmed}T00:00:00Z`);
+                 return !Number.isNaN(date.getTime());
+             }
+
+             const weekMatch = trimmed.match(/^(\d{4})-W(\d{2})\.(\d)$/);
+             if (!weekMatch) {
                  return false;
              }
 
-             const week = Number(match[2]);
-             const day = Number(match[3]);
+             const week = Number(weekMatch[2]);
+             const day = Number(weekMatch[3]);
 
              if (!Number.isInteger(week) || week < 1 || week > 53) {
                  return false;
@@ -634,11 +686,11 @@
              }
 
              if (field === 'startDeadline' || field === 'endDeadline') {
-                 const rawValue = String(this.legColumnControls[field] || '').trim();
-                 if (rawValue && !this.validateWeekFormat(rawValue)) {
-                     this.error = `Invalid ${field === 'startDeadline' ? 'Start' : 'End'} format. Use YYYY-Www.f`;
-                     return;
-                 }
+                const rawValue = String(this.legColumnControls[field] || '').trim();
+                if (rawValue && !this.validateWeekFormat(rawValue)) {
+                    this.error = `Invalid ${field === 'startDeadline' ? 'Start' : 'End'} format. Use YYYY-Www.f or YYYY-MM-DD`;
+                    return;
+                }
 
                  this.$store.config.config.deadlines.forEach((leg) => {
                      leg[field] = rawValue;
@@ -845,28 +897,69 @@
           * Remove FTE resource at specified index
           * @param {number} index - The index of the FTE to remove
           */
-         removeFte(index) {
-             if (index < 0 || index >= this.fteResources.length) return;
-             const fte = this.fteResources[index];
-             if (confirm(`Are you sure you want to remove FTE "${fte.name}"?`)) {
-                 // Clear selection if removing selected FTE
-                 if (fte.id === this.selectedFteId) {
-                     this.selectedFteId = null;
-                 }
-                 this.$store.config.removeFteResource(index);
+        removeFte(index) {
+             const beforeCount = Array.isArray(this.fteResources) ? this.fteResources.length : 0;
+             console.info('[configEditor][fte] Delete requested', {
+                 index,
+                 selectedFteId: this.selectedFteId,
+                 resourceCount: beforeCount
+             });
+
+             if (index < 0 || index >= beforeCount) {
+                 console.warn('[configEditor][fte] Delete aborted: index out of range', {
+                     index,
+                     resourceCount: beforeCount
+                 });
+                 return;
              }
+             const fte = this.fteResources[index];
+             // Use direct deletion: native confirm dialogs can be blocked in embedded browsers.
+             if (fte.id === this.selectedFteId) {
+                 this.selectedFteId = null;
+             }
+             this.$store.config.removeFteResource(index);
+             const afterCount = Array.isArray(this.fteResources) ? this.fteResources.length : 0;
+             console.info('[configEditor][fte] Delete applied', {
+                 deletedFteId: fte?.id || null,
+                 deletedFteName: fte?.name || null,
+                 resourceCountBefore: beforeCount,
+                 resourceCountAfter: afterCount,
+                 selectedFteId: this.selectedFteId
+             });
          },
 
          /**
           * Remove FTE resource by ID
           * @param {string} fteId - Resource ID
           */
-         removeFteResource(fteId) {
-             const index = this.fteResources.findIndex(fte => fte.id === fteId);
-             if (index < 0) {
+         removeFteResource(fteId, indexHint = null) {
+             console.info('[configEditor][fte] Delete by ID requested', {
+                 fteId,
+                 indexHint,
+                 selectedFteId: this.selectedFteId
+             });
+
+             if (!fteId) {
+                 console.warn('[configEditor][fte] Delete by ID aborted: missing fteId');
                  return;
              }
-             this.removeFte(index);
+
+             if (fteId === this.selectedFteId) {
+                 this.selectedFteId = null;
+             }
+
+             if (typeof this.$store.config.removeFteResourceById === 'function') {
+                 this.$store.config.removeFteResourceById(fteId);
+                 return;
+             }
+
+             // Fallback for older store shape
+             const index = this.fteResources.findIndex(fte => fte.id === fteId);
+             if (index < 0) {
+                 console.warn('[configEditor][fte] Delete by ID fallback failed: resource not found', { fteId });
+                 return;
+             }
+             this.$store.config.removeFteResource(index);
          },
 
          /**
@@ -1279,25 +1372,43 @@
          removeEquipment(index) {
              if (index < 0 || index >= this.equipmentResources.length) return;
              const equipment = this.equipmentResources[index];
-             if (confirm(`Are you sure you want to remove equipment "${equipment.name}"?`)) {
-                 // Clear selection if removing selected equipment
-                 if (equipment.id === this.selectedEquipmentId) {
-                     this.selectedEquipmentId = null;
-                 }
-                 this.$store.config.removeEquipmentResource(index);
+             if (equipment.id === this.selectedEquipmentId) {
+                 this.selectedEquipmentId = null;
              }
+             this.$store.config.removeEquipmentResource(index);
          },
 
          /**
           * Remove Equipment resource by ID
           * @param {string} equipmentId - Resource ID
           */
-         removeEquipmentResource(equipmentId) {
-             const index = this.equipmentResources.findIndex(eq => eq.id === equipmentId);
-             if (index < 0) {
+         removeEquipmentResource(equipmentId, indexHint = null) {
+             console.info('[configEditor][equipment] Delete by ID requested', {
+                 equipmentId,
+                 indexHint,
+                 selectedEquipmentId: this.selectedEquipmentId
+             });
+
+             if (!equipmentId) {
+                 console.warn('[configEditor][equipment] Delete by ID aborted: missing equipmentId');
                  return;
              }
-             this.removeEquipment(index);
+
+             if (equipmentId === this.selectedEquipmentId) {
+                 this.selectedEquipmentId = null;
+             }
+
+             if (typeof this.$store.config.removeEquipmentResourceById === 'function') {
+                 this.$store.config.removeEquipmentResourceById(equipmentId);
+                 return;
+             }
+
+             const index = this.equipmentResources.findIndex(eq => eq.id === equipmentId);
+             if (index < 0) {
+                 console.warn('[configEditor][equipment] Delete by ID fallback failed: resource not found', { equipmentId });
+                 return;
+             }
+             this.$store.config.removeEquipmentResource(index);
          },
 
          /**

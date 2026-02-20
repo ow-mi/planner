@@ -76,6 +76,7 @@ class SessionManager:
                 time_limit=request.time_limit,
                 debug_level=request.debug_level,
                 output_folder=request.output_folder,
+                progress_interval_seconds=request.progress_interval_seconds,
             )
         )
         run_session.execution_id = execution.execution_id

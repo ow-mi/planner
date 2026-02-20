@@ -208,7 +208,8 @@
         <!-- Scenario Error Display -->
         <div x-show="activeScenario?.error" class="validation-error" style="margin-top: 20px;">
             <h4>Execution Failed</h4>
-            <p x-text="activeScenario.error"></p>
+            <p x-text="activeScenario.error?.message || activeScenario.error"></p>
+            <p x-show="activeScenario.error?.guidance" x-text="activeScenario.error?.guidance" style="font-style: italic;"></p>
         </div>
 
         <!-- Success/Results Link -->

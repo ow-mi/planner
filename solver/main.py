@@ -82,6 +82,7 @@ def main(
     time_limit: float = None,
     output_folder: str = None,
     priority_config: BasePriorityConfig = None,
+    progress_callback=None,
 ) -> object:
     """Backward-compatible planning entry point."""
     if input_folder is None:
@@ -109,6 +110,7 @@ def main(
         generate_fte_usage_csv_fn=generate_fte_usage_csv,
         generate_equipment_usage_csv_fn=generate_equipment_usage_csv,
         generate_concurrency_timeseries_csv_fn=generate_concurrency_timeseries_csv,
+        progress_callback=progress_callback,
     )
 
 

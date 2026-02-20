@@ -68,8 +68,10 @@ document.addEventListener('alpine:init', () => {
                 }
                 console.log('Batch store initialized');
                 this.apiService = window.apiService;
-                this.scenarios = [this.createDefaultScenario()];
-                // this.loadFromLocalStorage(); // Disabled - no persistence
+                this.loadFromLocalStorage();
+                if (!Array.isArray(this.scenarios) || this.scenarios.length === 0) {
+                    this.scenarios = [this.createDefaultScenario()];
+                }
                 this.isInitialized = true;
             } catch (error) {
                 console.error('BatchStore init failed:', error);
@@ -433,7 +435,9 @@ document.addEventListener('alpine:init', () => {
         setErrorState(error) {
             this.status = 'FAILED';
             this.isLoading = false;
-            this.error = error?.message || String(error) || 'Unknown batch error';
+            const message = error?.message || String(error) || 'Unknown batch error';
+            const guidance = error?.guidance ? ` Guidance: ${error.guidance}` : '';
+            this.error = `${message}${guidance}`;
             this.message = 'Batch execution failed.';
         },
 

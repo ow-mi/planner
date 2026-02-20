@@ -122,8 +122,11 @@ class LegEndDatesConfig(BasePriorityConfig):
     description: str = "Each leg has a target completion date. Legs can be scheduled in parallel if they don't exceed their deadlines."
 
     leg_deadlines: Dict[str, date] = field(default_factory=dict)  # leg_id -> deadline
+    leg_start_deadlines: Dict[str, date] = field(default_factory=dict)  # leg_id -> earliest allowed start
     deadline_penalty_per_day: float = 200.0  # Penalty for missing deadline
     leg_compactness_penalty_per_day: float = 0.0  # Penalty for stretching leg duration
+    leg_deadline_penalties: Dict[str, float] = field(default_factory=dict)  # leg_id -> penalty override
+    leg_compactness_penalties: Dict[str, float] = field(default_factory=dict)  # leg_id -> compactness override
     allow_parallel_within_deadlines: bool = True
 
     def validate(self) -> List[str]:
@@ -137,6 +140,12 @@ class LegEndDatesConfig(BasePriorityConfig):
             errors.append("deadline_penalty_per_day must be non-negative")
         if self.leg_compactness_penalty_per_day < 0:
             errors.append("leg_compactness_penalty_per_day must be non-negative")
+        for leg_id, penalty in (self.leg_deadline_penalties or {}).items():
+            if not isinstance(penalty, (int, float)) or penalty < 0:
+                errors.append(f"leg_deadline_penalties[{leg_id}] must be non-negative")
+        for leg_id, penalty in (self.leg_compactness_penalties or {}).items():
+            if not isinstance(penalty, (int, float)) or penalty < 0:
+                errors.append(f"leg_compactness_penalties[{leg_id}] must be non-negative")
 
         return errors
 
@@ -301,13 +310,29 @@ def load_priority_config_from_dict(
         date_str = config_data["target_completion_date"]
         config_data["target_completion_date"] = datetime.fromisoformat(date_str).date()
 
-    if mode == PriorityMode.LEG_END_DATES and "leg_deadlines" in config_data:
+    if mode == PriorityMode.LEG_END_DATES:
         from datetime import datetime
 
-        deadlines = {}
-        for leg_id, date_str in config_data["leg_deadlines"].items():
-            deadlines[leg_id] = datetime.fromisoformat(date_str).date()
-        config_data["leg_deadlines"] = deadlines
+        if "leg_deadlines" in config_data:
+            deadlines = {}
+            for leg_id, date_str in config_data["leg_deadlines"].items():
+                deadlines[leg_id] = datetime.fromisoformat(date_str).date()
+            config_data["leg_deadlines"] = deadlines
+        if "leg_start_deadlines" in config_data:
+            start_deadlines = {}
+            for leg_id, date_str in (config_data.get("leg_start_deadlines") or {}).items():
+                start_deadlines[leg_id] = datetime.fromisoformat(date_str).date()
+            config_data["leg_start_deadlines"] = start_deadlines
+        if "leg_deadline_penalties" in config_data:
+            config_data["leg_deadline_penalties"] = {
+                str(leg_id): float(value)
+                for leg_id, value in (config_data.get("leg_deadline_penalties") or {}).items()
+            }
+        if "leg_compactness_penalties" in config_data:
+            config_data["leg_compactness_penalties"] = {
+                str(leg_id): float(value)
+                for leg_id, value in (config_data.get("leg_compactness_penalties") or {}).items()
+            }
 
     # Remove mode from kwargs before constructing configuration
     config_data.pop("mode", None)

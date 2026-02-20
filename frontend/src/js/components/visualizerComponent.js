@@ -19,19 +19,26 @@ function visualizerComponent() {
 
             this.$nextTick(() => {
                 this.registerPlotContainers();
+                this.applySelectedSolverRun();
             });
 
             // Watch for solver data changes
             this.$watch('$store.solver.results', (newResults) => {
                 if (newResults) {
-                    this.$store.visualization.solverData = newResults;
-                    this.$store.visualization.activeDataSource = 'solver';
+                    this.syncSelectedSolverRunWithStore();
+                    if (!this.selectedSolverRunId) {
+                        this.$store.visualization.solverData = newResults;
+                        this.$store.visualization.activeDataSource = 'solver';
+                    }
 
                     // Auto-render if we have code
                     if (this.$store.visualization.code && this.$store.visualization.code.trim() !== '') {
                         this.runCode();
                     }
                 }
+            });
+            this.$watch('$store.solver.scenarios', () => {
+                this.syncSelectedSolverRunWithStore();
             });
 
              // Watch for template changes to re-initialize editor
@@ -122,6 +129,27 @@ function visualizerComponent() {
             return this.$store.visualization.activeDataSource;
         },
 
+        get selectedSolverRunId() {
+            return this.$store.visualization.selectedSolverRunId || '';
+        },
+
+        set selectedSolverRunId(value) {
+            this.$store.visualization.selectedSolverRunId = value || '';
+            this.$store.visualization.saveToLocalStorage();
+        },
+
+        get solverRunOptions() {
+            const scenarios = Array.isArray(this.$store?.solver?.scenarios)
+                ? this.$store.solver.scenarios
+                : [];
+            return scenarios
+                .filter((scenario) => scenario && (scenario.results || scenario.liveResults || scenario.runId))
+                .map((scenario) => ({
+                    id: scenario.id,
+                    label: `${scenario.name}${scenario.runId ? ` (${String(scenario.runId).slice(0, 8)})` : ''} [${scenario.status}]`
+                }));
+        },
+
         get isLoading() {
             return this.$store.visualization.isLoading;
         },
@@ -152,6 +180,9 @@ function visualizerComponent() {
 
         switchDataSource(source) {
             this.$store.visualization.switchDataSource(source);
+            if (source === 'solver') {
+                this.applySelectedSolverRun();
+            }
         },
 
         async processCSVFile(file) {
@@ -166,6 +197,65 @@ function visualizerComponent() {
 
         toggleEditor() {
             this.$store.visualization.toggleEditor();
+        },
+
+        getScenarioById(scenarioId) {
+            if (!scenarioId) return null;
+            const scenarios = Array.isArray(this.$store?.solver?.scenarios)
+                ? this.$store.solver.scenarios
+                : [];
+            return scenarios.find((scenario) => scenario.id === scenarioId) || null;
+        },
+
+        syncSelectedSolverRunWithStore() {
+            if (!this.selectedSolverRunId) {
+                return;
+            }
+            const scenario = this.getScenarioById(this.selectedSolverRunId);
+            const selectedResults = scenario?.results || scenario?.liveResults || null;
+            if (!scenario || !selectedResults) {
+                if (scenario?.runId) {
+                    console.info('[visualizer] Selected run has no schedule payload yet; waiting for stream data', {
+                        scenarioId: scenario.id,
+                        status: scenario.status
+                    });
+                    this.$store.visualization.solverData = null;
+                    return;
+                }
+                this.selectedSolverRunId = '';
+                this.$store.visualization.solverData = this.$store.solver.results || null;
+                return;
+            }
+            this.$store.visualization.solverData = selectedResults;
+        },
+
+        applySelectedSolverRun() {
+            if (!this.selectedSolverRunId) {
+                this.$store.visualization.solverData = this.$store.solver.results || null;
+                return;
+            }
+            const scenario = this.getScenarioById(this.selectedSolverRunId);
+            const selectedResults = scenario?.results || scenario?.liveResults || null;
+            if (!scenario || !selectedResults) {
+                if (scenario?.runId) {
+                    console.info('[visualizer] Selected run has no schedule payload yet; waiting for stream data', {
+                        scenarioId: scenario.id,
+                        status: scenario.status
+                    });
+                    this.$store.visualization.solverData = null;
+                    return;
+                }
+                this.selectedSolverRunId = '';
+                this.$store.visualization.solverData = this.$store.solver.results || null;
+                return;
+            }
+            console.info('[visualizer] Applying selected solver run', {
+                scenarioId: scenario.id,
+                status: scenario.status,
+                hasFinalResults: !!scenario.results,
+                hasLiveResults: !!scenario.liveResults
+            });
+            this.$store.visualization.solverData = selectedResults;
         }
     };
 }

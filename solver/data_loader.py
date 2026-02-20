@@ -62,8 +62,8 @@ Exceptions:
 import os
 import json
 import pandas as pd
-from datetime import date
-from typing import Dict, List, Optional
+from datetime import date, timedelta
+from typing import Dict, List, Optional, Union
 from dataclasses import dataclass, replace
 from .config.settings import REQUIRED_INPUT_FILES
 from .utils.week_utils import WEEK_VALUE_RE, normalize_week_value, parse_iso_week
@@ -168,8 +168,10 @@ class Test:
     duration_days: float
     fte_required: int
     equipment_required: int
-    fte_assigned: str  # Can be specific ID or type like "fte_sofia"
-    equipment_assigned: str  # Can be specific ID or type, or "*" for any
+    fte_assigned: Union[str, List[str]]  # String or list of eligible FTE options
+    equipment_assigned: Union[
+        str, List[str]
+    ]  # String or list of eligible equipment options
     force_start_week_iso: Optional[str] = None
     fte_time_pct: float = 100.0
 
@@ -324,6 +326,56 @@ def load_tests(input_folder: str) -> List[Test]:
     df["unique_test_id"] = df["test_id"] + "_seq" + df["new_sequence_index"].astype(str)
     df = df.rename(columns={"test": "test_name"})
 
+    def _parse_assignment_value(value: object, prefix: str) -> Union[str, List[str]]:
+        if value is None:
+            return "*"
+
+        if isinstance(value, list):
+            tokens = [str(item).strip() for item in value if str(item).strip()]
+        else:
+            raw = str(value).strip()
+            if not raw or raw.lower() == "nan":
+                return "*"
+            if raw == "*":
+                return "*"
+
+            parsed_list = None
+            if raw.startswith("[") and raw.endswith("]"):
+                try:
+                    parsed_json = json.loads(raw)
+                    if isinstance(parsed_json, list):
+                        parsed_list = [
+                            str(item).strip()
+                            for item in parsed_json
+                            if str(item).strip()
+                        ]
+                except Exception:
+                    parsed_list = None
+
+            if parsed_list is not None:
+                tokens = parsed_list
+            else:
+                separators_normalized = raw.replace("|", ";").replace(",", ";")
+                tokens = [
+                    token.strip()
+                    for token in separators_normalized.split(";")
+                    if token.strip()
+                ]
+
+        normalized: List[str] = []
+        seen = set()
+        for token in tokens:
+            if token == "*":
+                return "*"
+            normalized_token = token if token.startswith(prefix) else f"{prefix}{token}"
+            if normalized_token not in seen:
+                seen.add(normalized_token)
+                normalized.append(normalized_token)
+
+        if not normalized:
+            return "*"
+        return normalized[0] if len(normalized) == 1 else normalized
+
     tests = [
         Test(
             test_id=row["unique_test_id"],
@@ -334,8 +386,10 @@ def load_tests(input_folder: str) -> List[Test]:
             duration_days=float(row["duration_days"]),
             fte_required=int(row["fte_required"]),
             equipment_required=int(row["equipment_required"]),
-            fte_assigned=row["fte_assigned"],
-            equipment_assigned=row["equipment_assigned"],
+            fte_assigned=_parse_assignment_value(row["fte_assigned"], "fte_"),
+            equipment_assigned=_parse_assignment_value(
+                row["equipment_assigned"], "setup_"
+            ),
             force_start_week_iso=row.get("force_start_week_iso"),
             fte_time_pct=float(row.get("fte_time_pct", 100.0)),
         )
@@ -354,33 +408,89 @@ def load_resource_windows(
     resource_path = os.path.join(input_folder, file_map[resource_type])
     df = pd.read_csv(resource_path)
 
-    id_col = f"{resource_type}_id"
-    df[id_col] = df[id_col].str.strip()
-    df["available_start_week_iso"] = df["available_start_week_iso"].apply(
+    columns = {str(col).strip().lower(): col for col in df.columns}
+    id_col = columns.get(f"{resource_type}_id") or columns.get("resource_id")
+    if not id_col:
+        raise KeyError(
+            f"{file_map[resource_type]} must contain '{resource_type}_id' or 'resource_id'"
+        )
+    df[id_col] = df[id_col].astype(str).str.strip()
+
+    start_date_col = columns.get("available_start_date")
+    end_date_exclusive_col = columns.get("available_end_date_exclusive")
+    end_date_col = columns.get("available_end_date")
+
+    if start_date_col and (end_date_exclusive_col or end_date_col):
+        df[start_date_col] = pd.to_datetime(
+            df[start_date_col], format="%Y-%m-%d", errors="raise"
+        ).dt.date
+
+        if end_date_exclusive_col:
+            df[end_date_exclusive_col] = pd.to_datetime(
+                df[end_date_exclusive_col], format="%Y-%m-%d", errors="raise"
+            ).dt.date
+            df["start_monday"] = df[start_date_col]
+            df["end_monday"] = df[end_date_exclusive_col]
+        else:
+            df[end_date_col] = pd.to_datetime(
+                df[end_date_col], format="%Y-%m-%d", errors="raise"
+            ).dt.date
+            df["start_monday"] = df[start_date_col]
+            df["end_monday"] = df[end_date_col].apply(
+                lambda value: value + timedelta(days=1)
+            )
+
+        invalid_ranges = df[df["end_monday"] <= df["start_monday"]]
+        if not invalid_ranges.empty:
+            raise ValueError(
+                f"{file_map[resource_type]} contains invalid date windows where "
+                "available_end_date_exclusive <= available_start_date"
+            )
+
+        return [
+            ResourceWindow(
+                resource_id=row[id_col],
+                start_iso_week=row["start_monday"].isoformat(),
+                end_iso_week=(row["end_monday"] - timedelta(days=1)).isoformat(),
+                start_monday=row["start_monday"],
+                end_monday=row["end_monday"],
+            )
+            for row in df.to_dict("records")
+        ]
+
+    start_week_col = columns.get("available_start_week_iso")
+    end_week_col = columns.get("available_end_week_iso")
+    if not start_week_col or not end_week_col:
+        raise KeyError(
+            f"{file_map[resource_type]} must contain either week columns "
+            "('available_start_week_iso', 'available_end_week_iso') or date columns "
+            "('available_start_date', 'available_end_date_exclusive')."
+        )
+
+    df[start_week_col] = df[start_week_col].apply(
         lambda value: normalize_week_value(
             value, f"{file_map[resource_type]}.available_start_week_iso"
         )
     )
-    df["available_end_week_iso"] = df["available_end_week_iso"].apply(
+    df[end_week_col] = df[end_week_col].apply(
         lambda value: normalize_week_value(
             value, f"{file_map[resource_type]}.available_end_week_iso"
         )
     )
 
-    df["start_monday"] = df["available_start_week_iso"].apply(parse_iso_week)
-    df["end_monday"] = df["available_end_week_iso"].apply(parse_iso_week)
+    df["start_monday"] = df[start_week_col].apply(parse_iso_week)
+    df["end_monday"] = df[end_week_col].apply(parse_iso_week)
 
-    windows = [
+    return [
         ResourceWindow(
             resource_id=row[id_col],
-            start_iso_week=row["available_start_week_iso"],
-            end_iso_week=row["available_end_week_iso"],
+            start_iso_week=row[start_week_col],
+            end_iso_week=row[end_week_col],
             start_monday=row["start_monday"],
             end_monday=row["end_monday"],
         )
         for row in df.to_dict("records")
     ]
-    return windows
 
 
 def load_test_duts(input_folder: str, tests: List[Test]) -> Dict[str, int]:
@@ -481,6 +591,18 @@ def load_priority_config(input_folder: str) -> Dict:
         elif mode == "leg_end_dates":
             leg_deadlines = config_dict.get("leg_deadlines", {})
             logger.info(f"  - Leg deadlines: {len(leg_deadlines)} legs")
+            logger.info(
+                "  - Leg start deadlines: %d",
+                len(config_dict.get("leg_start_deadlines", {}) or {}),
+            )
+            logger.info(
+                "  - Per-leg deadline penalties: %d",
+                len(config_dict.get("leg_deadline_penalties", {}) or {}),
+            )
+            logger.info(
+                "  - Per-leg compactness penalties: %d",
+                len(config_dict.get("leg_compactness_penalties", {}) or {}),
+            )
 
         weights = config_dict.get("weights", {})
         logger.info(f"  - Weights: {weights}")
@@ -512,16 +634,38 @@ def load_scenario_overrides(input_folder: str) -> Dict:
 
 
 def _resolve_assignment_override(
-    current_value: str, field_name: str, leg_override: Dict, project_override: Dict
-) -> str:
+    current_value: Union[str, List[str]],
+    field_name: str,
+    leg_override: Dict,
+    project_override: Dict,
+) -> Union[str, List[str]]:
     """Apply deterministic override precedence for assignment fields."""
-    if current_value != "*":
+    current_values = (
+        current_value if isinstance(current_value, list) else [str(current_value)]
+    )
+    is_wildcard = len(current_values) == 1 and str(current_values[0]).strip() == "*"
+    if not is_wildcard:
         return current_value
 
     for override_source in (leg_override, project_override):
         override_value = override_source.get(field_name)
+        if isinstance(override_value, list):
+            normalized = [
+                str(item).strip() for item in override_value if str(item).strip()
+            ]
+            if normalized:
+                return normalized if len(normalized) > 1 else normalized[0]
+            continue
         if isinstance(override_value, str):
             override_value = override_value.strip()
+            if (
+                override_value
+                and override_value != "*"
+                and ";" in override_value
+            ):
+                parts = [part.strip() for part in override_value.split(";") if part.strip()]
+                if parts:
+                    return parts if len(parts) > 1 else parts[0]
 
         if override_value and override_value != "*":
             return override_value
@@ -580,6 +724,30 @@ def validate_data(data: PlanningData) -> List[str]:
     """Validate loaded data and return list of validation errors."""
     errors = []
 
+    def resolve_compatible_resources(assignment_value, available_ids, prefix):
+        normalized_values = (
+            assignment_value if isinstance(assignment_value, list) else [assignment_value]
+        )
+        compatible_ids = set()
+        for value in normalized_values:
+            token = str(value).strip()
+            if not token:
+                continue
+            if token == "*":
+                compatible_ids.update(available_ids)
+                continue
+            if token.startswith(prefix):
+                if token in available_ids:
+                    compatible_ids.add(token)
+                    continue
+                compatible_ids.update(
+                    rid for rid in available_ids if rid.startswith(token + "_")
+                )
+                continue
+            if token in available_ids:
+                compatible_ids.add(token)
+        return compatible_ids
+
     # Check that all tests belong to valid legs
     leg_ids = set(data.legs.keys())
     for test in data.tests:
@@ -608,18 +776,45 @@ def validate_data(data: PlanningData) -> List[str]:
     equipment_ids = set(w.resource_id for w in data.equipment_windows)
 
     for test in data.tests:
+        fte_values = (
+            test.fte_assigned
+            if isinstance(test.fte_assigned, list)
+            else [test.fte_assigned]
+        )
+        equipment_values = (
+            test.equipment_assigned
+            if isinstance(test.equipment_assigned, list)
+            else [test.equipment_assigned]
+        )
+
         # Check FTE assignment
-        if test.fte_assigned != "*" and not test.fte_assigned.startswith("fte_"):
-            errors.append(
-                f"Test {test.test_id} has invalid FTE assignment: {test.fte_assigned}"
-            )
+        for assignment in fte_values:
+            if assignment != "*" and not str(assignment).startswith("fte_"):
+                errors.append(
+                    f"Test {test.test_id} has invalid FTE assignment: {assignment}"
+                )
 
         # Check equipment assignment
-        if test.equipment_assigned != "*" and not test.equipment_assigned.startswith(
-            "setup_"
-        ):
+        for assignment in equipment_values:
+            if assignment != "*" and not str(assignment).startswith("setup_"):
+                errors.append(
+                    f"Test {test.test_id} has invalid equipment assignment: {assignment}"
+                )
+
+        compatible_ftes = resolve_compatible_resources(test.fte_assigned, fte_ids, "fte_")
+        if test.fte_required > len(compatible_ftes):
             errors.append(
-                f"Test {test.test_id} has invalid equipment assignment: {test.equipment_assigned}"
+                f"Test {test.test_id} requires {test.fte_required} FTE resource(s) "
+                f"but only {len(compatible_ftes)} compatible option(s) were found"
+            )
+
+        compatible_equipment = resolve_compatible_resources(
+            test.equipment_assigned, equipment_ids, "setup_"
+        )
+        if test.equipment_required > len(compatible_equipment):
+            errors.append(
+                f"Test {test.test_id} requires {test.equipment_required} equipment resource(s) "
+                f"but only {len(compatible_equipment)} compatible option(s) were found"
             )
 
     return errors

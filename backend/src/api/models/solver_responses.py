@@ -10,6 +10,8 @@ from .common_responses import ErrorDetails
 class ExecutionStatusEnum(str, Enum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
+    CANCELLATION_REQUESTED = "CANCELLATION_REQUESTED"
+    CANCELLED = "CANCELLED"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     TIMEOUT = "TIMEOUT"
@@ -42,6 +44,7 @@ class ExecutionStatus(BaseModel):
     current_phase: Optional[str] = None
     queue_position: Optional[int] = None
     error: Optional[ErrorDetails] = None
+    progress_data: Optional[Dict[str, Any]] = None
 
 
 class SolverExecution(BaseModel):

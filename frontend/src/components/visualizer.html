@@ -1,4 +1,4 @@
- <div x-data="visualizerComponent()" x-cloak>
+ <div x-data="visualizerComponent()" x-cloak style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;">
      <!-- CodeMirror CSS -->
      <style>
          .cm-editor {
@@ -14,25 +14,35 @@
              height: 100%;
              position: relative;
          }
-     </style>
-     
-     <!-- Visualizer Controls -->
-     <div class="section">
-         <!-- Controls Row -->
-         <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
-             <!-- CodeMirror Editor Toggle -->
-             <div class="form-group" style="margin-bottom: 0; margin-top: 1.5rem;">
-                 <label>Editor Mode:</label>
-                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                     <button @click="toggleEditor()"
-                             :style="isEditorVisible ? 'background-color: var(--secondary-color); color: white;' : 'background-color: var(--light-color); color: var(--text-light);'"
-                             style="padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid var(--border-color); cursor: pointer; font-size: 0.9rem;"
-                             :aria-pressed="isEditorVisible"
-                             aria-label="Toggle Code Editor">
-                         Code Editor
-                     </button>
-                 </div>
-             </div>
+      </style>
+      
+       <!-- Visualizer Controls -->
+       <div class="section" style="display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; margin: 0; padding: 1rem; overflow: hidden;">
+          <!-- Controls Row -->
+          <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; flex-shrink: 0;">
+              <!-- CodeMirror Editor Toggle -->
+              <div class="form-group" style="margin-bottom: 0; margin-top: 1.5rem;">
+                  <label>Editor Mode:</label>
+                  <div class="toggle-button-wrapper">
+                      <button @click="toggleEditor()"
+                              class="toggle-btn"
+                              :class="{ 'active': isEditorVisible }"
+                              :aria-pressed="isEditorVisible"
+                              aria-label="Toggle Code Editor">
+                          <span class="toggle-btn-icon">
+                              <svg x-show="!isEditorVisible" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  <polyline points="16 18 22 12 16 6"></polyline>
+                                  <polyline points="8 6 2 12 8 18"></polyline>
+                              </svg>
+                              <svg x-show="isEditorVisible" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                              </svg>
+                          </span>
+                          <span x-text="isEditorVisible ? 'Hide Editor' : 'Code Editor'"></span>
+                      </button>
+                  </div>
+              </div>
              
              <!-- Template Selection Dropdown -->
              <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
@@ -46,34 +56,67 @@
                  </select>
              </div>
 
-             <!-- Data Source Toggle -->
-             <div class="form-group" style="margin-bottom: 0;">
-                 <label>Data Source:</label>
-                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                     <button @click="switchDataSource('solver')"
-                             :style="activeDataSource === 'solver' ? 'background-color: var(--secondary-color); color: white;' : 'background-color: var(--light-color); color: var(--text-light);'"
-                             style="padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid var(--border-color); cursor: pointer; font-size: 0.9rem;"
-                             :aria-pressed="activeDataSource === 'solver'"
-                             aria-label="Use Solver Data">
-                         Solver
-                     </button>
-                     <button @click="switchDataSource('csv')"
-                             :style="activeDataSource === 'csv' ? 'background-color: var(--secondary-color); color: white;' : 'background-color: var(--light-color); color: var(--text-light);'"
-                             style="padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid var(--border-color); cursor: pointer; font-size: 0.9rem;"
-                             :aria-pressed="activeDataSource === 'csv'"
-                             aria-label="Use CSV Data">
-                         CSV
-                     </button>
-                 </div>
-             </div>
+              <!-- Data Source Toggle -->
+              <div class="form-group" style="margin-bottom: 0;">
+                  <label>Data Source:</label>
+                  <div class="data-source-tabs">
+                      <button @click="switchDataSource('solver')"
+                              class="data-source-tab"
+                              :class="{ 'active': activeDataSource === 'solver' }"
+                              :aria-pressed="activeDataSource === 'solver'"
+                              aria-label="Use Solver Data">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                          </svg>
+                          Solver
+                      </button>
+                      <button @click="switchDataSource('csv')"
+                              class="data-source-tab"
+                              :class="{ 'active': activeDataSource === 'csv' }"
+                              :aria-pressed="activeDataSource === 'csv'"
+                              aria-label="Use CSV Data">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                              <polyline points="14 2 14 8 20 8"></polyline>
+                              <line x1="16" y1="13" x2="8" y2="13"></line>
+                              <line x1="16" y1="17" x2="8" y2="17"></line>
+                              <polyline points="10 9 9 9 8 9"></polyline>
+                          </svg>
+                          CSV
+                      </button>
+                  </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0; min-width: 240px;" x-show="activeDataSource === 'solver'">
+                  <label for="solver-run-select">Solver Run:</label>
+                  <select
+                      id="solver-run-select"
+                      x-model="selectedSolverRunId"
+                      @change="applySelectedSolverRun()"
+                      class="form-control"
+                  >
+                      <option value="">Latest Solver Result</option>
+                      <template x-for="run in solverRunOptions" :key="run.id">
+                          <option :value="run.id" x-text="run.label"></option>
+                      </template>
+                  </select>
+              </div>
 
              <!-- Render Button -->
-             <div class="form-group" style="margin-bottom: 0; margin-top: 1.5rem;">
+             <div class="form-group" style="margin-bottom: 0; margin-top: 1.5rem; display: flex; gap: 0.5rem; align-items: center;">
                  <button @click="runCode()"
                          :disabled="!hasData"
                          class="btn"
                          style="padding: 0.5rem 1.5rem; font-weight: 600;">
                      Render Plot
+                 </button>
+                 <button @click="$store.visualization.resetTemplateCode()"
+                         type="button"
+                         class="btn btn-secondary"
+                         style="padding: 0.5rem 1rem; font-weight: 500;"
+                         title="Reset code to default template">
+                     Reset to Default
                  </button>
              </div>
          </div>
@@ -105,7 +148,7 @@
          </div>
 
           <!-- Plot Sidebar + Content Layout -->
-          <div class="subtab-container" style="min-height: 500px; margin-top: 1rem;">
+           <div class="subtab-container" style="flex: 1 1 auto; min-height: 0; margin-top: 1rem;">
               <div class="subtab-sidebar">
                   <template x-for="plotTab in plotTabs" :key="plotTab.id">
                       <button
@@ -118,40 +161,40 @@
                   </template>
               </div>
 
-              <div class="subtab-content">
-                  <div class="config-section" style="height: 100%;">
-                      <div :class="isEditorVisible ? 'split-view-container' : 'full-view-container'" style="min-height: 500px;">
-                          <div style="flex: 2 1 400px; min-width: 0;">
-                              <div x-show="activePlotTab === 'gantt-tests'" style="height: 100%;">
-                                  <div x-ref="chartContainerGantt" style="width: 100%; height: 500px; padding: 1rem; overflow: auto; border: 1px solid var(--border-color); border-radius: 4px;"></div>
-                                  <p x-show="!isPlotRendered('gantt-tests')" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-light);">Render this plot to populate the Gantt Tests tab.</p>
-                              </div>
+               <div class="subtab-content">
+                   <div class="config-section" style="height: 100%; display: flex; flex-direction: column;">
+                       <div :class="isEditorVisible ? 'split-view-container' : 'full-view-container'" style="flex: 1 1 auto; min-height: 0;">
+                           <div style="flex: 2 1 400px; min-width: 0; display: flex; flex-direction: column;">
+                               <div x-show="activePlotTab === 'gantt-tests'" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;">
+                                   <div x-ref="chartContainerGantt" style="flex: 1 1 auto; min-height: 0; padding: 1rem; overflow: auto; border: 1px solid var(--border-color); border-radius: 4px;"></div>
+                                   <p x-show="!isPlotRendered('gantt-tests')" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-light);">Render this plot to populate the Gantt Tests tab.</p>
+                               </div>
 
-                              <div x-show="activePlotTab === 'equipment'" style="height: 100%;">
-                                  <div x-ref="chartContainerEquipment" style="width: 100%; height: 500px; padding: 1rem; overflow: auto; border: 1px solid var(--border-color); border-radius: 4px;"></div>
-                                  <p x-show="!isPlotRendered('equipment')" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-light);">Render this plot to populate the Equipment tab.</p>
-                              </div>
+                               <div x-show="activePlotTab === 'equipment'" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;">
+                                   <div x-ref="chartContainerEquipment" style="flex: 1 1 auto; min-height: 0; padding: 1rem; overflow: auto; border: 1px solid var(--border-color); border-radius: 4px;"></div>
+                                   <p x-show="!isPlotRendered('equipment')" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-light);">Render this plot to populate the Equipment tab.</p>
+                               </div>
 
-                              <div x-show="activePlotTab === 'fte'" style="height: 100%;">
-                                  <div x-ref="chartContainerFte" style="width: 100%; height: 500px; padding: 1rem; overflow: auto; border: 1px solid var(--border-color); border-radius: 4px;"></div>
-                                  <p x-show="!isPlotRendered('fte')" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-light);">Render this plot to populate the FTE tab.</p>
-                              </div>
+                               <div x-show="activePlotTab === 'fte'" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;">
+                                   <div x-ref="chartContainerFte" style="flex: 1 1 auto; min-height: 0; padding: 1rem; overflow: auto; border: 1px solid var(--border-color); border-radius: 4px;"></div>
+                                   <p x-show="!isPlotRendered('fte')" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-light);">Render this plot to populate the FTE tab.</p>
+                               </div>
 
-                              <div x-show="activePlotTab === 'concurrency'" style="height: 100%;">
-                                  <div x-ref="chartContainerConcurrency" style="width: 100%; height: 500px; padding: 1rem; overflow: auto; border: 1px solid var(--border-color); border-radius: 4px;"></div>
-                                  <p x-show="!isPlotRendered('concurrency')" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-light);">Render this plot to populate the Concurrency tab.</p>
-                              </div>
-                          </div>
+                               <div x-show="activePlotTab === 'concurrency'" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;">
+                                   <div x-ref="chartContainerConcurrency" style="flex: 1 1 auto; min-height: 0; padding: 1rem; overflow: auto; border: 1px solid var(--border-color); border-radius: 4px;"></div>
+                                   <p x-show="!isPlotRendered('concurrency')" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-light);">Render this plot to populate the Concurrency tab.</p>
+                               </div>
+                           </div>
 
-                          <div x-show="isEditorVisible" style="flex: 1 1 320px; min-width: 0; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;">
-                              <div style="padding: 0.5rem; background-color: var(--light-color); border-bottom: 1px solid var(--border-color);">
-                                  <strong style="font-size: 0.9rem;">Code Editor</strong>
-                              </div>
-                              <div x-ref="editorContainer" style="width: 100%; height: 500px; position: relative;"></div>
-                          </div>
-                      </div>
-                  </div>
-              </div>
+                           <div x-show="isEditorVisible" style="flex: 1 1 320px; min-width: 0; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column;">
+                               <div style="padding: 0.5rem; background-color: var(--light-color); border-bottom: 1px solid var(--border-color); flex-shrink: 0;">
+                                   <strong style="font-size: 0.9rem;">Code Editor</strong>
+                               </div>
+                               <div x-ref="editorContainer" style="flex: 1 1 auto; min-height: 0; width: 100%; position: relative;"></div>
+                           </div>
+                       </div>
+                   </div>
+               </div>
           </div>
 
          <!-- Empty State Message -->
@@ -176,6 +219,7 @@ function visualizerComponent() {
 
              this.$nextTick(() => {
                  this.registerPlotContainers();
+                 this.applySelectedSolverRun();
                  // Auto-render default tab if not already rendered
                  if (!this.isPlotRendered(this.currentTemplateId)) {
                      this.runCode();
@@ -185,14 +229,21 @@ function visualizerComponent() {
             // Watch for solver data changes
             this.$watch('$store.solver.results', (newResults) => {
                 if (newResults) {
-                    this.$store.visualization.solverData = newResults;
-                    this.$store.visualization.activeDataSource = 'solver';
+                    this.syncSelectedSolverRunWithStore();
+                    if (!this.selectedSolverRunId) {
+                        this.$store.visualization.solverData = newResults;
+                        this.$store.visualization.activeDataSource = 'solver';
+                    }
 
                     // Auto-render if we have code
                     if (this.$store.visualization.code && this.$store.visualization.code.trim() !== '') {
                         this.runCode();
                      }
                  }
+             });
+
+             this.$watch('$store.solver.scenarios', () => {
+                 this.syncSelectedSolverRunWithStore();
              });
 
               // Watch for template changes to re-initialize editor
@@ -287,6 +338,27 @@ function visualizerComponent() {
              return this.$store.visualization.activeDataSource;
          },
 
+         get selectedSolverRunId() {
+             return this.$store.visualization.selectedSolverRunId || '';
+         },
+
+         set selectedSolverRunId(value) {
+             this.$store.visualization.selectedSolverRunId = value || '';
+             this.$store.visualization.saveToLocalStorage();
+         },
+
+         get solverRunOptions() {
+             const scenarios = Array.isArray(this.$store?.solver?.scenarios)
+                 ? this.$store.solver.scenarios
+                 : [];
+             return scenarios
+                 .filter((scenario) => scenario && (scenario.results || scenario.liveResults || scenario.runId))
+                 .map((scenario) => ({
+                     id: scenario.id,
+                     label: `${scenario.name}${scenario.runId ? ` (${String(scenario.runId).slice(0, 8)})` : ''} [${scenario.status}]`
+                 }));
+         },
+
          get isLoading() {
              return this.$store.visualization.isLoading;
          },
@@ -317,6 +389,9 @@ function visualizerComponent() {
 
          switchDataSource(source) {
              this.$store.visualization.switchDataSource(source);
+             if (source === 'solver') {
+                 this.applySelectedSolverRun();
+             }
          },
 
           async processCSVFile(file) {
@@ -331,6 +406,65 @@ function visualizerComponent() {
 
          toggleEditor() {
              this.$store.visualization.toggleEditor();
+         },
+
+         getScenarioById(scenarioId) {
+             if (!scenarioId) return null;
+             const scenarios = Array.isArray(this.$store?.solver?.scenarios)
+                 ? this.$store.solver.scenarios
+                 : [];
+             return scenarios.find((scenario) => scenario.id === scenarioId) || null;
+         },
+
+         syncSelectedSolverRunWithStore() {
+             if (!this.selectedSolverRunId) {
+                 return;
+             }
+             const scenario = this.getScenarioById(this.selectedSolverRunId);
+             const selectedResults = scenario?.results || scenario?.liveResults || null;
+             if (!scenario || !selectedResults) {
+                 if (scenario?.runId) {
+                     console.info('[visualizer] Selected run has no schedule payload yet; waiting for stream data', {
+                         scenarioId: scenario.id,
+                         status: scenario.status
+                     });
+                     this.$store.visualization.solverData = null;
+                     return;
+                 }
+                 this.selectedSolverRunId = '';
+                 this.$store.visualization.solverData = this.$store.solver.results || null;
+                 return;
+             }
+             this.$store.visualization.solverData = selectedResults;
+         },
+
+         applySelectedSolverRun() {
+             if (!this.selectedSolverRunId) {
+                 this.$store.visualization.solverData = this.$store.solver.results || null;
+                 return;
+             }
+             const scenario = this.getScenarioById(this.selectedSolverRunId);
+             const selectedResults = scenario?.results || scenario?.liveResults || null;
+             if (!scenario || !selectedResults) {
+                 if (scenario?.runId) {
+                     console.info('[visualizer] Selected run has no schedule payload yet; waiting for stream data', {
+                         scenarioId: scenario.id,
+                         status: scenario.status
+                     });
+                     this.$store.visualization.solverData = null;
+                     return;
+                 }
+                 this.selectedSolverRunId = '';
+                 this.$store.visualization.solverData = this.$store.solver.results || null;
+                 return;
+             }
+             console.info('[visualizer] Applying selected solver run', {
+                 scenarioId: scenario.id,
+                 status: scenario.status,
+                 hasFinalResults: !!scenario.results,
+                 hasLiveResults: !!scenario.liveResults
+             });
+             this.$store.visualization.solverData = selectedResults;
          }
      };
  }

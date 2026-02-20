@@ -6,12 +6,20 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from solver.data_loader import Leg, PlanningData, ResourceWindow, Test as PlannerTest
+from solver.data_loader import (
+    Leg,
+    PlanningData,
+    ResourceWindow,
+    Test as PlannerTest,
+    validate_data,
+)
 from solver.model_builder import (
     ScheduleModel,
     add_resource_availability_constraints,
     add_resource_nonoverlap_constraints,
     build_resource_assignments,
+    resolve_leg_deadline_ids,
+    resolve_leg_numeric_ids,
 )
 
 
@@ -100,7 +108,7 @@ def test_add_resource_constraints_adds_expected_constraints_for_single_test(star
     add_resource_availability_constraints(schedule_model, data, start_date)
     after = len(schedule_model.model.Proto().constraints)
 
-    assert after - before == 10
+    assert after - before == 6
 
 
 def test_add_resource_constraints_adds_expected_constraints_for_two_tests(start_date):
@@ -112,4 +120,104 @@ def test_add_resource_constraints_adds_expected_constraints_for_two_tests(start_
     add_resource_availability_constraints(schedule_model, data, start_date)
     after = len(schedule_model.model.Proto().constraints)
 
-    assert after - before == 18
+    assert after - before == 10
+
+
+def test_build_resource_assignments_accepts_assignment_option_lists(start_date):
+    data = _build_planning_data(test_count=1, start_date=start_date)
+    data.tests[0].fte_assigned = ["fte_team", "fte_backup"]
+    data.tests[0].equipment_assigned = ["setup_lab", "setup_alt"]
+    data.fte_windows.append(
+        ResourceWindow(
+            resource_id="fte_backup",
+            start_iso_week="2026-W01.0",
+            end_iso_week="2026-W10.0",
+            start_monday=start_date,
+            end_monday=date(2026, 3, 16),
+        )
+    )
+    data.equipment_windows.append(
+        ResourceWindow(
+            resource_id="setup_alt",
+            start_iso_week="2026-W01.0",
+            end_iso_week="2026-W10.0",
+            start_monday=start_date,
+            end_monday=date(2026, 3, 16),
+        )
+    )
+
+    schedule_model = _build_schedule_model(data, start_date)
+
+    assert ("t1", "fte", "fte_team") in schedule_model.resource_assignments
+    assert ("t1", "fte", "fte_backup") in schedule_model.resource_assignments
+    assert ("t1", "equipment", "setup_lab") in schedule_model.resource_assignments
+    assert ("t1", "equipment", "setup_alt") in schedule_model.resource_assignments
+
+
+def test_build_resource_assignments_fails_when_required_fte_has_no_options(start_date):
+    data = _build_planning_data(test_count=1, start_date=start_date)
+    data.fte_windows = []
+
+    schedule_model = ScheduleModel()
+    start_var = schedule_model.model.NewIntVar(0, 100, "start_t1")
+    end_var = schedule_model.model.NewIntVar(0, 100, "end_t1")
+    schedule_model.test_vars["t1"] = (start_var, end_var, 5)
+
+    with pytest.raises(ValueError, match="requires 1 FTE resource\\(s\\).*0 compatible"):
+        build_resource_assignments(schedule_model, data, start_date)
+
+
+def test_build_resource_assignments_fails_when_required_equipment_has_no_options(start_date):
+    data = _build_planning_data(test_count=1, start_date=start_date)
+    data.equipment_windows = []
+
+    schedule_model = ScheduleModel()
+    start_var = schedule_model.model.NewIntVar(0, 100, "start_t1")
+    end_var = schedule_model.model.NewIntVar(0, 100, "end_t1")
+    schedule_model.test_vars["t1"] = (start_var, end_var, 5)
+
+    with pytest.raises(
+        ValueError, match="requires 1 equipment resource\\(s\\).*0 compatible"
+    ):
+        build_resource_assignments(schedule_model, data, start_date)
+
+
+def test_validate_data_flags_missing_required_resources(start_date):
+    data = _build_planning_data(test_count=1, start_date=start_date)
+    data.fte_windows = []
+    data.equipment_windows = []
+
+    errors = validate_data(data)
+
+    assert any("requires 1 FTE resource(s)" in error for error in errors)
+    assert any("requires 1 equipment resource(s)" in error for error in errors)
+
+
+def test_resolve_leg_deadline_ids_maps_ui_style_keys_to_loaded_leg_ids():
+    resolved, unmatched = resolve_leg_deadline_ids(
+        configured_deadlines={
+            "mwcu__2.1": date(2026, 3, 1),
+            "mwcu__2.2__alpha": date(2026, 3, 10),
+            "unknown__9.9": date(2026, 4, 1),
+        },
+        available_leg_ids={"mwcu_2_1", "mwcu_2_2_alpha"},
+    )
+
+    assert resolved["mwcu_2_1"] == date(2026, 3, 1)
+    assert resolved["mwcu_2_2_alpha"] == date(2026, 3, 10)
+    assert "unknown__9.9" in unmatched
+
+
+def test_resolve_leg_numeric_ids_maps_ui_style_keys_to_loaded_leg_ids():
+    resolved, unmatched = resolve_leg_numeric_ids(
+        configured_values={
+            "mwcu__2.1": 11,
+            "mwcu__2.2__alpha": 4.5,
+            "unknown__9.9": 7,
+        },
+        available_leg_ids={"mwcu_2_1", "mwcu_2_2_alpha"},
+    )
+
+    assert resolved["mwcu_2_1"] == 11
+    assert resolved["mwcu_2_2_alpha"] == 4.5
+    assert "unknown__9.9" in unmatched

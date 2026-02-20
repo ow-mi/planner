@@ -1,4 +1,7 @@
-from typing import Optional
+import json
+import os
+from datetime import datetime
+from typing import Dict, Optional
 
 from backend.src.api.models.requests import (
     BatchJobCreateRequest,
@@ -15,6 +18,7 @@ from backend.src.api.models.responses import (
     RunSessionState as APIRunSessionState,
     SolverExecution,
     SolverResults,
+    SolverStatusEnum,
 )
 from backend.src.services.batch_job_manager import BatchJobManager
 from backend.src.services.execution_orchestrator import ExecutionOrchestrator
@@ -71,7 +75,6 @@ class SolverService:
             ),
             file_operations=self._files,
         )
-        self._stop_event = self._orchestrator._stop_event
         self._worker_thread = self._orchestrator._worker_thread
         self._orchestrator.start_worker()
         self._worker_thread = self._orchestrator._worker_thread
@@ -120,8 +123,44 @@ class SolverService:
     def get_execution_status(self, execution_id: str) -> Optional[SolverExecution]:
         return self._orchestrator.get_execution_status(execution_id)
 
-    def get_execution_results(self, execution_id: str) -> Optional[SolverResults]:
-        return self._orchestrator.get_execution_results(execution_id)
+    def get_execution_results(
+        self, execution_id: str, include_partial: bool = False
+    ) -> Optional[SolverResults]:
+        results = self._orchestrator.get_execution_results(execution_id)
+        if results:
+            return results
+
+        if not include_partial:
+            return None
+
+        execution = self.get_execution_status(execution_id)
+        if not execution:
+            return None
+
+        progress_data = execution.progress_data or {}
+        partial_results = progress_data.get("partial_results")
+        if isinstance(partial_results, dict):
+            return SolverResults(**partial_results)
+
+        checkpoint = progress_data.get("checkpoint")
+        if not checkpoint:
+            return None
+
+        return SolverResults(
+            execution_id=execution_id,
+            status=SolverStatusEnum.NO_SOLUTION,
+            makespan=progress_data.get("makespan"),
+            test_schedule=[],
+            resource_utilization={},
+            output_files={},
+            output_root=checkpoint.get("output_root"),
+            written_output_paths={},
+            solver_stats={
+                "partial": True,
+                "checkpoint": checkpoint,
+                "status": execution.status.value,
+            },
+        )
 
     def _process_queue(self):
         return self._orchestrator._process_queue()
@@ -136,34 +175,62 @@ class SolverService:
             return False
         return await self.stop_execution(run_session.execution_id)
 
-    async def stop_execution(self, execution_id: str) -> bool:
-        """Stop an execution and save checkpoint."""
+    async def stop_execution(self, execution_id: str) -> Dict[str, object]:
+        """Stop an execution and save checkpoint metadata."""
         execution = self.get_execution_status(execution_id)
-        if not execution or execution.status.value not in ["RUNNING", "PENDING"]:
-            return False
+        if not execution:
+            return {
+                "accepted": False,
+                "reason": "not_found",
+                "message": "Execution not found",
+            }
 
-        # Set stop event to signal the worker
-        self._stop_event.set()
+        if execution.status.value in ["CANCELLED", "CANCELLATION_REQUESTED"]:
+            checkpoint_path = self._write_checkpoint(execution_id)
+            return {
+                "accepted": True,
+                "reason": "already_requested",
+                "status": execution.status.value,
+                "checkpoint_path": checkpoint_path,
+                "message": "Cancellation already requested",
+            }
 
-        # Update execution status
-        self._state_store.update_execution_status(
-            execution_id,
-            StateExecutionStatusEnum.FAILED,
-            current_phase="Stopped by user",
-        )
+        if execution.status.value in ["COMPLETED", "FAILED", "TIMEOUT"]:
+            return {
+                "accepted": False,
+                "reason": "already_terminal",
+                "status": execution.status.value,
+                "message": f"Execution already in terminal state: {execution.status.value}",
+            }
 
-        # Save checkpoint
-        import os
+        request_state = self._orchestrator.request_cancellation(execution_id)
+        if request_state not in ("accepted", "already_requested"):
+            return {
+                "accepted": False,
+                "reason": request_state,
+                "message": "Cancellation request was not accepted",
+            }
 
+        checkpoint_path = self._write_checkpoint(execution_id)
+        latest = self.get_execution_status(execution_id)
+        return {
+            "accepted": True,
+            "reason": request_state,
+            "status": latest.status.value if latest else "CANCELLATION_REQUESTED",
+            "checkpoint_path": checkpoint_path,
+            "message": "Cancellation requested",
+        }
+
+    def _write_checkpoint(self, execution_id: str) -> str:
         checkpoint_dir = "/tmp/solver_checkpoints"
         os.makedirs(checkpoint_dir, exist_ok=True)
         checkpoint_path = os.path.join(checkpoint_dir, f"{execution_id}.json")
 
         checkpoint_data = {
             "execution_id": execution_id,
-            "stopped_at": __import__("datetime").datetime.now().isoformat(),
-            "status": "STOPPED",
-            "phase": "Stopped by user",
+            "stopped_at": datetime.now().isoformat(),
+            "status": "CANCELLATION_REQUESTED",
+            "phase": "Cancellation requested by user",
         }
 
         execution_state = self._state_store.get_execution(execution_id)
@@ -171,14 +238,16 @@ class SolverService:
             checkpoint_data["progress_data"] = execution_state.progress_data
 
         with open(checkpoint_path, "w") as f:
-            __import__("json").dump(checkpoint_data, f)
+            json.dump(checkpoint_data, f)
 
-        return True
+        return checkpoint_path
 
     def update_execution_progress(self, execution_id: str, progress_data: dict) -> None:
         """Update execution with progress data from solver."""
+        current = self._state_store.get_execution(execution_id)
+        existing = current.progress_data if current and current.progress_data else {}
         self._state_store.update_execution_status(
             execution_id,
-            StateExecutionStatusEnum.RUNNING,  # Keep status as RUNNING
-            progress_data=progress_data,
+            StateExecutionStatusEnum.RUNNING,
+            progress_data={**existing, **progress_data},
         )

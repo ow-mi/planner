@@ -1,6 +1,9 @@
-from typing import Dict, List, Any
-import pandas as pd
+import csv
 import io
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
 
 
 class ValidationUtils:
@@ -11,6 +14,20 @@ class ValidationUtils:
         "data_equipment.csv",
         "data_test_duts.csv",
     ]
+    LOGICAL_TABLE_TO_CSV_FILE = {
+        "legs": "data_legs.csv",
+        "tests": "data_test.csv",
+        "fte": "data_fte.csv",
+        "equipment": "data_equipment.csv",
+        "test_duts": "data_test_duts.csv",
+    }
+    TABLE_ALIASES = {
+        "legs": {"legs", "leg", "data_legs", "data_legs.csv"},
+        "tests": {"tests", "test", "data_test", "data_test.csv"},
+        "fte": {"fte", "data_fte", "data_fte.csv"},
+        "equipment": {"equipment", "data_equipment", "data_equipment.csv"},
+        "test_duts": {"test_duts", "testduts", "data_test_duts", "data_test_duts.csv"},
+    }
 
     @staticmethod
     def validate_csv_files(csv_files: Dict[str, str]) -> List[str]:
@@ -75,5 +92,109 @@ class ValidationUtils:
                 errors.append(
                     "leg_compactness_penalty_per_day must be a non-negative number"
                 )
+        if "leg_deadline_penalties" in config:
+            value = config["leg_deadline_penalties"]
+            if not isinstance(value, dict):
+                errors.append("leg_deadline_penalties must be an object map")
+            else:
+                for leg_id, penalty in value.items():
+                    if not isinstance(penalty, (int, float)) or penalty < 0:
+                        errors.append(
+                            f"leg_deadline_penalties[{leg_id}] must be a non-negative number"
+                        )
+                configured_deadlines = config.get("leg_deadlines")
+                positive_penalty_legs = [
+                    leg_id
+                    for leg_id, penalty in value.items()
+                    if isinstance(penalty, (int, float)) and penalty > 0
+                ]
+                if positive_penalty_legs:
+                    if not isinstance(configured_deadlines, dict) or len(configured_deadlines) == 0:
+                        errors.append(
+                            "leg_deadlines is required when leg_deadline_penalties contains positive values"
+                        )
+                    else:
+                        missing_deadlines = [
+                            leg_id
+                            for leg_id in positive_penalty_legs
+                            if leg_id not in configured_deadlines
+                        ]
+                        if missing_deadlines:
+                            errors.append(
+                                "Missing leg_deadlines for penalty-enabled legs: "
+                                + ", ".join(missing_deadlines[:10])
+                            )
+        if "leg_compactness_penalties" in config:
+            value = config["leg_compactness_penalties"]
+            if not isinstance(value, dict):
+                errors.append("leg_compactness_penalties must be an object map")
+            else:
+                for leg_id, penalty in value.items():
+                    if not isinstance(penalty, (int, float)) or penalty < 0:
+                        errors.append(
+                            f"leg_compactness_penalties[{leg_id}] must be a non-negative number"
+                        )
+        if "leg_start_deadlines" in config:
+            value = config["leg_start_deadlines"]
+            if not isinstance(value, dict):
+                errors.append("leg_start_deadlines must be an object map")
+            else:
+                for leg_id, date_value in value.items():
+                    if not isinstance(date_value, str):
+                        errors.append(
+                            f"leg_start_deadlines[{leg_id}] must be an ISO date string"
+                        )
+                        continue
+                    try:
+                        datetime.fromisoformat(date_value)
+                    except ValueError:
+                        errors.append(
+                            f"leg_start_deadlines[{leg_id}] must be an ISO date string"
+                        )
 
         return errors
+
+    @staticmethod
+    def normalize_table_key(raw_key: str) -> Optional[str]:
+        normalized = str(raw_key or "").strip().lower()
+        if not normalized:
+            return None
+        normalized = normalized.replace("-", "_").replace(" ", "_")
+        for logical_key, aliases in ValidationUtils.TABLE_ALIASES.items():
+            if normalized in aliases:
+                return logical_key
+        return None
+
+    @staticmethod
+    def convert_input_tables_to_csv_files(
+        input_tables: Dict[str, Dict[str, Any]],
+    ) -> Dict[str, str]:
+        """
+        Convert JSON table payloads into solver-compatible CSV content keyed by
+        canonical legacy file names.
+        """
+        csv_files: Dict[str, str] = {}
+        for incoming_key, table_payload in input_tables.items():
+            logical_key = ValidationUtils.normalize_table_key(incoming_key)
+            if not logical_key:
+                continue
+
+            canonical_filename = ValidationUtils.LOGICAL_TABLE_TO_CSV_FILE[logical_key]
+            headers = table_payload.get("headers") or []
+            rows = table_payload.get("rows") or []
+            if not isinstance(headers, list):
+                continue
+            if not isinstance(rows, list):
+                continue
+
+            buffer = io.StringIO()
+            writer = csv.writer(buffer, lineterminator="\n")
+            writer.writerow([str(column) for column in headers])
+            for row in rows:
+                if isinstance(row, list):
+                    writer.writerow(list(row))
+                else:
+                    writer.writerow([row])
+            csv_files[canonical_filename] = buffer.getvalue()
+
+        return csv_files

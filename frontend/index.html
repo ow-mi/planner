@@ -85,6 +85,14 @@
         <div class="app-content">
             <!-- Main application container -->
             <div x-data="app()" x-init="initApp()" x-cloak>
+         <button
+             type="button"
+             class="floating-reset-btn"
+             @click="resetUiState()"
+             title="Reset saved UI state"
+         >
+             Reset UI
+         </button>
          <!-- Tabs container - loaded via HTMX -->
          <div id="tabs-container" data-loaded="false"></div>
          
