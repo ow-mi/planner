@@ -76,6 +76,15 @@ check_python
 check_port $FRONTEND_PORT "Frontend" || exit 1
 check_port $BACKEND_PORT "Backend" || exit 1
 
+# Set PYTHONPATH so imports work correctly (backend is inside project root)
+export PYTHONPATH="$SCRIPT_DIR:$PYTHONPATH"
+
+# Check if virtual environment exists and activate it BEFORE starting services
+if [ -d "$SCRIPT_DIR/.venv" ]; then
+    source "$SCRIPT_DIR/.venv/bin/activate"
+    echo -e "${GREEN}✓ Activated virtual environment${NC}"
+fi
+
 echo -e "${YELLOW}Starting services...${NC}"
 echo ""
 
@@ -97,15 +106,6 @@ echo ""
 
 # Start Backend (Uvicorn)
 echo -e "${BLUE}Starting Backend on port $BACKEND_PORT...${NC}"
-
-# Set PYTHONPATH so imports work correctly (backend is inside project root)
-export PYTHONPATH="$SCRIPT_DIR:$PYTHONPATH"
-
-# Check if virtual environment exists and activate it
-if [ -d "$SCRIPT_DIR/.venv" ]; then
-    source "$SCRIPT_DIR/.venv/bin/activate"
-    echo -e "${GREEN}✓ Activated virtual environment${NC}"
-fi
 
 # Check for uvicorn
 if ! $PYTHON_CMD -c "import uvicorn" 2>/dev/null; then

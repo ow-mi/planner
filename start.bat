@@ -54,12 +54,25 @@ if %ERRORLEVEL% EQU 0 (
 echo Starting services...
 echo.
 
+REM Set PYTHONPATH so imports work correctly (backend is inside project root)
+set "PYTHONPATH=%SCRIPT_DIR%;%PYTHONPATH%"
+
+REM Detect venv activation command (used in spawned processes)
+set "VENV_ACTIVATE="
+if exist "%SCRIPT_DIR%\.venv\Scripts\activate.bat" (
+    set "VENV_ACTIVATE=call %SCRIPT_DIR%.venv\Scripts\activate.bat && "
+    echo [OK] Found virtual environment at .venv
+) else if exist "%SCRIPT_DIR%\.venv\activate.bat" (
+    set "VENV_ACTIVATE=call %SCRIPT_DIR%.venv\activate.bat && "
+    echo [OK] Found virtual environment at .venv
+)
+
 REM ========================================
 REM Start Frontend (Python HTTP server)
 REM ========================================
 echo Starting Frontend on port %FRONTEND_PORT%...
 
-start "Frontend Server" cmd /c "cd /d %SCRIPT_DIR%frontend && %PYTHON_CMD% -m http.server %FRONTEND_PORT%"
+start "Frontend Server" cmd /c "cd /d %SCRIPT_DIR%frontend && %VENV_ACTIVATE%%PYTHON_CMD% -m http.server %FRONTEND_PORT%"
 if %ERRORLEVEL% NEQ 0 (
     echo Error: Failed to start Frontend
     exit /b 1
@@ -75,22 +88,13 @@ REM Start Backend (Uvicorn)
 REM ========================================
 echo Starting Backend on port %BACKEND_PORT%...
 
-REM Set PYTHONPATH so imports work correctly (backend is inside project root)
-set "PYTHONPATH=%SCRIPT_DIR%;%PYTHONPATH%"
-
-REM Check if virtual environment exists
-if exist "%SCRIPT_DIR%\.venv\Scripts\activate.bat" (
-    call "%SCRIPT_DIR%\.venv\Scripts\activate.bat"
-    echo [OK] Activated virtual environment
-) else if exist "%SCRIPT_DIR%\.venv\activate.bat" (
-    call "%SCRIPT_DIR%\.venv\activate.bat"
-    echo [OK] Activated virtual environment
-)
-
 REM Change to project root (not backend folder)
 cd /d "%SCRIPT_DIR%"
 
-REM Check for uvicorn
+REM Check for uvicorn (in parent shell with venv if available)
+if defined VENV_ACTIVATE (
+    call "%SCRIPT_DIR%\.venv\Scripts\activate.bat" 2>nul || call "%SCRIPT_DIR%\.venv\activate.bat" 2>nul
+)
 %PYTHON_CMD% -c "import uvicorn" 2>nul
 if %ERRORLEVEL% NEQ 0 (
     echo Warning: Uvicorn not found. Installing dependencies...
@@ -101,7 +105,7 @@ if %ERRORLEVEL% NEQ 0 (
     )
 )
 
-start "Backend Server" cmd /c "%PYTHON_CMD% -m uvicorn backend.src.api.main:app --host 0.0.0.0 --port %BACKEND_PORT% --reload --reload-dir backend/src"
+start "Backend Server" cmd /c "cd /d %SCRIPT_DIR% && set PYTHONPATH=%SCRIPT_DIR% && %VENV_ACTIVATE%%PYTHON_CMD% -m uvicorn backend.src.api.main:app --host 0.0.0.0 --port %BACKEND_PORT% --reload --reload-dir backend/src"
 if %ERRORLEVEL% NEQ 0 (
     echo Error: Failed to start Backend
     taskkill /FI "WINDOWTITLE eq Frontend Server" /F /T >nul 2>nul
