@@ -50,6 +50,21 @@ function Write-Err([string]$Message) {
     Write-Log -Level "ERR" -Message $Message -Color Red
 }
 
+function Write-DebugBlock {
+    param(
+        [string]$Header,
+        [string]$Content
+    )
+
+    $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff")
+    try {
+        Add-Content -Path $StartupLog -Value "$timestamp [DEBUG] $Header" -Encoding UTF8
+        Add-Content -Path $StartupLog -Value $Content -Encoding UTF8
+    }
+    catch {
+    }
+}
+
 function Get-LogTail {
     param(
         [string]$Path,
@@ -88,6 +103,28 @@ function Write-PortDiagnostics {
     }
     catch {
         Write-Warn "${Label}: failed to collect port diagnostics for port $Port. Error: $($_.Exception.Message)"
+    }
+}
+
+function Write-ProcessSnapshot {
+    param(
+        [int]$ProcessId,
+        [string]$Label
+    )
+
+    try {
+        $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $ProcessId" -ErrorAction Stop
+        $snapshot = [ordered]@{
+            label          = $Label
+            process_id     = $proc.ProcessId
+            name           = $proc.Name
+            executable     = $proc.ExecutablePath
+            command_line   = $proc.CommandLine
+        } | ConvertTo-Json -Depth 3
+        Write-DebugBlock -Header "Process snapshot for PID $ProcessId" -Content $snapshot
+    }
+    catch {
+        Write-Warn "Could not collect process snapshot for PID $ProcessId. Error: $($_.Exception.Message)"
     }
 }
 
@@ -216,29 +253,51 @@ function Ensure-Uvicorn {
 function New-WindowCommand {
     param(
         [string]$WorkDir,
-        [string]$CommandLine,
+        [string]$CommandExe,
+        [string[]]$CommandArgs,
         [string]$LogPath
     )
 
     $escapedWorkDir = $WorkDir.Replace("'", "''")
     $escapedLogPath = $LogPath.Replace("'", "''")
-    $flatCommand = ($CommandLine -replace "(\r|\n)+", " ").Trim()
+    $escapedExe = $CommandExe.Replace("'", "''")
+    $argsLiteral = (($CommandArgs | ForEach-Object { "'" + ($_.Replace("'", "''")) + "'" }) -join ", ")
     return @"
 `$ErrorActionPreference = 'Stop'
 if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
     `$PSNativeCommandUseErrorActionPreference = `$false
 }
-`$ErrorActionPreference = 'Continue'
 Set-Location -LiteralPath '$escapedWorkDir'
-Write-Host "Working directory: $WorkDir"
-`$cmd = @'
-$flatCommand
-'@
-Write-Host ("Command: {0}" -f `$cmd.Trim())
-Invoke-Expression `$cmd 2>&1 | Tee-Object -FilePath '$escapedLogPath' -Append
-if (`$LASTEXITCODE -ne 0) {
-    Write-Host "Process exited with code `$LASTEXITCODE." -ForegroundColor Red
-    exit `$LASTEXITCODE
+if (-not (Test-Path -LiteralPath '$escapedLogPath')) {
+    New-Item -ItemType File -Path '$escapedLogPath' -Force | Out-Null
+}
+`$runnerStamp = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss.fff')
+"`$runnerStamp [RUNNER] Started. WorkDir=$escapedWorkDir" | Out-File -FilePath '$escapedLogPath' -Append -Encoding UTF8
+`$exe = '$escapedExe'
+`$args = @($argsLiteral)
+Write-Host ("Executable: {0}" -f `$exe)
+Write-Host ("Arguments:  {0}" -f (`$args -join ' '))
+try {
+    & `$exe @args 2>&1 | Tee-Object -FilePath '$escapedLogPath' -Append
+    `$exitCode = `$LASTEXITCODE
+    if (`$null -eq `$exitCode) {
+        `$exitCode = 0
+    }
+    if (`$exitCode -ne 0) {
+        Write-Host "Process exited with code `$exitCode." -ForegroundColor Red
+        exit `$exitCode
+    }
+    exit 0
+}
+catch {
+    `$message = "Unhandled runner exception: $(`$_.Exception.Message)"
+    Write-Host `$message -ForegroundColor Red
+    `$stamp = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss.fff')
+    "`$stamp [RUNNER] `$message" | Out-File -FilePath '$escapedLogPath' -Append -Encoding UTF8
+    if (`$_.ScriptStackTrace) {
+        "`$stamp [RUNNER] StackTrace: $(`$_.ScriptStackTrace)" | Out-File -FilePath '$escapedLogPath' -Append -Encoding UTF8
+    }
+    exit 1
 }
 "@
 }
@@ -247,12 +306,13 @@ function Write-RunnerScript {
     param(
         [string]$Name,
         [string]$WorkDir,
-        [string]$CommandLine,
+        [string]$CommandExe,
+        [string[]]$CommandArgs,
         [string]$LogPath
     )
 
     $runnerPath = Join-Path $RunDir ("{0}-runner.ps1" -f $Name.ToLowerInvariant())
-    $runnerScript = New-WindowCommand -WorkDir $WorkDir -CommandLine $CommandLine -LogPath $LogPath
+    $runnerScript = New-WindowCommand -WorkDir $WorkDir -CommandExe $CommandExe -CommandArgs $CommandArgs -LogPath $LogPath
     Set-Content -Path $runnerPath -Value $runnerScript -Encoding UTF8
     return $runnerPath
 }
@@ -261,14 +321,20 @@ function Start-ServiceProcess {
     param(
         [string]$Name,
         [string]$WorkDir,
-        [string]$CommandLine,
+        [string]$CommandExe,
+        [string[]]$CommandArgs,
         [string]$LogPath
     )
 
-    $runnerPath = Write-RunnerScript -Name $Name -WorkDir $WorkDir -CommandLine $CommandLine -LogPath $LogPath
+    if (-not (Test-Path -LiteralPath $LogPath)) {
+        New-Item -ItemType File -Path $LogPath -Force | Out-Null
+    }
+    $runnerPath = Write-RunnerScript -Name $Name -WorkDir $WorkDir -CommandExe $CommandExe -CommandArgs $CommandArgs -LogPath $LogPath
     Write-Info "$Name runner script: $runnerPath"
     Write-Info "$Name working directory: $WorkDir"
-    Write-Info "$Name command: $CommandLine"
+    Write-Info "$Name executable: $CommandExe"
+    Write-Info "$Name args: $($CommandArgs -join ' ')"
+    Write-DebugBlock -Header "$Name runner script contents" -Content (Get-Content -Path $runnerPath -Raw)
     if ($Headless) {
         $proc = Start-Process -FilePath "powershell.exe" -ArgumentList @(
             "-NoProfile",
@@ -277,7 +343,6 @@ function Start-ServiceProcess {
         ) -PassThru -WindowStyle Hidden
     } else {
         $proc = Start-Process -FilePath "powershell.exe" -ArgumentList @(
-            "-NoExit",
             "-NoProfile",
             "-ExecutionPolicy", "Bypass",
             "-File", $runnerPath
@@ -297,6 +362,7 @@ function Start-ServiceProcess {
     }
 
     Write-Info "$Name host process started with PID $($proc.Id)."
+    Write-ProcessSnapshot -ProcessId $proc.Id -Label "$Name host process"
     return $proc
 }
 
@@ -361,8 +427,10 @@ if (Test-PortInUse -Port $BackendPort) {
     throw "Backend port $BackendPort is already in use."
 }
 
-$frontendCmd = "& '$pythonExe' -m http.server $FrontendPort"
-$backendCmd = "& '$pythonExe' -m uvicorn backend.src.api.main:app --host 0.0.0.0 --port $BackendPort --reload --reload-dir backend/src"
+$frontendExe = $pythonExe
+$frontendArgs = @("-m", "http.server", "$FrontendPort")
+$backendExe = $pythonExe
+$backendArgs = @("-m", "uvicorn", "backend.src.api.main:app", "--host", "0.0.0.0", "--port", "$BackendPort", "--reload", "--reload-dir", "backend/src")
 
 $frontendProcess = $null
 $backendProcess = $null
@@ -370,18 +438,25 @@ $backendProcess = $null
 try {
     Ensure-Uvicorn -PythonCommand $pythonExe
 
+    Set-Content -Path $FrontendLog -Encoding UTF8 -Value "==== Frontend log initialized $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff') ===="
+    Set-Content -Path $BackendLog -Encoding UTF8 -Value "==== Backend log initialized $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff') ===="
+
     Write-Info "Starting frontend on port $FrontendPort..."
-    $frontendProcess = Start-ServiceProcess -Name "Frontend" -WorkDir (Join-Path $ProjectRoot "frontend") -CommandLine $frontendCmd -LogPath $FrontendLog
+    $frontendProcess = Start-ServiceProcess -Name "Frontend" -WorkDir (Join-Path $ProjectRoot "frontend") -CommandExe $frontendExe -CommandArgs $frontendArgs -LogPath $FrontendLog
 
     if (-not (Wait-PortOpen -Port $FrontendPort -TimeoutSeconds 25)) {
         Write-PortDiagnostics -Port $FrontendPort -Label "Frontend startup failure"
         Write-Warn "Frontend log tail:`n$(Get-LogTail -Path $FrontendLog -LineCount 80)"
         throw "Frontend did not open port $FrontendPort. See $FrontendLog"
     }
+    if (-not (Wait-HttpOk -Url "http://localhost:$FrontendPort" -TimeoutSeconds 15)) {
+        Write-Warn "Frontend HTTP check failed; frontend log tail:`n$(Get-LogTail -Path $FrontendLog -LineCount 80)"
+        throw "Frontend HTTP endpoint did not respond in time. See $FrontendLog"
+    }
     Write-Ok "Frontend is listening on port $FrontendPort (host PID $($frontendProcess.Id))."
 
     Write-Info "Starting backend on port $BackendPort..."
-    $backendProcess = Start-ServiceProcess -Name "Backend" -WorkDir $ProjectRoot -CommandLine $backendCmd -LogPath $BackendLog
+    $backendProcess = Start-ServiceProcess -Name "Backend" -WorkDir $ProjectRoot -CommandExe $backendExe -CommandArgs $backendArgs -LogPath $BackendLog
 
     if (-not (Wait-PortOpen -Port $BackendPort -TimeoutSeconds 30)) {
         Write-PortDiagnostics -Port $BackendPort -Label "Backend startup failure"
