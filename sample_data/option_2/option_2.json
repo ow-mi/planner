@@ -1,0 +1,1009 @@
+{
+  "export_version": "1.0",
+  "exported_at": "2026-02-25T16:11:38.905Z",
+  "mode": "leg_end_dates",
+  "description": "Each leg has a target completion date. Legs can be scheduled in parallel if they don't exceed their deadlines.",
+  "weights": {
+    "makespanWeight": 1,
+    "priorityWeight": 0,
+    "legEndingWeight": 200000
+  },
+  "deadlines": {
+    "legStartDeadlines": {
+      "mwcu__2.1": "2027-W02.1",
+      "mwcu__2.2": "2027-W02.1",
+      "mwcu__3.1": "2027-W02.1",
+      "mwcu__3.2": "2027-W02.1",
+      "mwcu__4.1": "2026-W40.1",
+      "mwcu__4.2": "2027-W19.1",
+      "mwcu__5.1": "2026-W40.1",
+      "mwcu__5.2.1": "2027-W02.1",
+      "mwcu__5.2.2": "2027-W02.1",
+      "mwcu__6": "2026-W40.1",
+      "mwcu__7.1": "2027-W02.1",
+      "mwcu__7.2": "2027-W02.1"
+    },
+    "legEndDeadlines": {
+      "mwcu__2.2": "2028-W13.1",
+      "mwcu__3.1": "2028-W05.1",
+      "mwcu__4.1": "2027-W13.1",
+      "mwcu__4.2": "2027-W31.1",
+      "mwcu__5.1": "2027-W10.1",
+      "mwcu__5.2.1": "2027-W35.1",
+      "mwcu__5.2.2": "2027-W10.1",
+      "mwcu__6": "2027-W10.1"
+    }
+  },
+  "penaltySettings": {
+    "deadlinePenalty": 1000,
+    "compactnessPenalty": 500,
+    "parallelWithinDeadlines": 100
+  },
+  "proximityRules": [],
+  "sectionEnabled": {
+    "modeEnabled": true,
+    "deadlinesEnabled": true,
+    "penaltyEnabled": true,
+    "proximityEnabled": true,
+    "fteEnabled": true,
+    "equipmentEnabled": true,
+    "testEnabled": true
+  },
+  "fte": {
+    "resources": [
+      {
+        "id": "fte-1771844030249-giv5k8uv1",
+        "name": "1",
+        "calendar": {}
+      },
+      {
+        "id": "fte-1771844031194-iwk2kh1an",
+        "name": "2",
+        "calendar": {}
+      },
+      {
+        "id": "fte-1771844031689-5b9exk8c0",
+        "name": "3",
+        "calendar": {}
+      },
+      {
+        "id": "fte-1771844032184-ivtp7b4cs",
+        "name": "4",
+        "calendar": {}
+      },
+      {
+        "id": "fte-1771844032679-jz1c611rt",
+        "name": "5",
+        "calendar": {}
+      },
+      {
+        "id": "fte-1771844033129-gj2lhxa15",
+        "name": "6",
+        "calendar": {}
+      },
+      {
+        "id": "fte-1771844033579-b3oxgy2lg",
+        "name": "7",
+        "calendar": {}
+      },
+      {
+        "id": "fte-1771844034163-willjoivc",
+        "name": "8",
+        "calendar": {}
+      }
+    ],
+    "holidays": [
+      {
+        "startDate": "2026-12-21",
+        "endDate": "2027-01-04",
+        "name": "christmas",
+        "id": "fte-holiday-1772033534790-hbfq6e"
+      },
+      {
+        "startDate": "2027-12-20",
+        "endDate": "2028-01-03",
+        "name": "christmas_2",
+        "id": "fte-holiday-1772033534790-r4qk2s"
+      },
+      {
+        "id": "fte-holiday-1772033713586-nq6wok",
+        "startDate": "2027-08-08",
+        "endDate": "2027-08-28",
+        "name": "summer_2027"
+      }
+    ],
+    "aliases": {
+      "hengelo_team": [
+        "fte-1771844031194-iwk2kh1an",
+        "fte-1771844030249-giv5k8uv1",
+        "fte-1771844031689-5b9exk8c0",
+        "fte-1771844032184-ivtp7b4cs"
+      ],
+      "sofia_team": [
+        "fte-1771844032679-jz1c611rt",
+        "fte-1771844033129-gj2lhxa15",
+        "fte-1771844033579-b3oxgy2lg",
+        "fte-1771844034163-willjoivc"
+      ]
+    }
+  },
+  "equipment": {
+    "resources": [
+      {
+        "id": "equipment-1771844062290-dnygabr9q",
+        "name": "1",
+        "calendar": {}
+      },
+      {
+        "id": "equipment-1771844062514-d3pz8t1n8",
+        "name": "2",
+        "calendar": {}
+      },
+      {
+        "id": "equipment-1771844063100-r20sl0mni",
+        "name": "3",
+        "calendar": {}
+      },
+      {
+        "id": "equipment-1771844063460-b5pbyfevk",
+        "name": "4",
+        "calendar": {}
+      },
+      {
+        "id": "equipment-1771844064000-x8y0p68e1",
+        "name": "5",
+        "calendar": {}
+      },
+      {
+        "id": "equipment-1771844064495-ho8l50cp6",
+        "name": "6",
+        "calendar": {}
+      },
+      {
+        "id": "equipment-1771844064990-4vdimi02x",
+        "name": "7",
+        "calendar": {}
+      },
+      {
+        "id": "equipment-1771844065395-92rzt3qej",
+        "name": "8",
+        "calendar": {}
+      }
+    ],
+    "holidays": [],
+    "aliases": {
+      "hengelo_equp": [
+        "equipment-1771844062290-dnygabr9q",
+        "equipment-1771844062514-d3pz8t1n8",
+        "equipment-1771844063100-r20sl0mni",
+        "equipment-1771844063460-b5pbyfevk"
+      ],
+      "sofia_equip": [
+        "equipment-1771844064000-x8y0p68e1",
+        "equipment-1771844064495-ho8l50cp6",
+        "equipment-1771844064990-4vdimi02x",
+        "equipment-1771844065395-92rzt3qej"
+      ]
+    }
+  },
+  "testConfig": {
+    "defaults": {
+      "fteResources": [],
+      "equipmentResources": [],
+      "fteRequired": 1,
+      "equipmentRequired": 1,
+      "fteTimePercentage": 100,
+      "equipmentTimePercentage": 100,
+      "duration": 5,
+      "priority": 5,
+      "forceStartWeek": null
+    },
+    "projects": {},
+    "legTypes": {},
+    "legs": {
+      "mwcu__2.1": {
+        "fteResources": [
+          "sofia_team"
+        ],
+        "overrides": {
+          "fteResources": true,
+          "equipmentResources": true
+        },
+        "equipmentResources": [
+          "sofia_equip"
+        ]
+      },
+      "mwcu__2.2": {
+        "fteResources": [
+          "sofia_team"
+        ],
+        "overrides": {
+          "fteResources": true,
+          "equipmentResources": true
+        },
+        "equipmentResources": [
+          "sofia_equip"
+        ]
+      },
+      "mwcu__3.1": {
+        "fteResources": [
+          "hengelo_team"
+        ],
+        "overrides": {
+          "fteResources": true,
+          "equipmentResources": true
+        },
+        "equipmentResources": [
+          "hengelo_equp"
+        ]
+      },
+      "mwcu__3.2": {
+        "fteResources": [
+          "hengelo_team"
+        ],
+        "overrides": {
+          "fteResources": true,
+          "equipmentResources": true
+        },
+        "equipmentResources": [
+          "hengelo_equp"
+        ]
+      },
+      "mwcu__4.1": {
+        "fteResources": [
+          "hengelo_team"
+        ],
+        "overrides": {
+          "fteResources": true,
+          "equipmentResources": true
+        },
+        "equipmentResources": [
+          "hengelo_equp"
+        ]
+      },
+      "mwcu__4.2": {
+        "fteResources": [
+          "hengelo_team"
+        ],
+        "overrides": {
+          "fteResources": true,
+          "equipmentResources": true
+        },
+        "equipmentResources": [
+          "hengelo_equp"
+        ]
+      },
+      "mwcu__5.1": {
+        "fteResources": [
+          "hengelo_team"
+        ],
+        "overrides": {
+          "fteResources": true,
+          "equipmentResources": true
+        },
+        "equipmentResources": [
+          "hengelo_equp"
+        ]
+      },
+      "mwcu__5.2.1": {
+        "fteResources": [
+          "hengelo_team"
+        ],
+        "overrides": {
+          "fteResources": true,
+          "equipmentResources": true
+        },
+        "equipmentResources": [
+          "hengelo_equp"
+        ]
+      },
+      "mwcu__5.2.2": {
+        "fteResources": [
+          "hengelo_team"
+        ],
+        "overrides": {
+          "fteResources": true,
+          "equipmentResources": true
+        },
+        "equipmentResources": [
+          "hengelo_equp"
+        ]
+      },
+      "mwcu__6": {
+        "fteResources": [
+          "hengelo_team"
+        ],
+        "overrides": {
+          "fteResources": true,
+          "equipmentResources": true
+        },
+        "equipmentResources": [
+          "hengelo_equp"
+        ]
+      },
+      "mwcu__7.1": {
+        "fteResources": [
+          "sofia_team"
+        ],
+        "overrides": {
+          "fteResources": true,
+          "equipmentResources": true
+        },
+        "equipmentResources": [
+          "sofia_equip"
+        ]
+      },
+      "mwcu__7.2": {
+        "fteResources": [
+          "sofia_team"
+        ],
+        "overrides": {
+          "fteResources": true,
+          "equipmentResources": true
+        },
+        "equipmentResources": [
+          "sofia_equip"
+        ]
+      }
+    },
+    "testTypes": {
+      "L-03": {
+        "fteTimePercentage": 20,
+        "overrides": {
+          "fteTimePercentage": true,
+          "equipmentTimePercentage": true
+        },
+        "equipmentTimePercentage": 20
+      },
+      "L-02": {
+        "fteTimePercentage": 20,
+        "overrides": {
+          "fteTimePercentage": true,
+          "equipmentTimePercentage": true
+        },
+        "equipmentTimePercentage": 20
+      },
+      "VDA": {
+        "fteTimePercentage": 20,
+        "overrides": {
+          "fteTimePercentage": true,
+          "equipmentTimePercentage": true
+        },
+        "equipmentTimePercentage": 20
+      },
+      "Leak": {
+        "fteRequired": 1,
+        "overrides": {
+          "fteRequired": true,
+          "equipmentRequired": true
+        },
+        "equipmentRequired": 1
+      }
+    },
+    "tests": {}
+  },
+  "snapshot": {
+    "version": "1.0",
+    "saved_at": "2026-02-25T16:11:38.904Z",
+    "priority_config": {
+      "mode": "leg_end_dates",
+      "description": "Each leg has a target completion date. Legs can be scheduled in parallel if they don't exceed their deadlines.",
+      "weights": {
+        "makespanWeight": 1,
+        "priorityWeight": 0,
+        "legEndingWeight": 200000
+      },
+      "legDeadlines": {
+        "mwcu__2.2": "2028-W13.1",
+        "mwcu__3.1": "2028-W05.1",
+        "mwcu__4.1": "2027-W13.1",
+        "mwcu__4.2": "2027-W31.1",
+        "mwcu__5.1": "2027-W10.1",
+        "mwcu__5.2.1": "2027-W35.1",
+        "mwcu__5.2.2": "2027-W10.1",
+        "mwcu__6": "2027-W10.1"
+      },
+      "legEndDeadlines": {
+        "mwcu__2.2": "2028-W13.1",
+        "mwcu__3.1": "2028-W05.1",
+        "mwcu__4.1": "2027-W13.1",
+        "mwcu__4.2": "2027-W31.1",
+        "mwcu__5.1": "2027-W10.1",
+        "mwcu__5.2.1": "2027-W35.1",
+        "mwcu__5.2.2": "2027-W10.1",
+        "mwcu__6": "2027-W10.1"
+      },
+      "legStartDeadlines": {
+        "mwcu__2.1": "2027-W02.1",
+        "mwcu__2.2": "2027-W02.1",
+        "mwcu__3.1": "2027-W02.1",
+        "mwcu__3.2": "2027-W02.1",
+        "mwcu__4.1": "2026-W40.1",
+        "mwcu__4.2": "2027-W19.1",
+        "mwcu__5.1": "2026-W40.1",
+        "mwcu__5.2.1": "2027-W02.1",
+        "mwcu__5.2.2": "2027-W02.1",
+        "mwcu__6": "2026-W40.1",
+        "mwcu__7.1": "2027-W02.1",
+        "mwcu__7.2": "2027-W02.1"
+      },
+      "legDeadlinePenalties": {
+        "mwcu__2.1": 0,
+        "mwcu__2.2": 2,
+        "mwcu__3.1": 1,
+        "mwcu__3.2": 0,
+        "mwcu__4.1": 1,
+        "mwcu__4.2": 1,
+        "mwcu__5.1": 1,
+        "mwcu__5.2.1": 1,
+        "mwcu__5.2.2": 1,
+        "mwcu__6": 1,
+        "mwcu__7.1": 0,
+        "mwcu__7.2": 0
+      },
+      "legCompactnessPenalties": {
+        "mwcu__2.1": 0.1,
+        "mwcu__2.2": 0.1,
+        "mwcu__3.1": 0.1,
+        "mwcu__3.2": 0.1,
+        "mwcu__4.1": 0.1,
+        "mwcu__4.2": 0.1,
+        "mwcu__5.1": 0.1,
+        "mwcu__5.2.1": 0.1,
+        "mwcu__5.2.2": 0.1,
+        "mwcu__6": 0.1,
+        "mwcu__7.1": 0.1,
+        "mwcu__7.2": 0.1
+      },
+      "deadlinePenaltyPerDay": 1000,
+      "legCompactnessPenaltyPerDay": 500,
+      "allowParallelWithinDeadlines": 100
+    },
+    "config": {
+      "mode": "leg_end_dates",
+      "description": "Each leg has a target completion date. Legs can be scheduled in parallel if they don't exceed their deadlines.",
+      "weights": {
+        "makespanWeight": 1,
+        "priorityWeight": 0,
+        "legEndingWeight": 200000
+      },
+      "deadlines": [
+        {
+          "project": "mwcu",
+          "legId": "2.1",
+          "branch": "",
+          "startDeadline": "2027-W02.1",
+          "endDeadline": "",
+          "startEnabled": true,
+          "endEnabled": false,
+          "deadlinePenalty": 0,
+          "compactness": 0.1,
+          "_uiId": "leg-1772033536048-0-ez5jdnr2m",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "2.2",
+          "branch": "",
+          "startDeadline": "2027-W02.1",
+          "endDeadline": "2028-W13.1",
+          "startEnabled": true,
+          "endEnabled": true,
+          "deadlinePenalty": 2,
+          "compactness": 0.1,
+          "_uiId": "leg-1772033536048-1-rsmt54bcc",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "3.1",
+          "branch": "",
+          "startDeadline": "2027-W02.1",
+          "endDeadline": "2028-W05.1",
+          "startEnabled": true,
+          "endEnabled": true,
+          "deadlinePenalty": 1,
+          "compactness": 0.1,
+          "_uiId": "leg-1772033536048-2-xkxrchof6",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "3.2",
+          "branch": "",
+          "startDeadline": "2027-W02.1",
+          "endDeadline": "",
+          "startEnabled": true,
+          "endEnabled": false,
+          "deadlinePenalty": 0,
+          "compactness": 0.1,
+          "_uiId": "leg-1772033536048-3-lm68r8uey",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "4.1",
+          "branch": "",
+          "startDeadline": "2026-W40.1",
+          "endDeadline": "2027-W13.1",
+          "startEnabled": true,
+          "endEnabled": true,
+          "deadlinePenalty": 1,
+          "compactness": 0.1,
+          "_uiId": "leg-1772033536049-4-p9jk22o68",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "4.2",
+          "branch": "",
+          "startDeadline": "2027-W19.1",
+          "endDeadline": "2027-W31.1",
+          "startEnabled": true,
+          "endEnabled": true,
+          "deadlinePenalty": 1,
+          "compactness": 0.1,
+          "_uiId": "leg-1772033536049-5-7t9xwsdo0",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "5.1",
+          "branch": "",
+          "startDeadline": "2026-W40.1",
+          "endDeadline": "2027-W10.1",
+          "startEnabled": true,
+          "endEnabled": true,
+          "deadlinePenalty": 1,
+          "compactness": 0.1,
+          "_uiId": "leg-1772033536049-6-8a77liwpq",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "5.2.1",
+          "branch": "",
+          "startDeadline": "2027-W02.1",
+          "endDeadline": "2027-W35.1",
+          "startEnabled": true,
+          "endEnabled": true,
+          "deadlinePenalty": 1,
+          "compactness": 0.1,
+          "_uiId": "leg-1772033536049-7-pfki30hun",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "5.2.2",
+          "branch": "",
+          "startDeadline": "2027-W02.1",
+          "endDeadline": "2027-W10.1",
+          "startEnabled": true,
+          "endEnabled": true,
+          "deadlinePenalty": 1,
+          "compactness": 0.1,
+          "_uiId": "leg-1772033536049-8-x5urohnl2",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "6",
+          "branch": "",
+          "startDeadline": "2026-W40.1",
+          "endDeadline": "2027-W10.1",
+          "startEnabled": true,
+          "endEnabled": true,
+          "deadlinePenalty": 1,
+          "compactness": 0.1,
+          "_uiId": "leg-1772033536049-9-byfj27129",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "7.1",
+          "branch": "",
+          "startDeadline": "2027-W02.1",
+          "endDeadline": "",
+          "startEnabled": true,
+          "endEnabled": false,
+          "deadlinePenalty": 0,
+          "compactness": 0.1,
+          "_uiId": "leg-1772033536049-10-d3ospxk8u",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "7.2",
+          "branch": "",
+          "startDeadline": "2027-W02.1",
+          "endDeadline": "",
+          "startEnabled": true,
+          "endEnabled": false,
+          "deadlinePenalty": 0,
+          "compactness": 0.1,
+          "_uiId": "leg-1772033536049-11-cahd0k0x7",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        }
+      ],
+      "penaltySettings": {
+        "deadlinePenalty": 1000,
+        "compactnessPenalty": 500,
+        "parallelWithinDeadlines": 100
+      },
+      "proximityRules": []
+    },
+    "section_enabled": {
+      "modeEnabled": true,
+      "deadlinesEnabled": true,
+      "penaltyEnabled": true,
+      "proximityEnabled": true,
+      "fteEnabled": true,
+      "equipmentEnabled": true,
+      "testEnabled": true
+    },
+    "section_states": {
+      "basic": true,
+      "weights": true,
+      "deadlines": true,
+      "penalties": true,
+      "proximity": true
+    },
+    "fte": {
+      "resources": [
+        {
+          "id": "fte-1771844030249-giv5k8uv1",
+          "name": "1",
+          "calendar": {}
+        },
+        {
+          "id": "fte-1771844031194-iwk2kh1an",
+          "name": "2",
+          "calendar": {}
+        },
+        {
+          "id": "fte-1771844031689-5b9exk8c0",
+          "name": "3",
+          "calendar": {}
+        },
+        {
+          "id": "fte-1771844032184-ivtp7b4cs",
+          "name": "4",
+          "calendar": {}
+        },
+        {
+          "id": "fte-1771844032679-jz1c611rt",
+          "name": "5",
+          "calendar": {}
+        },
+        {
+          "id": "fte-1771844033129-gj2lhxa15",
+          "name": "6",
+          "calendar": {}
+        },
+        {
+          "id": "fte-1771844033579-b3oxgy2lg",
+          "name": "7",
+          "calendar": {}
+        },
+        {
+          "id": "fte-1771844034163-willjoivc",
+          "name": "8",
+          "calendar": {}
+        }
+      ],
+      "holidays": [
+        {
+          "startDate": "2026-12-21",
+          "endDate": "2027-01-04",
+          "name": "christmas",
+          "id": "fte-holiday-1772033534790-hbfq6e"
+        },
+        {
+          "startDate": "2027-12-20",
+          "endDate": "2028-01-03",
+          "name": "christmas_2",
+          "id": "fte-holiday-1772033534790-r4qk2s"
+        },
+        {
+          "id": "fte-holiday-1772033713586-nq6wok",
+          "startDate": "2027-08-08",
+          "endDate": "2027-08-28",
+          "name": "summer_2027"
+        }
+      ],
+      "aliases": {
+        "hengelo_team": [
+          "fte-1771844031194-iwk2kh1an",
+          "fte-1771844030249-giv5k8uv1",
+          "fte-1771844031689-5b9exk8c0",
+          "fte-1771844032184-ivtp7b4cs"
+        ],
+        "sofia_team": [
+          "fte-1771844032679-jz1c611rt",
+          "fte-1771844033129-gj2lhxa15",
+          "fte-1771844033579-b3oxgy2lg",
+          "fte-1771844034163-willjoivc"
+        ]
+      }
+    },
+    "equipment": {
+      "resources": [
+        {
+          "id": "equipment-1771844062290-dnygabr9q",
+          "name": "1",
+          "calendar": {}
+        },
+        {
+          "id": "equipment-1771844062514-d3pz8t1n8",
+          "name": "2",
+          "calendar": {}
+        },
+        {
+          "id": "equipment-1771844063100-r20sl0mni",
+          "name": "3",
+          "calendar": {}
+        },
+        {
+          "id": "equipment-1771844063460-b5pbyfevk",
+          "name": "4",
+          "calendar": {}
+        },
+        {
+          "id": "equipment-1771844064000-x8y0p68e1",
+          "name": "5",
+          "calendar": {}
+        },
+        {
+          "id": "equipment-1771844064495-ho8l50cp6",
+          "name": "6",
+          "calendar": {}
+        },
+        {
+          "id": "equipment-1771844064990-4vdimi02x",
+          "name": "7",
+          "calendar": {}
+        },
+        {
+          "id": "equipment-1771844065395-92rzt3qej",
+          "name": "8",
+          "calendar": {}
+        }
+      ],
+      "holidays": [],
+      "aliases": {
+        "hengelo_equp": [
+          "equipment-1771844062290-dnygabr9q",
+          "equipment-1771844062514-d3pz8t1n8",
+          "equipment-1771844063100-r20sl0mni",
+          "equipment-1771844063460-b5pbyfevk"
+        ],
+        "sofia_equip": [
+          "equipment-1771844064000-x8y0p68e1",
+          "equipment-1771844064495-ho8l50cp6",
+          "equipment-1771844064990-4vdimi02x",
+          "equipment-1771844065395-92rzt3qej"
+        ]
+      }
+    },
+    "test_config": {
+      "defaults": {
+        "fteResources": [],
+        "equipmentResources": [],
+        "fteRequired": 1,
+        "equipmentRequired": 1,
+        "fteTimePercentage": 100,
+        "equipmentTimePercentage": 100,
+        "duration": 5,
+        "priority": 5,
+        "forceStartWeek": null
+      },
+      "projects": {},
+      "legTypes": {},
+      "legs": {
+        "mwcu__2.1": {
+          "fteResources": [
+            "sofia_team"
+          ],
+          "overrides": {
+            "fteResources": true,
+            "equipmentResources": true
+          },
+          "equipmentResources": [
+            "sofia_equip"
+          ]
+        },
+        "mwcu__2.2": {
+          "fteResources": [
+            "sofia_team"
+          ],
+          "overrides": {
+            "fteResources": true,
+            "equipmentResources": true
+          },
+          "equipmentResources": [
+            "sofia_equip"
+          ]
+        },
+        "mwcu__3.1": {
+          "fteResources": [
+            "hengelo_team"
+          ],
+          "overrides": {
+            "fteResources": true,
+            "equipmentResources": true
+          },
+          "equipmentResources": [
+            "hengelo_equp"
+          ]
+        },
+        "mwcu__3.2": {
+          "fteResources": [
+            "hengelo_team"
+          ],
+          "overrides": {
+            "fteResources": true,
+            "equipmentResources": true
+          },
+          "equipmentResources": [
+            "hengelo_equp"
+          ]
+        },
+        "mwcu__4.1": {
+          "fteResources": [
+            "hengelo_team"
+          ],
+          "overrides": {
+            "fteResources": true,
+            "equipmentResources": true
+          },
+          "equipmentResources": [
+            "hengelo_equp"
+          ]
+        },
+        "mwcu__4.2": {
+          "fteResources": [
+            "hengelo_team"
+          ],
+          "overrides": {
+            "fteResources": true,
+            "equipmentResources": true
+          },
+          "equipmentResources": [
+            "hengelo_equp"
+          ]
+        },
+        "mwcu__5.1": {
+          "fteResources": [
+            "hengelo_team"
+          ],
+          "overrides": {
+            "fteResources": true,
+            "equipmentResources": true
+          },
+          "equipmentResources": [
+            "hengelo_equp"
+          ]
+        },
+        "mwcu__5.2.1": {
+          "fteResources": [
+            "hengelo_team"
+          ],
+          "overrides": {
+            "fteResources": true,
+            "equipmentResources": true
+          },
+          "equipmentResources": [
+            "hengelo_equp"
+          ]
+        },
+        "mwcu__5.2.2": {
+          "fteResources": [
+            "hengelo_team"
+          ],
+          "overrides": {
+            "fteResources": true,
+            "equipmentResources": true
+          },
+          "equipmentResources": [
+            "hengelo_equp"
+          ]
+        },
+        "mwcu__6": {
+          "fteResources": [
+            "hengelo_team"
+          ],
+          "overrides": {
+            "fteResources": true,
+            "equipmentResources": true
+          },
+          "equipmentResources": [
+            "hengelo_equp"
+          ]
+        },
+        "mwcu__7.1": {
+          "fteResources": [
+            "sofia_team"
+          ],
+          "overrides": {
+            "fteResources": true,
+            "equipmentResources": true
+          },
+          "equipmentResources": [
+            "sofia_equip"
+          ]
+        },
+        "mwcu__7.2": {
+          "fteResources": [
+            "sofia_team"
+          ],
+          "overrides": {
+            "fteResources": true,
+            "equipmentResources": true
+          },
+          "equipmentResources": [
+            "sofia_equip"
+          ]
+        }
+      },
+      "testTypes": {
+        "L-03": {
+          "fteTimePercentage": 20,
+          "overrides": {
+            "fteTimePercentage": true,
+            "equipmentTimePercentage": true
+          },
+          "equipmentTimePercentage": 20
+        },
+        "L-02": {
+          "fteTimePercentage": 20,
+          "overrides": {
+            "fteTimePercentage": true,
+            "equipmentTimePercentage": true
+          },
+          "equipmentTimePercentage": 20
+        },
+        "VDA": {
+          "fteTimePercentage": 20,
+          "overrides": {
+            "fteTimePercentage": true,
+            "equipmentTimePercentage": true
+          },
+          "equipmentTimePercentage": 20
+        },
+        "Leak": {
+          "fteRequired": 1,
+          "overrides": {
+            "fteRequired": true,
+            "equipmentRequired": true
+          },
+          "equipmentRequired": 1
+        }
+      },
+      "tests": {}
+    }
+  }
+}

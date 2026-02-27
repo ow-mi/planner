@@ -1,0 +1,375 @@
+{
+  "export_version": "1.0",
+  "exported_at": "2026-02-24T11:45:55.564Z",
+  "mode": "leg_end_dates",
+  "description": "Each leg has a target completion date. Legs can be scheduled in parallel if they don't exceed their deadlines.",
+  "weights": {
+    "makespanWeight": 0.2,
+    "priorityWeight": 0.8
+  },
+  "deadlines": {
+    "legStartDeadlines": {
+      "mwcu__2.1": "2026-W09.2",
+      "mwcu__2.2": "2026-W09.2",
+      "mwcu__3.1": "2026-W09.2",
+      "mwcu__3.2": "2026-W09.2",
+      "mwcu__4.1": "2026-W09.2",
+      "mwcu__4.2": "2026-W09.2",
+      "mwcu__5.1": "2026-W09.2",
+      "mwcu__5.2.1": "2026-W09.2",
+      "mwcu__5.2.2": "2026-W09.2",
+      "mwcu__6": "2026-W09.2",
+      "mwcu__7.1": "2026-W09.2",
+      "mwcu__7.2": "2026-W09.2"
+    },
+    "legEndDeadlines": {
+      "mwcu__2.1": "2026-W09.2"
+    }
+  },
+  "penaltySettings": {
+    "deadlinePenalty": 1000,
+    "compactnessPenalty": 500,
+    "parallelWithinDeadlines": 100
+  },
+  "proximityRules": [],
+  "sectionEnabled": {
+    "modeEnabled": true,
+    "deadlinesEnabled": true,
+    "penaltyEnabled": true,
+    "proximityEnabled": true,
+    "fteEnabled": true,
+    "equipmentEnabled": true,
+    "testEnabled": true
+  },
+  "fte": {
+    "resources": [],
+    "holidays": [],
+    "aliases": {}
+  },
+  "equipment": {
+    "resources": [],
+    "holidays": [],
+    "aliases": {}
+  },
+  "testConfig": {
+    "defaults": {
+      "fteResources": [],
+      "equipmentResources": [],
+      "fteRequired": 1,
+      "equipmentRequired": 1,
+      "fteTimePercentage": 100,
+      "equipmentTimePercentage": 100,
+      "duration": 5,
+      "priority": 5,
+      "forceStartWeek": null
+    },
+    "projects": {},
+    "legTypes": {},
+    "legs": {},
+    "testTypes": {},
+    "tests": {}
+  },
+  "snapshot": {
+    "version": "1.0",
+    "saved_at": "2026-02-24T11:45:55.563Z",
+    "priority_config": {
+      "mode": "leg_end_dates",
+      "description": "Each leg has a target completion date. Legs can be scheduled in parallel if they don't exceed their deadlines.",
+      "weights": {
+        "makespanWeight": 0.2,
+        "priorityWeight": 0.8
+      },
+      "legDeadlines": {
+        "mwcu__2.1": "2026-W09.2"
+      },
+      "legEndDeadlines": {
+        "mwcu__2.1": "2026-W09.2"
+      },
+      "legStartDeadlines": {
+        "mwcu__2.1": "2026-W09.2",
+        "mwcu__2.2": "2026-W09.2",
+        "mwcu__3.1": "2026-W09.2",
+        "mwcu__3.2": "2026-W09.2",
+        "mwcu__4.1": "2026-W09.2",
+        "mwcu__4.2": "2026-W09.2",
+        "mwcu__5.1": "2026-W09.2",
+        "mwcu__5.2.1": "2026-W09.2",
+        "mwcu__5.2.2": "2026-W09.2",
+        "mwcu__6": "2026-W09.2",
+        "mwcu__7.1": "2026-W09.2",
+        "mwcu__7.2": "2026-W09.2"
+      },
+      "legDeadlinePenalties": {
+        "mwcu__2.1": 1,
+        "mwcu__2.2": 0,
+        "mwcu__3.1": 0,
+        "mwcu__3.2": 0,
+        "mwcu__4.1": 0,
+        "mwcu__4.2": 0,
+        "mwcu__5.1": 0,
+        "mwcu__5.2.1": 0,
+        "mwcu__5.2.2": 0,
+        "mwcu__6": 0,
+        "mwcu__7.1": 0,
+        "mwcu__7.2": 0
+      },
+      "legCompactnessPenalties": {
+        "mwcu__2.1": 1,
+        "mwcu__2.2": 0,
+        "mwcu__3.1": 0,
+        "mwcu__3.2": 0,
+        "mwcu__4.1": 0,
+        "mwcu__4.2": 0,
+        "mwcu__5.1": 0,
+        "mwcu__5.2.1": 0,
+        "mwcu__5.2.2": 0,
+        "mwcu__6": 0,
+        "mwcu__7.1": 0,
+        "mwcu__7.2": 0
+      },
+      "deadlinePenaltyPerDay": 1000,
+      "legCompactnessPenaltyPerDay": 500,
+      "allowParallelWithinDeadlines": 100
+    },
+    "config": {
+      "mode": "leg_end_dates",
+      "description": "Each leg has a target completion date. Legs can be scheduled in parallel if they don't exceed their deadlines.",
+      "weights": {
+        "makespanWeight": 0.2,
+        "priorityWeight": 0.8
+      },
+      "deadlines": [
+        {
+          "project": "mwcu",
+          "legId": "2.1",
+          "branch": "",
+          "startDeadline": "2026-W09.2",
+          "endDeadline": "2026-W09.2",
+          "deadlinePenalty": 1,
+          "compactness": 1,
+          "startEnabled": true,
+          "endEnabled": true,
+          "_uiId": "leg-1771933544311-0-o0f2uj8hl",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "2.2",
+          "branch": "",
+          "startDeadline": "2026-W09.2",
+          "endDeadline": "",
+          "deadlinePenalty": 0,
+          "compactness": 0,
+          "startEnabled": true,
+          "endEnabled": false,
+          "_uiId": "leg-1771933544311-1-q7jp4jc2s",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "3.1",
+          "branch": "",
+          "startDeadline": "2026-W09.2",
+          "endDeadline": "",
+          "deadlinePenalty": 0,
+          "compactness": 0,
+          "startEnabled": true,
+          "endEnabled": false,
+          "_uiId": "leg-1771933544311-2-k2ufzpcjf",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "3.2",
+          "branch": "",
+          "startDeadline": "2026-W09.2",
+          "endDeadline": "",
+          "deadlinePenalty": 0,
+          "compactness": 0,
+          "startEnabled": true,
+          "endEnabled": false,
+          "_uiId": "leg-1771933544311-3-4h26mfjj1",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "4.1",
+          "branch": "",
+          "startDeadline": "2026-W09.2",
+          "endDeadline": "",
+          "deadlinePenalty": 0,
+          "compactness": 0,
+          "startEnabled": true,
+          "endEnabled": false,
+          "_uiId": "leg-1771933544311-4-mgtsgj4fg",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "4.2",
+          "branch": "",
+          "startDeadline": "2026-W09.2",
+          "endDeadline": "",
+          "deadlinePenalty": 0,
+          "compactness": 0,
+          "startEnabled": true,
+          "endEnabled": false,
+          "_uiId": "leg-1771933544311-5-ihpzmlajk",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "5.1",
+          "branch": "",
+          "startDeadline": "2026-W09.2",
+          "endDeadline": "",
+          "deadlinePenalty": 0,
+          "compactness": 0,
+          "startEnabled": true,
+          "endEnabled": false,
+          "_uiId": "leg-1771933544311-6-0iwzxls7d",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "5.2.1",
+          "branch": "",
+          "startDeadline": "2026-W09.2",
+          "endDeadline": "",
+          "deadlinePenalty": 0,
+          "compactness": 0,
+          "startEnabled": true,
+          "endEnabled": false,
+          "_uiId": "leg-1771933544311-7-vtgxbphx7",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "5.2.2",
+          "branch": "",
+          "startDeadline": "2026-W09.2",
+          "endDeadline": "",
+          "deadlinePenalty": 0,
+          "compactness": 0,
+          "startEnabled": true,
+          "endEnabled": false,
+          "_uiId": "leg-1771933544311-8-777iaefi1",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "6",
+          "branch": "",
+          "startDeadline": "2026-W09.2",
+          "endDeadline": "",
+          "deadlinePenalty": 0,
+          "compactness": 0,
+          "startEnabled": true,
+          "endEnabled": false,
+          "_uiId": "leg-1771933544311-9-5blz0h6p6",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "7.1",
+          "branch": "",
+          "startDeadline": "2026-W09.2",
+          "endDeadline": "",
+          "deadlinePenalty": 0,
+          "compactness": 0,
+          "startEnabled": true,
+          "endEnabled": false,
+          "_uiId": "leg-1771933544311-10-xjcs3k6ya",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        },
+        {
+          "project": "mwcu",
+          "legId": "7.2",
+          "branch": "",
+          "startDeadline": "2026-W09.2",
+          "endDeadline": "",
+          "deadlinePenalty": 0,
+          "compactness": 0,
+          "startEnabled": true,
+          "endEnabled": false,
+          "_uiId": "leg-1771933544312-11-06wz56rtj",
+          "isEditing": false,
+          "startDeadlineError": "",
+          "endDeadlineError": ""
+        }
+      ],
+      "penaltySettings": {
+        "deadlinePenalty": 1000,
+        "compactnessPenalty": 500,
+        "parallelWithinDeadlines": 100
+      },
+      "proximityRules": []
+    },
+    "section_enabled": {
+      "modeEnabled": true,
+      "deadlinesEnabled": true,
+      "penaltyEnabled": true,
+      "proximityEnabled": true,
+      "fteEnabled": true,
+      "equipmentEnabled": true,
+      "testEnabled": true
+    },
+    "section_states": {
+      "basic": true,
+      "weights": true,
+      "deadlines": true,
+      "penalties": true,
+      "proximity": true
+    },
+    "fte": {
+      "resources": [],
+      "holidays": [],
+      "aliases": {}
+    },
+    "equipment": {
+      "resources": [],
+      "holidays": [],
+      "aliases": {}
+    },
+    "test_config": {
+      "defaults": {
+        "fteResources": [],
+        "equipmentResources": [],
+        "fteRequired": 1,
+        "equipmentRequired": 1,
+        "fteTimePercentage": 100,
+        "equipmentTimePercentage": 100,
+        "duration": 5,
+        "priority": 5,
+        "forceStartWeek": null
+      },
+      "projects": {},
+      "legTypes": {},
+      "legs": {},
+      "testTypes": {},
+      "tests": {}
+    }
+  }
+}
