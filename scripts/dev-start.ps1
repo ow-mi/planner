@@ -90,8 +90,8 @@ function Write-PortDiagnostics {
     )
 
     try {
-        $matches = netstat -ano | Select-String -Pattern "[:\.]$Port\s" | ForEach-Object { $_.Line.Trim() }
-        if ($null -eq $matches -or $matches.Count -eq 0) {
+        $matches = @(netstat -ano | Select-String -Pattern "[:\.]$Port\s" | ForEach-Object { $_.Line.Trim() })
+        if ($matches.Count -eq 0) {
             Write-Warn "${Label}: no netstat entries found for port $Port."
             return
         }
@@ -99,6 +99,16 @@ function Write-PortDiagnostics {
         Write-Warn "${Label}: netstat entries for port ${Port}:"
         foreach ($entry in $matches) {
             Write-Warn "  $entry"
+            if ($entry -match "\s(?<pid>\d+)\s*$") {
+                $pid = [int]$Matches["pid"]
+                try {
+                    $proc = Get-Process -Id $pid -ErrorAction Stop
+                    Write-Warn "    PID $pid -> $($proc.ProcessName)"
+                }
+                catch {
+                    Write-Warn "    PID $pid -> process lookup failed: $($_.Exception.Message)"
+                }
+            }
         }
     }
     catch {
@@ -181,6 +191,31 @@ function Test-PortInUse([int]$Port) {
         }
     }
     return $false
+}
+
+function Find-AvailablePort {
+    param(
+        [int]$PreferredPort,
+        [int]$MaxAttempts = 200,
+        [string]$Label = "Service"
+    )
+
+    $candidate = $PreferredPort
+    for ($i = 0; $i -lt $MaxAttempts; $i++) {
+        if (-not (Test-PortInUse -Port $candidate)) {
+            if ($candidate -ne $PreferredPort) {
+                Write-Warn "$Label requested port $PreferredPort is unavailable; using fallback port $candidate."
+            }
+            return $candidate
+        }
+
+        if ($i -eq 0) {
+            Write-PortDiagnostics -Port $PreferredPort -Label "$Label port pre-check"
+        }
+        $candidate++
+    }
+
+    throw "$Label could not find a free port starting at $PreferredPort within $MaxAttempts attempts."
 }
 
 function Wait-PortOpen {
@@ -418,19 +453,19 @@ if (-not (Test-UvicornAvailable -PythonCommand $pythonExe)) {
 }
 Write-Info "Python command: $pythonExe"
 
-if (Test-PortInUse -Port $FrontendPort) {
-    Write-PortDiagnostics -Port $FrontendPort -Label "Frontend port pre-check"
-    throw "Frontend port $FrontendPort is already in use."
-}
-if (Test-PortInUse -Port $BackendPort) {
-    Write-PortDiagnostics -Port $BackendPort -Label "Backend port pre-check"
-    throw "Backend port $BackendPort is already in use."
+$resolvedFrontendPort = Find-AvailablePort -PreferredPort $FrontendPort -Label "Frontend"
+$resolvedBackendPort = Find-AvailablePort -PreferredPort $BackendPort -Label "Backend"
+if ($resolvedBackendPort -eq $resolvedFrontendPort) {
+    $resolvedBackendPort = Find-AvailablePort -PreferredPort ($resolvedBackendPort + 1) -Label "Backend"
 }
 
+Write-Info "Frontend requested port: $FrontendPort; selected port: $resolvedFrontendPort"
+Write-Info "Backend requested port: $BackendPort; selected port: $resolvedBackendPort"
+
 $frontendExe = $pythonExe
-$frontendArgs = @("-m", "http.server", "$FrontendPort")
+$frontendArgs = @("-m", "http.server", "$resolvedFrontendPort")
 $backendExe = $pythonExe
-$backendArgs = @("-m", "uvicorn", "backend.src.api.main:app", "--host", "0.0.0.0", "--port", "$BackendPort", "--reload", "--reload-dir", "backend/src")
+$backendArgs = @("-m", "uvicorn", "backend.src.api.main:app", "--host", "0.0.0.0", "--port", "$resolvedBackendPort", "--reload", "--reload-dir", "backend/src")
 
 $frontendProcess = $null
 $backendProcess = $null
@@ -441,38 +476,38 @@ try {
     Set-Content -Path $FrontendLog -Encoding UTF8 -Value "==== Frontend log initialized $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff') ===="
     Set-Content -Path $BackendLog -Encoding UTF8 -Value "==== Backend log initialized $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff') ===="
 
-    Write-Info "Starting frontend on port $FrontendPort..."
+    Write-Info "Starting frontend on port $resolvedFrontendPort..."
     $frontendProcess = Start-ServiceProcess -Name "Frontend" -WorkDir (Join-Path $ProjectRoot "frontend") -CommandExe $frontendExe -CommandArgs $frontendArgs -LogPath $FrontendLog
 
-    if (-not (Wait-PortOpen -Port $FrontendPort -TimeoutSeconds 25)) {
-        Write-PortDiagnostics -Port $FrontendPort -Label "Frontend startup failure"
+    if (-not (Wait-PortOpen -Port $resolvedFrontendPort -TimeoutSeconds 25)) {
+        Write-PortDiagnostics -Port $resolvedFrontendPort -Label "Frontend startup failure"
         Write-Warn "Frontend log tail:`n$(Get-LogTail -Path $FrontendLog -LineCount 80)"
-        throw "Frontend did not open port $FrontendPort. See $FrontendLog"
+        throw "Frontend did not open port $resolvedFrontendPort. See $FrontendLog"
     }
-    if (-not (Wait-HttpOk -Url "http://localhost:$FrontendPort" -TimeoutSeconds 15)) {
+    if (-not (Wait-HttpOk -Url "http://localhost:$resolvedFrontendPort" -TimeoutSeconds 15)) {
         Write-Warn "Frontend HTTP check failed; frontend log tail:`n$(Get-LogTail -Path $FrontendLog -LineCount 80)"
         throw "Frontend HTTP endpoint did not respond in time. See $FrontendLog"
     }
-    Write-Ok "Frontend is listening on port $FrontendPort (host PID $($frontendProcess.Id))."
+    Write-Ok "Frontend is listening on port $resolvedFrontendPort (host PID $($frontendProcess.Id))."
 
-    Write-Info "Starting backend on port $BackendPort..."
+    Write-Info "Starting backend on port $resolvedBackendPort..."
     $backendProcess = Start-ServiceProcess -Name "Backend" -WorkDir $ProjectRoot -CommandExe $backendExe -CommandArgs $backendArgs -LogPath $BackendLog
 
-    if (-not (Wait-PortOpen -Port $BackendPort -TimeoutSeconds 30)) {
-        Write-PortDiagnostics -Port $BackendPort -Label "Backend startup failure"
+    if (-not (Wait-PortOpen -Port $resolvedBackendPort -TimeoutSeconds 30)) {
+        Write-PortDiagnostics -Port $resolvedBackendPort -Label "Backend startup failure"
         Write-Warn "Backend log tail:`n$(Get-LogTail -Path $BackendLog -LineCount 80)"
-        throw "Backend did not open port $BackendPort. See $BackendLog"
+        throw "Backend did not open port $resolvedBackendPort. See $BackendLog"
     }
-    if (-not (Wait-HttpOk -Url "http://localhost:$BackendPort/api/health" -TimeoutSeconds 30)) {
+    if (-not (Wait-HttpOk -Url "http://localhost:$resolvedBackendPort/api/health" -TimeoutSeconds 30)) {
         Write-Warn "Backend health check failed; backend log tail:`n$(Get-LogTail -Path $BackendLog -LineCount 80)"
         throw "Backend health endpoint did not respond in time. See $BackendLog"
     }
-    Write-Ok "Backend is healthy on port $BackendPort (host PID $($backendProcess.Id))."
+    Write-Ok "Backend is healthy on port $resolvedBackendPort (host PID $($backendProcess.Id))."
 
     $state = [ordered]@{
         started_at        = (Get-Date).ToString("s")
-        frontend_port     = $FrontendPort
-        backend_port      = $BackendPort
+        frontend_port     = $resolvedFrontendPort
+        backend_port      = $resolvedBackendPort
         frontend_host_pid = $frontendProcess.Id
         backend_host_pid  = $backendProcess.Id
         frontend_log      = $FrontendLog
@@ -484,10 +519,10 @@ try {
 
     Write-Host ""
     Write-Ok "All services started."
-    Write-Host "Frontend:    http://localhost:$FrontendPort"
-    Write-Host "Backend API: http://localhost:$BackendPort"
-    Write-Host "API Docs:    http://localhost:$BackendPort/docs"
-    Write-Host "Health:      http://localhost:$BackendPort/api/health"
+    Write-Host "Frontend:    http://localhost:$resolvedFrontendPort"
+    Write-Host "Backend API: http://localhost:$resolvedBackendPort"
+    Write-Host "API Docs:    http://localhost:$resolvedBackendPort/docs"
+    Write-Host "Health:      http://localhost:$resolvedBackendPort/api/health"
     Write-Host ""
     Write-Host "Logs:"
     Write-Host "  Frontend: $FrontendLog"
