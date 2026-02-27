@@ -351,6 +351,56 @@ function deepClone(value) {
     return JSON.parse(JSON.stringify(value));
 }
 
+function createClientId(prefix = 'id') {
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizeHolidayEntries(holidays, idPrefix) {
+    if (!Array.isArray(holidays)) {
+        return [];
+    }
+
+    return holidays
+        .map((holiday) => {
+            if (!holiday || typeof holiday !== 'object') {
+                return null;
+            }
+
+            const startDate = String(holiday.startDate ?? holiday.start_date ?? '').trim();
+            const endDate = String(holiday.endDate ?? holiday.end_date ?? '').trim();
+            const name = String(holiday.name ?? '').trim();
+
+            if (!startDate || !endDate) {
+                return null;
+            }
+
+            const id = String(holiday.id ?? '').trim() || createClientId(idPrefix);
+            return {
+                ...holiday,
+                id,
+                startDate,
+                endDate,
+                name
+            };
+        })
+        .filter(Boolean);
+}
+
+function normalizeResourceConfig(resourceConfig, idPrefix) {
+    const base = resourceConfig && typeof resourceConfig === 'object' ? deepClone(resourceConfig) : {};
+    const resources = Array.isArray(resourceConfig?.resources) ? deepClone(resourceConfig.resources) : [];
+    const aliases = resourceConfig?.aliases && typeof resourceConfig.aliases === 'object'
+        ? deepClone(resourceConfig.aliases)
+        : {};
+
+    return {
+        ...base,
+        resources,
+        aliases,
+        holidays: normalizeHolidayEntries(resourceConfig?.holidays, idPrefix)
+    };
+}
+
 document.addEventListener('alpine:init', () => {
     Alpine.store('config', {
          // State
@@ -360,6 +410,7 @@ document.addEventListener('alpine:init', () => {
              weights: {
                  makespanWeight: 0.2,
                  priorityWeight: 0.8,
+                 legEndingWeight: 0.0,
              },
              deadlines: [],
              penaltySettings: {
@@ -456,6 +507,7 @@ document.addEventListener('alpine:init', () => {
          successMessage: '',
          jsonUploadFiles: [],
          jsonDragOver: false,
+         _pendingJsonLegs: {},
 
          // Initialization
          init() {
@@ -514,12 +566,12 @@ document.addEventListener('alpine:init', () => {
 
                 const savedFte = localStorage.getItem(CONFIG_STORAGE_KEYS.FTE);
                 if (savedFte) {
-                    this.fte = JSON.parse(savedFte);
+                    this.fte = normalizeResourceConfig(JSON.parse(savedFte), 'fte-holiday');
                 }
 
                 const savedEquipment = localStorage.getItem(CONFIG_STORAGE_KEYS.EQUIPMENT);
                 if (savedEquipment) {
-                    this.equipment = JSON.parse(savedEquipment);
+                    this.equipment = normalizeResourceConfig(JSON.parse(savedEquipment), 'equipment-holiday');
                 }
 
                 const savedTests = localStorage.getItem(CONFIG_STORAGE_KEYS.TESTS);
@@ -557,7 +609,8 @@ document.addEventListener('alpine:init', () => {
              if (config.weights) {
                  migrated.weights = {
                      makespanWeight: config.weights.makespan_weight ?? config.weights.makespanWeight ?? 0.2,
-                     priorityWeight: config.weights.priority_weight ?? config.weights.priorityWeight ?? 0.8
+                     priorityWeight: config.weights.priority_weight ?? config.weights.priorityWeight ?? 0.8,
+                     legEndingWeight: config.weights.leg_ending_weight ?? config.weights.legEndingWeight ?? 0.0
                  };
              }
              
@@ -854,8 +907,8 @@ document.addEventListener('alpine:init', () => {
                 throw new Error('Missing required field: weights');
             }
 
-            // Validate mode
-            const validModes = ['end_date_priority', 'leg_priority', 'end_date_sticky', 'leg_end_dates', 'resource_bottleneck'];
+            // Validate mode (only leg_end_dates and leg_priority are supported)
+            const validModes = ['leg_end_dates', 'leg_priority'];
             if (!validModes.includes(jsonData.mode)) {
                 throw new Error('Invalid mode. Must be one of: ' + validModes.join(', '));
             }
@@ -864,6 +917,7 @@ document.addEventListener('alpine:init', () => {
             const weights = jsonData.weights;
             const makespanWeight = weights.makespanWeight ?? weights.makespan_weight;
             const priorityWeight = weights.priorityWeight ?? weights.priority_weight;
+            const legEndingWeight = weights.legEndingWeight ?? weights.leg_ending_weight;
             
             if (typeof makespanWeight !== 'number' || makespanWeight < 0 || makespanWeight > 1) {
                 throw new Error('makespanWeight must be a number between 0 and 1');
@@ -878,6 +932,12 @@ document.addEventListener('alpine:init', () => {
                 throw new Error('makespanWeight + priorityWeight must equal 1.0');
             }
 
+            if (legEndingWeight !== undefined && legEndingWeight !== null) {
+                if (typeof legEndingWeight !== 'number' || legEndingWeight < 0) {
+                    throw new Error('legEndingWeight must be a non-negative number');
+                }
+            }
+
             return true;
         },
 
@@ -886,8 +946,31 @@ document.addEventListener('alpine:init', () => {
             this.error = null;
 
             try {
+                console.info('[configStore][json-load] start', {
+                    hasSnapshot: Boolean(jsonData && jsonData.snapshot_type === 'run_config' && jsonData.config_snapshot),
+                    hasTestConfig: Boolean(jsonData?.testConfig || jsonData?.test_config),
+                    currentLegCount: Object.keys(this.testHierarchy?.legs || {}).length,
+                    currentLegSample: Object.keys(this.testHierarchy?.legs || {}).slice(0, 8),
+                    currentDeadlinesCount: Array.isArray(this.config?.deadlines) ? this.config.deadlines.length : 0,
+                    deadlinesEnabled: Boolean(this.sectionEnabled?.deadlinesEnabled)
+                });
+
                 if (jsonData && jsonData.snapshot_type === 'run_config' && jsonData.config_snapshot) {
                     this.applyRunConfigSnapshot(jsonData.config_snapshot);
+                    console.info('[configStore][json-load] applied run snapshot', {
+                        resultingLegCount: Object.keys(this.testHierarchy?.legs || {}).length,
+                        resultingLegSample: Object.keys(this.testHierarchy?.legs || {}).slice(0, 8)
+                    });
+                    return;
+                }
+                // Support exported full configuration format that embeds a compatible snapshot payload.
+                if (jsonData && jsonData.snapshot && typeof jsonData.snapshot === 'object' && jsonData.snapshot.config && jsonData.snapshot.priority_config) {
+                    this.applyRunConfigSnapshot(jsonData.snapshot);
+                    console.info('[configStore][json-load] applied embedded snapshot', {
+                        resultingLegCount: Object.keys(this.testHierarchy?.legs || {}).length,
+                        resultingLegSample: Object.keys(this.testHierarchy?.legs || {}).slice(0, 8),
+                        resultingDeadlinesCount: Array.isArray(this.config?.deadlines) ? this.config.deadlines.length : 0
+                    });
                     return;
                 }
 
@@ -902,14 +985,68 @@ document.addEventListener('alpine:init', () => {
                 const weights = jsonData.weights;
                 this.config.weights.makespanWeight = weights.makespanWeight ?? weights.makespan_weight ?? 0.2;
                 this.config.weights.priorityWeight = weights.priorityWeight ?? weights.priority_weight ?? 0.8;
+                this.config.weights.legEndingWeight = weights.legEndingWeight ?? weights.leg_ending_weight ?? 0.0;
 
                 // Load leg deadlines if present (support both camelCase and legacy snake_case)
-                const legacyDeadlines = jsonData.legDeadlines ?? jsonData.leg_deadlines ?? {};
-                const startDeadlines = jsonData.legStartDeadlines ?? jsonData.leg_start_deadlines ?? {};
-                const endDeadlines = jsonData.legEndDeadlines ?? jsonData.leg_end_deadlines ?? legacyDeadlines;
+                const nestedDeadlines = jsonData.deadlines || {};
+                const snapshotPriority = jsonData.snapshot?.priority_config || {};
+                const legacyDeadlines =
+                    jsonData.legDeadlines ??
+                    jsonData.leg_deadlines ??
+                    nestedDeadlines.legDeadlines ??
+                    nestedDeadlines.leg_deadlines ??
+                    snapshotPriority.legDeadlines ??
+                    snapshotPriority.leg_deadlines ??
+                    {};
+                const startDeadlines =
+                    jsonData.legStartDeadlines ??
+                    jsonData.leg_start_deadlines ??
+                    nestedDeadlines.legStartDeadlines ??
+                    nestedDeadlines.leg_start_deadlines ??
+                    snapshotPriority.legStartDeadlines ??
+                    snapshotPriority.leg_start_deadlines ??
+                    {};
+                const endDeadlines =
+                    jsonData.legEndDeadlines ??
+                    jsonData.leg_end_deadlines ??
+                    nestedDeadlines.legEndDeadlines ??
+                    nestedDeadlines.leg_end_deadlines ??
+                    snapshotPriority.legEndDeadlines ??
+                    snapshotPriority.leg_end_deadlines ??
+                    legacyDeadlines;
+                const deadlinePenalties =
+                    jsonData.legDeadlinePenalties ??
+                    jsonData.leg_deadline_penalties ??
+                    nestedDeadlines.legDeadlinePenalties ??
+                    nestedDeadlines.leg_deadline_penalties ??
+                    snapshotPriority.legDeadlinePenalties ??
+                    snapshotPriority.leg_deadline_penalties ??
+                    {};
+                const compactnessPenalties =
+                    jsonData.legCompactnessPenalties ??
+                    jsonData.leg_compactness_penalties ??
+                    nestedDeadlines.legCompactnessPenalties ??
+                    nestedDeadlines.leg_compactness_penalties ??
+                    snapshotPriority.legCompactnessPenalties ??
+                    snapshotPriority.leg_compactness_penalties ??
+                    {};
+                const hasDeadlineKeysInPayload =
+                    Object.prototype.hasOwnProperty.call(jsonData, 'legDeadlines') ||
+                    Object.prototype.hasOwnProperty.call(jsonData, 'leg_deadlines') ||
+                    Object.prototype.hasOwnProperty.call(jsonData, 'legStartDeadlines') ||
+                    Object.prototype.hasOwnProperty.call(jsonData, 'leg_start_deadlines') ||
+                    Object.prototype.hasOwnProperty.call(jsonData, 'legEndDeadlines') ||
+                    Object.prototype.hasOwnProperty.call(jsonData, 'leg_end_deadlines') ||
+                    Object.prototype.hasOwnProperty.call(jsonData, 'deadlines') ||
+                    Object.prototype.hasOwnProperty.call(jsonData, 'legDeadlinePenalties') ||
+                    Object.prototype.hasOwnProperty.call(jsonData, 'leg_deadline_penalties') ||
+                    Object.prototype.hasOwnProperty.call(jsonData, 'legCompactnessPenalties') ||
+                    Object.prototype.hasOwnProperty.call(jsonData, 'leg_compactness_penalties');
                 const legIds = new Set([
                     ...Object.keys(startDeadlines || {}),
-                    ...Object.keys(endDeadlines || {})
+                    ...Object.keys(endDeadlines || {}),
+                    ...Object.keys(deadlinePenalties || {}),
+                    ...Object.keys(compactnessPenalties || {})
                 ]);
 
                 if (legIds.size > 0) {
@@ -935,16 +1072,24 @@ document.addEventListener('alpine:init', () => {
                         branch,
                         startDeadline: normalizeDeadlineValue(startDeadlines[deadlineKey]),
                         endDeadline: normalizeDeadlineValue(endDeadlines[deadlineKey]),
-                        deadlinePenalty: 0,
-                        compactness: 0,
+                        deadlinePenalty: Number(deadlinePenalties[deadlineKey]) || 0,
+                        compactness: Number(compactnessPenalties[deadlineKey]) || 0,
                         startEnabled: startDeadlines[deadlineKey] !== undefined,
                         endEnabled: endDeadlines[deadlineKey] !== undefined
                     };
                     });
                     this.sectionEnabled.deadlinesEnabled = true;
                 } else {
-                    this.config.deadlines = [];
-                    this.sectionEnabled.deadlinesEnabled = false;
+                    // Preserve existing legs unless deadlines were explicitly provided as empty.
+                    // This prevents test-config-only JSON imports from wiping the Legs page.
+                    if (hasDeadlineKeysInPayload) {
+                        this.config.deadlines = [];
+                        this.sectionEnabled.deadlinesEnabled = false;
+                    } else {
+                        console.info('[configStore][json-load] no deadline keys in payload, preserving existing deadlines', {
+                            preservedDeadlinesCount: Array.isArray(this.config?.deadlines) ? this.config.deadlines.length : 0
+                        });
+                    }
                 }
 
                 // Load penalty settings if present (support both camelCase and legacy snake_case)
@@ -982,12 +1127,78 @@ document.addEventListener('alpine:init', () => {
                     this.sectionEnabled.proximityEnabled = false;
                 }
 
+                // Import FTE settings if present
+                if (jsonData.fte) {
+                    if (jsonData.fte.resources && Array.isArray(jsonData.fte.resources)) {
+                        this.fte.resources = deepClone(jsonData.fte.resources);
+                    }
+                    if (jsonData.fte.holidays && Array.isArray(jsonData.fte.holidays)) {
+                        this.fte.holidays = normalizeHolidayEntries(jsonData.fte.holidays, 'fte-holiday');
+                    }
+                    if (jsonData.fte.aliases && typeof jsonData.fte.aliases === 'object') {
+                        this.fte.aliases = deepClone(jsonData.fte.aliases);
+                    }
+                }
+
+                // Import Equipment settings if present
+                if (jsonData.equipment) {
+                    if (jsonData.equipment.resources && Array.isArray(jsonData.equipment.resources)) {
+                        this.equipment.resources = deepClone(jsonData.equipment.resources);
+                    }
+                    if (jsonData.equipment.holidays && Array.isArray(jsonData.equipment.holidays)) {
+                        this.equipment.holidays = normalizeHolidayEntries(jsonData.equipment.holidays, 'equipment-holiday');
+                    }
+                    if (jsonData.equipment.aliases && typeof jsonData.equipment.aliases === 'object') {
+                        this.equipment.aliases = deepClone(jsonData.equipment.aliases);
+                    }
+                }
+
+                // Import Test Configuration if present
+                if (jsonData.testConfig || jsonData.test_config) {
+                    const testConfigData = jsonData.testConfig || jsonData.test_config;
+                    this._pendingJsonLegs = deepClone(testConfigData.legs || {});
+                    console.info('[configStore][json-load] captured testConfig legs', {
+                        pendingJsonLegCount: Object.keys(this._pendingJsonLegs || {}).length,
+                        pendingJsonLegSample: Object.keys(this._pendingJsonLegs || {}).slice(0, 8)
+                    });
+                    this.testConfig = {
+                        defaults: deepClone(testConfigData.defaults || {}),
+                        projects: deepClone(testConfigData.projects || {}),
+                        legTypes: deepClone(testConfigData.legTypes || testConfigData.leg_types || {}),
+                        legs: deepClone(this._pendingJsonLegs || {}),
+                        testTypes: deepClone(testConfigData.testTypes || testConfigData.test_types || {}),
+                        tests: deepClone(testConfigData.tests || {})
+                    };
+                }
+
+                // Import section enabled states if present
+                if (jsonData.sectionEnabled || jsonData.section_enabled) {
+                    const sectionData = jsonData.sectionEnabled || jsonData.section_enabled;
+                    this.sectionEnabled = {
+                        ...this.sectionEnabled,
+                        ...deepClone(sectionData)
+                    };
+                }
+
                 // Update output settings
                 this.updateOutputSettings();
                 this.saveToLocalStorage();
+                console.info('[configStore][json-load] complete', {
+                    testHierarchyLegCount: Object.keys(this.testHierarchy?.legs || {}).length,
+                    testHierarchyLegSample: Object.keys(this.testHierarchy?.legs || {}).slice(0, 8),
+                    testConfigLegCount: Object.keys(this.testConfig?.legs || {}).length,
+                    testConfigLegSample: Object.keys(this.testConfig?.legs || {}).slice(0, 8),
+                    pendingJsonLegCount: Object.keys(this._pendingJsonLegs || {}).length,
+                    deadlinesCount: Array.isArray(this.config?.deadlines) ? this.config.deadlines.length : 0,
+                    deadlinesEnabled: Boolean(this.sectionEnabled?.deadlinesEnabled)
+                });
 
             } catch (error) {
                 this.error = 'Error loading configuration: ' + error.message;
+                console.error('[configStore][json-load] failed', {
+                    message: error?.message,
+                    stack: error?.stack
+                });
             }
         },
 
@@ -1017,6 +1228,79 @@ document.addEventListener('alpine:init', () => {
             };
         },
 
+        /**
+         * Get complete configuration for export
+         * Returns a JSON object suitable for file download or clipboard copy
+         * @returns {Object} Complete configuration object
+         */
+        getFullConfigJson() {
+            const snapshot = this.getRunConfigSnapshot();
+            return {
+                export_version: '1.0',
+                exported_at: new Date().toISOString(),
+                mode: this.config.mode || 'leg_end_dates',
+                description: this.config.description || '',
+                weights: {
+                    makespanWeight: this.config.weights?.makespanWeight ?? 0.2,
+                    priorityWeight: this.config.weights?.priorityWeight ?? 0.8,
+                    legEndingWeight: this.config.weights?.legEndingWeight ?? 0.0
+                },
+                deadlines: {
+                    legStartDeadlines: this.buildLegStartDeadlines(),
+                    legEndDeadlines: this.buildLegEndDeadlines()
+                },
+                penaltySettings: deepClone(this.config.penaltySettings || {}),
+                proximityRules: deepClone(this.config.proximityRules || []),
+                sectionEnabled: deepClone(this.sectionEnabled || {}),
+                fte: deepClone(this.fte || { resources: [], holidays: [], aliases: {} }),
+                equipment: deepClone(this.equipment || { resources: [], holidays: [], aliases: {} }),
+                testConfig: deepClone(this.testConfig || {
+                    defaults: {},
+                    projects: {},
+                    legTypes: {},
+                    legs: {},
+                    testTypes: {},
+                    tests: {}
+                }),
+                // Include the full snapshot for backward compatibility with applyRunConfigSnapshot
+                snapshot: snapshot
+            };
+        },
+
+        /**
+         * Build leg start deadlines object from deadlines array
+         * @returns {Object} Map of leg keys to start deadlines
+         */
+        buildLegStartDeadlines() {
+            const deadlines = {};
+            if (Array.isArray(this.config.deadlines)) {
+                this.config.deadlines.forEach(leg => {
+                    if (leg.startDeadline) {
+                        const key = [leg.project, leg.legId, leg.branch].filter(Boolean).join('__');
+                        deadlines[key] = leg.startDeadline;
+                    }
+                });
+            }
+            return deadlines;
+        },
+
+        /**
+         * Build leg end deadlines object from deadlines array
+         * @returns {Object} Map of leg keys to end deadlines
+         */
+        buildLegEndDeadlines() {
+            const deadlines = {};
+            if (Array.isArray(this.config.deadlines)) {
+                this.config.deadlines.forEach(leg => {
+                    if (leg.endDeadline) {
+                        const key = [leg.project, leg.legId, leg.branch].filter(Boolean).join('__');
+                        deadlines[key] = leg.endDeadline;
+                    }
+                });
+            }
+            return deadlines;
+        },
+
         applyRunConfigSnapshot(snapshot) {
             if (!snapshot || typeof snapshot !== 'object') {
                 throw new Error('Invalid run config snapshot');
@@ -1031,9 +1315,10 @@ document.addEventListener('alpine:init', () => {
                 ...this.sectionStates,
                 ...(snapshot.section_states || {})
             };
-            this.fte = deepClone(snapshot.fte || this.fte);
-            this.equipment = deepClone(snapshot.equipment || this.equipment);
+            this.fte = normalizeResourceConfig(snapshot.fte || this.fte, 'fte-holiday');
+            this.equipment = normalizeResourceConfig(snapshot.equipment || this.equipment, 'equipment-holiday');
             this.testConfig = deepClone(snapshot.test_config || this.testConfig);
+            this._pendingJsonLegs = deepClone(this.testConfig?.legs || {});
             this.updateOutputSettings();
             this.saveToLocalStorage();
         },
@@ -1046,6 +1331,7 @@ document.addEventListener('alpine:init', () => {
                weights: {
                   makespanWeight: 0.2,
                   priorityWeight: 0.8,
+                  legEndingWeight: 0.0,
                },
                deadlines: [],
                penaltySettings: {
@@ -1065,6 +1351,7 @@ document.addEventListener('alpine:init', () => {
                equipmentEnabled: true,
                testEnabled: true
             };
+            this._pendingJsonLegs = {};
 
             this.updateOutputSettings();
          },
@@ -1844,7 +2131,7 @@ document.addEventListener('alpine:init', () => {
                   'equipment_resources',
                   'fte_required',
                   'equipment_required',
-                  'fte_time_percentage',
+                  'fte_time_pct',
                   'equipment_time_percentage',
                   'force_start_week'
               ];
@@ -2245,6 +2532,7 @@ document.addEventListener('alpine:init', () => {
 
           syncConfigFromSelectedCsv(csvData) {
               const extracted = this._extractOrderedCsvEntities(csvData);
+              const previousLegKeys = Object.keys(this.testHierarchy?.legs || {});
               const hasMappedValues =
                   extracted.projects.length > 0 ||
                   extracted.legTypes.length > 0 ||
@@ -2252,7 +2540,20 @@ document.addEventListener('alpine:init', () => {
                   extracted.testTypes.length > 0 ||
                   extracted.tests.length > 0;
 
+              console.info('[configStore][csv-sync] start', {
+                  hasMappedValues,
+                  extractedLegCount: extracted.legs.length,
+                  extractedLegSample: extracted.legs.slice(0, 8),
+                  previousLegCount: previousLegKeys.length,
+                  previousLegSample: previousLegKeys.slice(0, 8),
+                  pendingJsonLegCount: Object.keys(this._pendingJsonLegs || {}).length,
+                  testConfigLegCount: Object.keys(this.testConfig?.legs || {}).length,
+                  previousDeadlinesCount: Array.isArray(this.config?.deadlines) ? this.config.deadlines.length : 0,
+                  deadlinesEnabled: Boolean(this.sectionEnabled?.deadlinesEnabled)
+              });
+
               if (!hasMappedValues) {
+                  console.warn('[configStore][csv-sync] skipped: no mapped values found in selected CSV');
                   return false;
               }
 
@@ -2266,6 +2567,18 @@ document.addEventListener('alpine:init', () => {
               const existingLegs = existingHierarchy.legs || {};
               const existingTestTypes = existingHierarchy.testTypes || {};
               const existingTests = existingHierarchy.tests || {};
+              const pendingJsonLegs = Object.keys(this._pendingJsonLegs || {}).length > 0
+                  ? this._pendingJsonLegs
+                  : (this.testConfig?.legs || {});
+              const pendingLegKeys = Object.keys(pendingJsonLegs || {});
+              const extractedLegSet = new Set(extracted.legs || []);
+              const pendingNotInCsv = pendingLegKeys.filter((key) => !extractedLegSet.has(key));
+              if (pendingNotInCsv.length > 0) {
+                  console.warn('[configStore][csv-sync] pending JSON legs absent from extracted CSV legs', {
+                      count: pendingNotInCsv.length,
+                      sample: pendingNotInCsv.slice(0, 8)
+                  });
+              }
 
               const existingProjects = Array.isArray(existingHierarchy.projects) ? existingHierarchy.projects : [];
               const nextProjects = extracted.projects.length > 0 ? extracted.projects : existingProjects;
@@ -2281,12 +2594,21 @@ document.addEventListener('alpine:init', () => {
               });
 
               extracted.legs.forEach((legId) => {
-                  const existing = existingLegs[legId] || {};
+                  const existing = {
+                      ...(pendingJsonLegs[legId] || {}),
+                      ...(existingLegs[legId] || {})
+                  };
                   nextLegs[legId] = {
                       displayName: existing.displayName || legId,
                       duration: existing.duration ?? null,
                       priority: existing.priority ?? null,
-                      forceStartWeek: existing.forceStartWeek ?? null
+                      forceStartWeek: existing.forceStartWeek ?? null,
+                      fteResources: Array.isArray(existing.fteResources) ? existing.fteResources : [],
+                      equipmentResources: Array.isArray(existing.equipmentResources) ? existing.equipmentResources : [],
+                      fteRequired: existing.fteRequired ?? null,
+                      equipmentRequired: existing.equipmentRequired ?? null,
+                      fteTimePercentage: existing.fteTimePercentage ?? null,
+                      equipmentTimePercentage: existing.equipmentTimePercentage ?? null
                   };
               });
 
@@ -2331,7 +2653,7 @@ document.addEventListener('alpine:init', () => {
                       return acc;
                   }, {}),
                   legs: extracted.legs.reduce((acc, key) => {
-                      acc[key] = this.tests.legs?.[key] || {};
+                      acc[key] = this.tests.legs?.[key] || pendingJsonLegs[key] || {};
                       return acc;
                   }, {}),
                   testTypes: extracted.testTypes.reduce((acc, key) => {
@@ -2374,11 +2696,18 @@ document.addEventListener('alpine:init', () => {
                });
 
               this.updateOutputSettings();
+              const resultingLegKeys = Object.keys(this.testHierarchy?.legs || {});
+              console.info('[configStore][csv-sync] complete', {
+                  resultingLegCount: resultingLegKeys.length,
+                  resultingLegSample: resultingLegKeys.slice(0, 8),
+                  deadlinesCount: Array.isArray(this.config?.deadlines) ? this.config.deadlines.length : 0,
+                  deadlinesEnabled: Boolean(this.sectionEnabled?.deadlinesEnabled)
+              });
               return true;
           },
 
           validateConfigAgainstCsv(jsonData) {
-              const warnings = [], mismatches = { legs: [], tests: [], fteResources: [], equipmentResources: [], fteAliases: [], equipmentAliases: [], legTypes: [], testTypes: [] };
+              const warnings = [], mismatches = { legs: [], tests: [], fteAliases: [], equipmentAliases: [], legTypes: [], testTypes: [] };
               const hasCsv = this.csvEntities.legs.size > 0 || this.csvEntities.tests.size > 0 || this.csvEntities.fteResources.size > 0 || this.csvEntities.equipmentResources.size > 0;
               if (!hasCsv) return { warnings: [], mismatches, totalErrors: 0, hasValidation: false };
 
@@ -2421,22 +2750,6 @@ document.addEventListener('alpine:init', () => {
                   });
               }
 
-              if (jsonData.fte?.resources) jsonData.fte.resources.forEach(r => {
-                  const id = r.id || r;
-                  if (id && !this.csvEntities.fteResources.has(id) && !mismatches.fteResources.includes(id)) {
-                      mismatches.fteResources.push(id);
-                      warnings.push(`FTE "${id}" not in CSV`);
-                  }
-              });
-
-              if (jsonData.equipment?.resources) jsonData.equipment.resources.forEach(r => {
-                  const id = r.id || r;
-                  if (id && !this.csvEntities.equipmentResources.has(id) && !mismatches.equipmentResources.includes(id)) {
-                      mismatches.equipmentResources.push(id);
-                      warnings.push(`Equipment "${id}" not in CSV`);
-                  }
-              });
-
               this.importValidationErrors = { warnings, mismatches, totalErrors: warnings.length, hasValidation: true };
               return this.importValidationErrors;
           },
@@ -2477,13 +2790,23 @@ document.addEventListener('alpine:init', () => {
                   return;
               }
               const removed = this.fte.resources[index] || null;
+              const removedFteId = String(removed?.id || '').trim();
               console.info('[configStore][fte] Removing resource', {
                   index,
                   beforeCount,
-                  removedFteId: removed?.id || null,
+                  removedFteId: removedFteId || null,
                   removedFteName: removed?.name || null
               });
               this.fte.resources.splice(index, 1);
+
+              // Keep alias groups consistent when a resource is deleted.
+              if (removedFteId && this.fte?.aliases && typeof this.fte.aliases === 'object') {
+                  Object.keys(this.fte.aliases).forEach((aliasName) => {
+                      const members = Array.isArray(this.fte.aliases[aliasName]) ? this.fte.aliases[aliasName] : [];
+                      this.fte.aliases[aliasName] = members.filter((memberId) => String(memberId || '').trim() !== removedFteId);
+                  });
+              }
+
               console.info('[configStore][fte] Resource removed', {
                   index,
                   afterCount: this.fte.resources.length
@@ -2532,7 +2855,7 @@ document.addEventListener('alpine:init', () => {
           addHolidayRange(startDate, endDate, name) {
               if (!this.fte) this.fte = { resources: [], holidays: [], aliases: {} };
               if (!this.fte.holidays) this.fte.holidays = [];
-              this.fte.holidays.push({ startDate, endDate, name });
+              this.fte.holidays.push({ id: createClientId('fte-holiday'), startDate, endDate, name });
               this.updateOutputSettings();
           },
 
@@ -2546,6 +2869,13 @@ document.addEventListener('alpine:init', () => {
               if (!this.fte) this.fte = { resources: [], holidays: [], aliases: {} };
               if (!this.fte.aliases) this.fte.aliases = {};
               this.fte.aliases[aliasName] = resourceNames;
+              this.updateOutputSettings();
+          },
+
+          updateAliasGroupMembers(aliasName, resourceNames) {
+              if (!this.fte) this.fte = { resources: [], holidays: [], aliases: {} };
+              if (!this.fte.aliases) this.fte.aliases = {};
+              this.fte.aliases[aliasName] = Array.isArray(resourceNames) ? [...resourceNames] : [];
               this.updateOutputSettings();
           },
 
@@ -2580,13 +2910,23 @@ document.addEventListener('alpine:init', () => {
                   return;
               }
               const removed = this.equipment.resources[index] || null;
+              const removedEquipmentId = String(removed?.id || '').trim();
               console.info('[configStore][equipment] Removing resource', {
                   index,
                   beforeCount,
-                  removedEquipmentId: removed?.id || null,
+                  removedEquipmentId: removedEquipmentId || null,
                   removedEquipmentName: removed?.name || null
               });
               this.equipment.resources.splice(index, 1);
+
+              // Keep alias groups consistent when a resource is deleted.
+              if (removedEquipmentId && this.equipment?.aliases && typeof this.equipment.aliases === 'object') {
+                  Object.keys(this.equipment.aliases).forEach((aliasName) => {
+                      const members = Array.isArray(this.equipment.aliases[aliasName]) ? this.equipment.aliases[aliasName] : [];
+                      this.equipment.aliases[aliasName] = members.filter((memberId) => String(memberId || '').trim() !== removedEquipmentId);
+                  });
+              }
+
               console.info('[configStore][equipment] Resource removed', {
                   index,
                   afterCount: this.equipment.resources.length
@@ -2635,7 +2975,7 @@ document.addEventListener('alpine:init', () => {
           addEquipmentHolidayRange(startDate, endDate, name) {
               if (!this.equipment) this.equipment = { resources: [], holidays: [], aliases: {} };
               if (!this.equipment.holidays) this.equipment.holidays = [];
-              this.equipment.holidays.push({ startDate, endDate, name });
+              this.equipment.holidays.push({ id: createClientId('equipment-holiday'), startDate, endDate, name });
               this.updateOutputSettings();
           },
 
@@ -2649,6 +2989,13 @@ document.addEventListener('alpine:init', () => {
               if (!this.equipment) this.equipment = { resources: [], holidays: [], aliases: {} };
               if (!this.equipment.aliases) this.equipment.aliases = {};
               this.equipment.aliases[aliasName] = resourceNames;
+              this.updateOutputSettings();
+          },
+
+          updateEquipmentAliasGroupMembers(aliasName, resourceNames) {
+              if (!this.equipment) this.equipment = { resources: [], holidays: [], aliases: {} };
+              if (!this.equipment.aliases) this.equipment.aliases = {};
+              this.equipment.aliases[aliasName] = Array.isArray(resourceNames) ? [...resourceNames] : [];
               this.updateOutputSettings();
           },
 

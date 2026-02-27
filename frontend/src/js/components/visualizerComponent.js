@@ -7,6 +7,7 @@
 
 function visualizerComponent() {
     return {
+        editorFullscreen: false,
         plotTabs: [
             { id: 'gantt-tests', label: 'Gantt Tests' },
             { id: 'equipment', label: 'Equipment' },
@@ -39,6 +40,11 @@ function visualizerComponent() {
             });
             this.$watch('$store.solver.scenarios', () => {
                 this.syncSelectedSolverRunWithStore();
+                this.autoRenderFromCurrentCode();
+            });
+
+            this.$watch('$store.visualization.solverData', () => {
+                this.autoRenderFromCurrentCode();
             });
 
              // Watch for template changes to re-initialize editor
@@ -195,8 +201,39 @@ function visualizerComponent() {
             this.$store.visualization.runCode(container, this.currentTemplateId);
         },
 
+        autoRenderFromCurrentCode() {
+            if (this.activeDataSource !== 'solver') {
+                return;
+            }
+            if (!this.$store.visualization.code || this.$store.visualization.code.trim() === '') {
+                return;
+            }
+            this.$nextTick(() => {
+                this.runCode();
+            });
+        },
+
         toggleEditor() {
             this.$store.visualization.toggleEditor();
+            if (!this.isEditorVisible) {
+                this.editorFullscreen = false;
+            }
+        },
+
+        toggleEditorFullscreen() {
+            this.editorFullscreen = !this.editorFullscreen;
+            this.$nextTick(() => {
+                if (this.$store.visualization.editor?.view) {
+                    this.$store.visualization.editor.view.requestMeasure();
+                }
+            });
+        },
+
+        exitEditorFullscreen() {
+            if (!this.editorFullscreen) {
+                return;
+            }
+            this.editorFullscreen = false;
         },
 
         getScenarioById(scenarioId) {

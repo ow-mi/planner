@@ -222,6 +222,19 @@
                                         <option value="ERROR">ERROR</option>
                                     </select>
                                 </div>
+
+                                <div class="form-group">
+                                    <label :for="'plot-interval-' + scenario.id">Plot Update (sec)</label>
+                                    <input
+                                        type="number"
+                                        :id="'plot-interval-' + scenario.id"
+                                        x-model.number="$store.solver.config.plotUpdateInterval"
+                                        min="0" max="60" step="0.5"
+                                        class="form-control"
+                                        @change="$store.solver.saveToLocalStorage()"
+                                    >
+                                    <small style="color: var(--text-light);">0 = every update</small>
+                                </div>
                             </div>
                         </div>
                         
@@ -411,7 +424,7 @@
                     x-model="$store.solver.newScenarioName"
                     @keydown.enter.prevent="$store.solver.createNewScenario($store.solver.newScenarioName)"
                     placeholder="e.g., Run 1"
-                    class="form-control"
+                    class="scenario-modal-input"
                 >
             </div>
             
@@ -725,10 +738,20 @@ function solverTabComponent() {
             console.log('[solver-tab] Context menu for scenario:', scenarioId);
         },
 
-        renderLiveGanttChart(scenario) {
+        renderLiveGanttChart(scenario, retryAttempt = 0) {
             if (!scenario?.id) return;
+            const liveResults = scenario.liveResults;
+            const scheduleRows = liveResults?.test_schedule || liveResults?.test_schedules || [];
+            if (!liveResults || !Array.isArray(scheduleRows) || scheduleRows.length === 0) {
+                return;
+            }
+
             const container = document.getElementById(`live-gantt-chart-${scenario.id}`);
             if (!container) {
+                if (retryAttempt === 0) {
+                    this.$nextTick(() => this.renderLiveGanttChart(scenario, 1));
+                    return;
+                }
                 console.warn('[solver-tab] Live gantt container missing', { scenarioId: scenario.id });
                 return;
             }
@@ -743,17 +766,12 @@ function solverTabComponent() {
                 });
                 return;
             }
-
-            const liveResults = scenario.liveResults;
-            if (!liveResults || !Array.isArray(liveResults.test_schedule) || liveResults.test_schedule.length === 0) {
-                return;
-            }
             try {
                 const transformed = visualizationStore.transformSolutionResult(liveResults);
                 visualizationStore.renderGanttTests(transformed, container);
                 console.info('[solver-tab] Rendered live gantt with shared visualizer renderer', {
                     scenarioId: scenario.id,
-                    rows: liveResults.test_schedule.length,
+                    rows: scheduleRows.length,
                     makespan: liveResults.makespan ?? null
                 });
             } catch (error) {

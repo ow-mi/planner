@@ -54,6 +54,9 @@ class SolverRequest(BaseModel):
         DebugLevel.INFO, description="Logging level"
     )
     output_folder: Optional[str] = Field(None, description="Output folder path")
+    scenario_name: Optional[str] = Field(
+        None, description="Human-readable scenario name from frontend"
+    )
     input_folder: Optional[str] = Field(None, description="Input folder path")
     progress_interval_seconds: Optional[int] = Field(
         10,

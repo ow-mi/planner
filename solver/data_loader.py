@@ -174,6 +174,7 @@ class Test:
     ]  # String or list of eligible equipment options
     force_start_week_iso: Optional[str] = None
     fte_time_pct: float = 100.0
+    next_leg: Optional[str] = None
 
 
 @dataclass
@@ -306,6 +307,7 @@ def load_tests(input_folder: str) -> List[Test]:
         "test_description",
         "fte_assigned",
         "equipment_assigned",
+        "next_leg",
     ]
     for col in str_cols:
         if col in df.columns:
@@ -392,6 +394,11 @@ def load_tests(input_folder: str) -> List[Test]:
             ),
             force_start_week_iso=row.get("force_start_week_iso"),
             fte_time_pct=float(row.get("fte_time_pct", 100.0)),
+            next_leg=(
+                str(row.get("next_leg")).strip()
+                if pd.notna(row.get("next_leg")) and str(row.get("next_leg")).strip()
+                else None
+            ),
         )
         for _, row in df.iterrows()
     ]
@@ -756,6 +763,18 @@ def validate_data(data: PlanningData) -> List[str]:
                 f"Test {test.test_id} references unknown leg {test.project_leg_id}"
             )
 
+    for dependency in data.leg_dependencies:
+        if dependency.predecessor_leg_id not in leg_ids:
+            errors.append(
+                f"Leg dependency references unknown predecessor leg "
+                f"{dependency.predecessor_leg_id}"
+            )
+        if dependency.successor_leg_id not in leg_ids:
+            errors.append(
+                f"Leg dependency references unknown successor leg "
+                f"{dependency.successor_leg_id}"
+            )
+
     # Check test sequence indices are continuous within each leg
     leg_tests = {}
     for test in data.tests:
@@ -770,6 +789,40 @@ def validate_data(data: PlanningData) -> List[str]:
             errors.append(
                 f"Leg {leg_id} has non-continuous sequence indices: {sequences}"
             )
+
+        max_sequence = max(t.sequence_index for t in tests)
+        for test in tests:
+            raw_next_leg = (test.next_leg or "").strip()
+            if not raw_next_leg:
+                continue
+
+            if "," in raw_next_leg:
+                errors.append(
+                    f"Test {test.test_id} in leg {leg_id} uses ',' in next_leg. "
+                    "Use ';' to separate multiple successor legs."
+                )
+
+            if test.sequence_index != max_sequence:
+                errors.append(
+                    f"Test {test.test_id} in leg {leg_id} has next_leg set, but only "
+                    "the last test of a leg can define next_leg."
+                )
+
+            parsed_successors = [
+                token.strip() for token in raw_next_leg.split(";") if token.strip()
+            ]
+            if not parsed_successors:
+                errors.append(
+                    f"Test {test.test_id} in leg {leg_id} has invalid next_leg value "
+                    f"'{raw_next_leg}'. Provide one or more project_leg_id values "
+                    "separated by ';'."
+                )
+            for successor_leg_id in parsed_successors:
+                if successor_leg_id not in leg_ids:
+                    errors.append(
+                        f"Test {test.test_id} in leg {leg_id} references unknown "
+                        f"next_leg target '{successor_leg_id}'."
+                    )
 
     # Check resource assignments exist
     fte_ids = set(w.resource_id for w in data.fte_windows)
@@ -820,53 +873,47 @@ def validate_data(data: PlanningData) -> List[str]:
     return errors
 
 
-def detect_leg_dependencies(legs: Dict[str, Leg]) -> List[LegDependency]:
+def detect_leg_dependencies(legs: Dict[str, Leg], tests: List[Test]) -> List[LegDependency]:
     """
-    Detect leg dependencies based on naming patterns.
-
-    Legs with pattern 'project_*_2a' and 'project_*_2b' depend on 'project_*_2' finishing first.
+    Detect leg dependencies from explicit next_leg declarations on each leg's last test.
 
     Args:
         legs: Dictionary of loaded legs
+        tests: Loaded tests
 
     Returns:
         List of detected leg dependencies
     """
-    dependencies = []
+    tests_by_leg: Dict[str, List[Test]] = {}
+    for test in tests:
+        tests_by_leg.setdefault(test.project_leg_id, []).append(test)
 
-    # Group legs by project
-    projects = {}
-    for leg_id, leg in legs.items():
-        project_id = leg.project_id
-        if project_id not in projects:
-            projects[project_id] = []
-        projects[project_id].append(leg)
+    explicit_dependencies: List[LegDependency] = []
+    seen_dependency_pairs = set()
 
-    # For each project, detect dependencies
-    for project_id, project_legs in projects.items():
-        leg_map = {leg.project_leg_id: leg for leg in project_legs}
+    for leg_id, leg_tests in tests_by_leg.items():
+        if not leg_tests:
+            continue
+        last_test = max(leg_tests, key=lambda test: test.sequence_index)
+        raw_next_leg = last_test.next_leg
+        if not raw_next_leg:
+            continue
 
-        for leg in project_legs:
-            leg_id = leg.project_leg_id
+        next_legs = [token.strip() for token in str(raw_next_leg).split(";") if token.strip()]
 
-            # Check if this is a sub-leg (ends with 'a', 'b', etc.)
-            if "_" in leg_id:
-                parts = leg_id.split("_")
-                if len(parts) >= 3 and len(parts[-1]) == 2 and parts[-1][-1].isalpha():
-                    # This is a sub-leg like 'mwcu_b10_2a'
-                    base_leg_id = (
-                        "_".join(parts[:-1]) + "_" + parts[-1][:-1]
-                    )  # 'mwcu_b10_2'
+        for successor_leg_id in next_legs:
+            key = (leg_id, successor_leg_id)
+            if key in seen_dependency_pairs:
+                continue
+            seen_dependency_pairs.add(key)
+            explicit_dependencies.append(
+                LegDependency(
+                    predecessor_leg_id=leg_id,
+                    successor_leg_id=successor_leg_id,
+                )
+            )
 
-                    if base_leg_id in leg_map:
-                        dependencies.append(
-                            LegDependency(
-                                predecessor_leg_id=base_leg_id, successor_leg_id=leg_id
-                            )
-                        )
-                        print(f"Detected dependency: {leg_id} depends on {base_leg_id}")
-
-    return dependencies
+    return explicit_dependencies
 
 
 def load_data(input_folder: str) -> PlanningData:
@@ -944,7 +991,7 @@ def load_data(input_folder: str) -> PlanningData:
     priority_config = load_priority_config(input_folder)
 
     # Detect leg dependencies
-    leg_dependencies = detect_leg_dependencies(legs)
+    leg_dependencies = detect_leg_dependencies(legs, tests)
 
     data = PlanningData(
         legs=legs,

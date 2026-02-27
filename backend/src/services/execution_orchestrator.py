@@ -470,7 +470,10 @@ class ExecutionOrchestrator:
             StateExecutionStatusEnum.RUNNING,
             current_phase="Setting up workspace",
         )
-        run_name = self._derive_run_name(request.output_folder)
+        run_name = self._derive_run_name(
+            output_folder=request.output_folder,
+            scenario_name=request.scenario_name,
+        )
         artifact_paths = self._file_ops.create_run_workspace(
             execution_id=execution_id,
             run_name=run_name,
@@ -779,7 +782,10 @@ class ExecutionOrchestrator:
 
         run_metadata = {
             "run_id": execution_id,
-            "run_name": self._derive_run_name(request.output_folder),
+            "run_name": self._derive_run_name(
+                output_folder=request.output_folder,
+                scenario_name=request.scenario_name,
+            ),
             "status": final_state.status.value,
             "created_at": final_state.created_at.isoformat()
             if final_state.created_at
@@ -944,17 +950,27 @@ class ExecutionOrchestrator:
         execution.request_payload = None
         self._state.set_execution(execution)
 
-    def _derive_run_name(self, output_folder: Optional[str]) -> str:
+    def _derive_run_name(
+        self,
+        output_folder: Optional[str],
+        scenario_name: Optional[str] = None,
+    ) -> str:
         """
         Derive a human-readable run name from output folder path.
 
         Args:
             output_folder: The requested output folder path (may be None).
+            scenario_name: Human-readable scenario name (may be None).
 
         Returns:
             A run name string, defaulting to "run" if not derivable.
         """
-        if not output_folder:
-            return "run"
-        normalized = os.path.basename(output_folder.rstrip("/"))
-        return normalized or "run"
+        if output_folder:
+            normalized = os.path.basename(output_folder.rstrip("/"))
+            if normalized:
+                return normalized
+
+        if scenario_name and scenario_name.strip():
+            return scenario_name.strip()
+
+        return "run"

@@ -60,6 +60,8 @@ describe('configStore test config required-count fields', () => {
         expect(rows[0].origins.equipmentRequired).toBe('tests');
         expect(csv).toContain('fte_required');
         expect(csv).toContain('equipment_required');
+        expect(csv).toContain('fte_time_pct');
+        expect(csv).not.toContain('fte_time_percentage');
         expect(csv).not.toContain('is_external');
     });
 

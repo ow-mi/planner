@@ -306,26 +306,6 @@ input:focus, select:focus, textarea:focus {
     min-width: 200px;
 }
 
-.floating-reset-btn {
-    position: fixed;
-    right: 16px;
-    bottom: 16px;
-    z-index: 1200;
-    border: 1px solid var(--border-color);
-    border-radius: 999px;
-    background: var(--bg-elevated);
-    color: var(--text-color);
-    padding: 0.45rem 0.8rem;
-    font-size: 0.85rem;
-    cursor: pointer;
-    box-shadow: 0 6px 16px var(--shadow-color);
-}
-
-.floating-reset-btn:hover {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-}
-
 .checkbox-label {
     display: flex;
     align-items: center;
@@ -633,6 +613,8 @@ th {
     border-radius: 6px;
     margin-top: 0;
     animation: fadeIn 0.3s ease;
+    width: 100%;
+    max-width: 100%;
 }
 
 .config-section:last-child {

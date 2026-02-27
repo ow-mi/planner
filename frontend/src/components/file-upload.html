@@ -126,49 +126,6 @@
             </button>
         </div>
     </div>
-
-    <hr style="margin: 2rem 0; border-color: var(--border-color);">
-
-    <!-- Legacy Folder Input Section -->
-    <div class="section">
-        <h3>Or Import From Folder</h3>
-        <p>Provide an absolute folder path containing CSV inputs (and optional <code>priority_config.json</code>).</p>
-
-        <div class="form-group">
-            <label for="folder-path-input">Folder Path</label>
-            <input
-                id="folder-path-input"
-                type="text"
-                x-model="baseFolderPath"
-                @input="setBaseFolderPath(baseFolderPath)"
-                placeholder="/absolute/path/to/input-folder"
-                class="form-control"
-            >
-        </div>
-
-        <div class="form-group" style="margin-top: 0.5rem;">
-            <button @click="importFolder()" class="btn" :disabled="isLoading">Import Folder</button>
-        </div>
-
-        <!-- Legacy File List -->
-        <div x-show="uploadedFiles.length > 0">
-            <h4 style="margin-top: 1.5rem;">Folder Files</h4>
-            <ul class="file-list">
-                <template x-for="(file, fileIndex) in uploadedFiles" :key="`${file.name}-${file.size || 0}-${file.lastModified || 0}`">
-                    <li>
-                        <span x-text="file.name"></span>
-                        <span x-text="helpers.formatFileSize(file.size)" style="margin-left: 10px; color: var(--text-light); font-size: 0.8rem;"></span>
-                        <button @click="removeFile(file.name)" class="btn btn-danger" style="margin-left: 10px; padding: 0.25rem 0.5rem; font-size: 0.8rem;">Remove</button>
-                    </li>
-                </template>
-            </ul>
-        </div>
-
-        <!-- Error Display -->
-        <div x-show="error" class="validation-error" style="margin-top: 1rem;">
-            <span x-text="error"></span>
-        </div>
-    </div>
 </div>
 
 <style>

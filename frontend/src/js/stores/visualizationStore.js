@@ -8,8 +8,11 @@
 const VIS_STORAGE_KEYS = {
     VIS_ACTIVE_DATA_SOURCE: 'ui_v2_exp__vis__activeDataSource',
     VIS_CURRENT_TEMPLATE: 'ui_v2_exp__vis__currentTemplate',
-    VIS_SELECTED_SOLVER_RUN: 'ui_v2_exp__vis__selectedSolverRun'
+    VIS_SELECTED_SOLVER_RUN: 'ui_v2_exp__vis__selectedSolverRun',
+    VIS_TEMPLATE_VERSION: 'ui_v2_exp__vis__templateVersion'
 };
+
+const VIS_TEMPLATE_VERSION = '2026-02-25-plot-templates-v3';
 
 // Get storage key for template code
 function getVisCodeKey(templateId) {
@@ -49,10 +52,37 @@ function migrateLegacyVisualizationStorage() {
     }
 }
 
+function migrateTemplateCodeVersion() {
+    try {
+        const currentVersion = localStorage.getItem(VIS_STORAGE_KEYS.VIS_TEMPLATE_VERSION);
+        if (currentVersion === VIS_TEMPLATE_VERSION) {
+            return;
+        }
+
+        const removablePrefixes = ['vis-code-', 'ui_v2_exp__vis__code__'];
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i += 1) {
+            const key = localStorage.key(i);
+            if (!key) {
+                continue;
+            }
+            if (removablePrefixes.some((prefix) => key.startsWith(prefix))) {
+                keysToRemove.push(key);
+            }
+        }
+
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
+        localStorage.setItem(VIS_STORAGE_KEYS.VIS_TEMPLATE_VERSION, VIS_TEMPLATE_VERSION);
+    } catch (error) {
+        console.error('Failed to migrate visualization template cache version:', error);
+    }
+}
+
 document.addEventListener('alpine:init', () => {
     Alpine.store('visualization', {
         // State
         solverData: null,
+        solverDataSourceRef: null,
         selectedSolverRunId: '',
         csvData: null,
         activeDataSource: 'solver', // 'solver' or 'csv'
@@ -84,6 +114,7 @@ document.addEventListener('alpine:init', () => {
                 }
                 console.log('Visualization store initialized');
                 migrateLegacyVisualizationStorage();
+                migrateTemplateCodeVersion();
                 this.loadTemplates();
                 this.setActivePlotTab(this.currentTemplateId);
                 this.loadFromLocalStorage();
@@ -108,12 +139,9 @@ document.addEventListener('alpine:init', () => {
             }
 
             // Load saved template code
-            const savedCode = localStorage.getItem(getVisCodeKey(this.currentTemplateId));
-            if (savedCode) {
-                this.code = savedCode;
-            } else if (this.templates[this.currentTemplateId]) {
-                this.code = this.templates[this.currentTemplateId].code;
-            }
+            const savedCode = localStorage.getItem(getVisCodeKey(this.currentTemplateId)) || '';
+            this.code = this.resolveTemplateCode(this.currentTemplateId, savedCode);
+            localStorage.setItem(getVisCodeKey(this.currentTemplateId), this.code);
         },
 
         // Load from localStorage
@@ -160,6 +188,33 @@ document.addEventListener('alpine:init', () => {
             return false;
         },
 
+        getDefaultTemplateCode(templateId = this.currentTemplateId) {
+            return this.templates?.[templateId]?.code || '';
+        },
+
+        isTemplateCodeValid(code) {
+            if (!code || typeof code !== 'string' || code.trim().length === 0) {
+                return false;
+            }
+            try {
+                new Function('data', 'container', 'd3', code);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        },
+
+        resolveTemplateCode(templateId = this.currentTemplateId, candidateCode = '') {
+            if (this.isTemplateCodeValid(candidateCode)) {
+                return candidateCode;
+            }
+            const fallback = this.getDefaultTemplateCode(templateId);
+            if (this.isTemplateCodeValid(fallback)) {
+                return fallback;
+            }
+            return '';
+        },
+
          // Template renderer - executes template code with data and container
          getTemplateRenderer(templateId = this.currentTemplateId) {
              
@@ -176,15 +231,18 @@ document.addEventListener('alpine:init', () => {
              
              // Return renderer that executes template code
              return function(data, container) {
-                 // Use edited code if available, otherwise fall back to template default
-                 const code = this.code || this.templates[templateId]?.code || '';
-                 if (!code) {
+                 const code = this.code || this.templates[templateId].code || '';
+                 const rawCode = templateId === this.currentTemplateId
+                     ? code
+                     : (localStorage.getItem(getVisCodeKey(templateId)) || '');
+                 const safeCode = this.resolveTemplateCode(templateId, rawCode);
+                 if (!safeCode) {
                      throw new Error(`No code available for template: ${templateId}`);
                  }
                  
                  try {
                      // Execute template code with data, container, and d3 in scope
-                     const renderFn = new Function('data', 'container', 'd3', code);
+                     const renderFn = new Function('data', 'container', 'd3', safeCode);
                      renderFn(data, container, d3);
                  } catch (err) {
                      console.error(`Template execution error in ${templateId}:`, err);
@@ -237,14 +295,332 @@ document.addEventListener('alpine:init', () => {
              return !!this.renderedPlots[templateId];
          },
 
+         normalizeAssignedList(value) {
+             if (Array.isArray(value)) {
+                 return value
+                     .map((item) => String(item || '').trim())
+                     .filter(Boolean);
+             }
+             return String(value || '')
+                 .split(';')
+                 .map((item) => item.trim())
+                 .filter(Boolean);
+         },
+
+         buildResourceNameLookup(resources = [], resourceType = '') {
+             if (!Array.isArray(resources)) {
+                 return {};
+             }
+             const addKey = (acc, key, name) => {
+                 const normalizedKey = String(key || '').trim();
+                 if (!normalizedKey) {
+                     return;
+                 }
+                 acc[normalizedKey] = name;
+             };
+             const withAltSeparators = (value) => {
+                 const raw = String(value || '').trim();
+                 if (!raw) {
+                     return [];
+                 }
+                 const variants = new Set([raw]);
+                 variants.add(raw.replace(/-/g, '_'));
+                 variants.add(raw.replace(/_/g, '-'));
+                 return Array.from(variants);
+             };
+
+             return resources.reduce((acc, resource) => {
+                 const id = String(resource?.id || '').trim();
+                 if (!id) {
+                     return acc;
+                 }
+                 const name = String(resource?.name || id).trim() || id;
+                 withAltSeparators(id).forEach((variant) => addKey(acc, variant, name));
+
+                 if (resourceType === 'equipment') {
+                     withAltSeparators(`setup_${id}`).forEach((variant) => addKey(acc, variant, name));
+                     if (id.startsWith('setup_')) {
+                         withAltSeparators(id.slice('setup_'.length)).forEach((variant) => addKey(acc, variant, name));
+                     }
+                 }
+
+                 if (resourceType === 'fte') {
+                     withAltSeparators(`fte_${id}`).forEach((variant) => addKey(acc, variant, name));
+                     if (id.startsWith('fte_')) {
+                         withAltSeparators(id.slice('fte_'.length)).forEach((variant) => addKey(acc, variant, name));
+                     }
+                 }
+
+                 return acc;
+             }, {});
+         },
+
+         buildResourceGroupLookup(resources = [], aliases = {}, resourceType = '') {
+             if (!Array.isArray(resources)) {
+                 return {};
+             }
+             const aliasMap = aliases && typeof aliases === 'object' ? aliases : {};
+             const resourceById = new Map();
+             const resourceIdByName = new Map();
+             resources.forEach((resource) => {
+                 const resourceId = String(resource?.id || '').trim();
+                 if (!resourceId) {
+                     return;
+                 }
+                 const resourceName = String(resource?.name || '').trim();
+                 resourceById.set(resourceId, resource);
+                 if (resourceName) {
+                     resourceIdByName.set(resourceName, resourceId);
+                 }
+             });
+
+             const withAltSeparators = (value) => {
+                 const raw = String(value || '').trim();
+                 if (!raw) {
+                     return [];
+                 }
+                 const variants = new Set([raw]);
+                 variants.add(raw.replace(/-/g, '_'));
+                 variants.add(raw.replace(/_/g, '-'));
+                 return Array.from(variants);
+             };
+             const addGroupKey = (acc, key, groupName) => {
+                 const normalizedKey = String(key || '').trim();
+                 if (!normalizedKey || Object.prototype.hasOwnProperty.call(acc, normalizedKey)) {
+                     return;
+                 }
+                 acc[normalizedKey] = groupName;
+             };
+             const addGroupVariants = (acc, baseId, groupName) => {
+                 withAltSeparators(baseId).forEach((variant) => addGroupKey(acc, variant, groupName));
+                 if (resourceType === 'equipment') {
+                     withAltSeparators(`setup_${baseId}`).forEach((variant) => addGroupKey(acc, variant, groupName));
+                     if (String(baseId).startsWith('setup_')) {
+                         withAltSeparators(String(baseId).slice('setup_'.length))
+                             .forEach((variant) => addGroupKey(acc, variant, groupName));
+                     }
+                 }
+                 if (resourceType === 'fte') {
+                     withAltSeparators(`fte_${baseId}`).forEach((variant) => addGroupKey(acc, variant, groupName));
+                     if (String(baseId).startsWith('fte_')) {
+                         withAltSeparators(String(baseId).slice('fte_'.length))
+                             .forEach((variant) => addGroupKey(acc, variant, groupName));
+                     }
+                 }
+             };
+
+             return Object.entries(aliasMap).reduce((acc, [groupNameRaw, members]) => {
+                 const groupName = String(groupNameRaw || '').trim();
+                 if (!groupName || !Array.isArray(members)) {
+                     return acc;
+                 }
+                 members.forEach((memberRaw) => {
+                     const member = String(memberRaw || '').trim();
+                     if (!member) {
+                         return;
+                     }
+                     const canonicalId = resourceById.has(member)
+                         ? member
+                         : (resourceIdByName.get(member) || member);
+                     addGroupVariants(acc, canonicalId, groupName);
+                     // Also index the raw member token exactly in case schedule rows use alias-member spelling directly.
+                     addGroupVariants(acc, member, groupName);
+                 });
+                 return acc;
+             }, {});
+         },
+
+         getResourceNameLookups() {
+             const configStore =
+                 typeof Alpine !== 'undefined' && typeof Alpine.store === 'function'
+                     ? Alpine.store('config')
+                     : null;
+
+             const fteResources = Array.isArray(configStore?.fte?.resources) ? configStore.fte.resources : [];
+             const equipmentResources = Array.isArray(configStore?.equipment?.resources) ? configStore.equipment.resources : [];
+             const fteAliases = configStore?.fte?.aliases && typeof configStore.fte.aliases === 'object'
+                 ? configStore.fte.aliases
+                 : {};
+             const equipmentAliases = configStore?.equipment?.aliases && typeof configStore.equipment.aliases === 'object'
+                 ? configStore.equipment.aliases
+                 : {};
+
+             return {
+                 fteLookup: this.buildResourceNameLookup(fteResources, 'fte'),
+                 equipmentLookup: this.buildResourceNameLookup(equipmentResources, 'equipment'),
+                 fteGroupLookup: this.buildResourceGroupLookup(fteResources, fteAliases, 'fte'),
+                 equipmentGroupLookup: this.buildResourceGroupLookup(equipmentResources, equipmentAliases, 'equipment')
+             };
+         },
+
+         getFteHolidays() {
+             const configStore =
+                 typeof Alpine !== 'undefined' && typeof Alpine.store === 'function'
+                     ? Alpine.store('config')
+                     : null;
+             const holidays = Array.isArray(configStore?.fte?.holidays) ? configStore.fte.holidays : [];
+             return holidays
+                 .map((holiday) => {
+                     const startDateRaw = String(holiday?.startDate || holiday?.start_date || '').trim();
+                     const endDateRaw = String(holiday?.endDate || holiday?.end_date || '').trim();
+                     if (!startDateRaw || !endDateRaw) {
+                         return null;
+                     }
+                     const startDate = new Date(`${startDateRaw}T00:00:00`);
+                     const endDate = new Date(`${endDateRaw}T00:00:00`);
+                     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+                         return null;
+                     }
+                     if (endDate.getTime() < startDate.getTime()) {
+                         return null;
+                     }
+                     return {
+                         id: String(holiday?.id || '').trim(),
+                         name: String(holiday?.name || '').trim(),
+                         startDate: startDateRaw,
+                         endDate: endDateRaw
+                     };
+                 })
+                 .filter(Boolean);
+         },
+
+         buildHolidayBufferSchedules(testSchedules, fteHolidays) {
+             const schedules = Array.isArray(testSchedules) ? testSchedules : [];
+             const holidays = Array.isArray(fteHolidays) ? fteHolidays : [];
+             if (schedules.length === 0 || holidays.length === 0) {
+                 return [];
+             }
+
+             const parseIsoDate = (value) => {
+                 const raw = String(value || '').trim();
+                 if (!raw) {
+                     return null;
+                 }
+                 const parsed = new Date(`${raw}T00:00:00`);
+                 return Number.isNaN(parsed.getTime()) ? null : parsed;
+             };
+
+             const legBounds = new Map();
+             schedules.forEach((schedule) => {
+                 const legId = String(schedule?.projectLegId || '').trim();
+                 if (!legId) {
+                     return;
+                 }
+                 const startDate = parseIsoDate(schedule?.startDate);
+                 const endDate = parseIsoDate(schedule?.endDate);
+                 if (!startDate || !endDate) {
+                     return;
+                 }
+
+                 const existing = legBounds.get(legId);
+                 if (!existing) {
+                     legBounds.set(legId, { start: startDate, end: endDate });
+                     return;
+                 }
+                 if (startDate.getTime() < existing.start.getTime()) {
+                     existing.start = startDate;
+                 }
+                 if (endDate.getTime() > existing.end.getTime()) {
+                     existing.end = endDate;
+                 }
+             });
+
+             const buffers = [];
+             legBounds.forEach((bounds, legId) => {
+                 holidays.forEach((holiday) => {
+                     const holidayStart = parseIsoDate(holiday?.startDate);
+                     const holidayEnd = parseIsoDate(holiday?.endDate);
+                     if (!holidayStart || !holidayEnd) {
+                         return;
+                     }
+
+                     const isRunningBeforeAndAfterHoliday =
+                         bounds.start.getTime() < holidayStart.getTime() &&
+                         bounds.end.getTime() > holidayEnd.getTime();
+                     if (!isRunningBeforeAndAfterHoliday) {
+                         return;
+                     }
+
+                     buffers.push({
+                         testId: `holiday-buffer-${legId}-${holiday.startDate}-${holiday.endDate}`,
+                         projectLegId: legId,
+                         testName: 'Buff',
+                         startDate: holiday.startDate,
+                         startTime: '00:00:00',
+                         endDate: holiday.endDate,
+                         endTime: '23:59:59',
+                         assignedEquipmentId: '',
+                         assignedFteId: '',
+                         assignedEquipment: '',
+                         assignedFte: '',
+                         assignedEquipmentIds: [],
+                         assignedFteIds: [],
+                         isHolidayBuffer: true,
+                         holidayName: holiday?.name || ''
+                     });
+                 });
+             });
+
+             return buffers;
+         },
+
+         resolveAssignedNames(assignedNames, assignedIds, lookup) {
+             if (Array.isArray(assignedNames)) {
+                 const explicitNames = assignedNames
+                     .map((item) => String(item || '').trim())
+                     .filter(Boolean);
+                 if (explicitNames.length > 0) {
+                     return explicitNames;
+                 }
+             }
+             return assignedIds.map((id) => lookup[id] || id);
+         },
+
+         resolveAssignedGroups(assignedIds, lookup) {
+             const resolved = assignedIds
+                 .map((id) => String(lookup?.[id] || '').trim())
+                 .filter(Boolean);
+             return [...new Set(resolved)];
+         },
+
+         enrichSolverResultsWithResourceNames(results) {
+             if (!results || typeof results !== 'object') {
+                 return results;
+             }
+
+             const schedules = Array.isArray(results.test_schedule) ? results.test_schedule : null;
+             if (!schedules) {
+                 return results;
+             }
+
+             const { fteLookup, equipmentLookup, fteGroupLookup, equipmentGroupLookup } = this.getResourceNameLookups();
+             const enrichedSchedules = schedules.map((schedule) => {
+                 const assignedFteIds = this.normalizeAssignedList(schedule?.assigned_fte);
+                 const assignedEquipmentIds = this.normalizeAssignedList(schedule?.assigned_equipment);
+                 return {
+                     ...schedule,
+                     assigned_fte_names: this.resolveAssignedNames(schedule?.assigned_fte_names, assignedFteIds, fteLookup),
+                     assigned_equipment_names: this.resolveAssignedNames(schedule?.assigned_equipment_names, assignedEquipmentIds, equipmentLookup),
+                     assigned_fte_groups: this.resolveAssignedGroups(assignedFteIds, fteGroupLookup),
+                     assigned_equipment_groups: this.resolveAssignedGroups(assignedEquipmentIds, equipmentGroupLookup)
+                 };
+             });
+
+             return {
+                 ...results,
+                 test_schedule: enrichedSchedules
+             };
+         },
+
          // Watch for solver data changes
          watchSolverData(externalResults = null) {
              const parentSolverResults = externalResults;
 
              // Update local solverData if parent has new results
-             if (parentSolverResults && parentSolverResults !== this.solverData) {
+             if (parentSolverResults && parentSolverResults !== this.solverDataSourceRef) {
                  const wasDataEmpty = !this.solverData;
-                 this.solverData = parentSolverResults;
+                 this.solverDataSourceRef = parentSolverResults;
+                 this.solverData = this.enrichSolverResultsWithResourceNames(parentSolverResults);
                  this.activeDataSource = 'solver';
                  this.saveToLocalStorage();
 
@@ -254,6 +630,7 @@ document.addEventListener('alpine:init', () => {
                  }
              } else if (!parentSolverResults && this.solverData) {
                  // Clear solver data when parent data is cleared
+                 this.solverDataSourceRef = null;
                  this.solverData = null;
                  if (this.activeDataSource === 'solver' && this.csvData) {
                      this.activeDataSource = 'csv';
@@ -271,12 +648,8 @@ document.addEventListener('alpine:init', () => {
                 this.setActivePlotTab(templateId);
 
                 // Load saved code for this template, or use default template code
-                const savedCode = localStorage.getItem(getVisCodeKey(templateId));
-                if (savedCode) {
-                    this.code = savedCode;
-                } else {
-                    this.code = this.templates[templateId].code;
-                }
+                const savedCode = localStorage.getItem(getVisCodeKey(templateId)) || '';
+                this.code = this.resolveTemplateCode(templateId, savedCode);
 
                 this.error = null;
                 this.saveToLocalStorage();
@@ -345,6 +718,22 @@ document.addEventListener('alpine:init', () => {
              const targetTemplateId = templateId || this.currentTemplateId;
              const targetContainer = containerElement || this.getPlotContainer(targetTemplateId);
 
+             const resolvedCode = this.resolveTemplateCode(targetTemplateId, this.code || '');
+             if (!resolvedCode) {
+                 this.error = { message: `No valid code available for template: ${targetTemplateId}`, line: 0 };
+                 return false;
+             }
+             if (resolvedCode !== this.code) {
+                 console.warn('[visualizationStore] Invalid template code detected; reverted to default', {
+                     templateId: targetTemplateId
+                 });
+                 this.code = resolvedCode;
+                 this.saveToLocalStorage();
+                 if (this.editor && this.editor.setValue) {
+                     this.editor.setValue(this.code);
+                 }
+             }
+
              // 2. Validate container
              if (!targetContainer) {
                   this.error = { message: 'No container element provided for rendering.', line: 0 };
@@ -400,8 +789,34 @@ document.addEventListener('alpine:init', () => {
               }
           },
 
+        renderTemplateById(templateId, transformedData, containerElement) {
+            if (!containerElement) {
+                throw new Error(`No container element provided for template: ${templateId}`);
+            }
+            const renderer = this.getTemplateRenderer(templateId);
+            renderer.call(this, transformedData, containerElement);
+            this.markPlotRendered(templateId);
+            return true;
+        },
+
+        renderGanttTests(transformedData, containerElement) {
+            return this.renderTemplateById('gantt-tests', transformedData, containerElement);
+        },
+
+        renderEquipment(transformedData, containerElement) {
+            return this.renderTemplateById('equipment', transformedData, containerElement);
+        },
+
+        renderFte(transformedData, containerElement) {
+            return this.renderTemplateById('fte', transformedData, containerElement);
+        },
+
+        renderConcurrency(transformedData, containerElement) {
+            return this.renderTemplateById('concurrency', transformedData, containerElement);
+        },
+
         // Transform solution result for visualization
-        transformSolutionResult(solutionResult) {
+         transformSolutionResult(solutionResult) {
             if (!solutionResult) {
                 throw new Error('Solver results data is null or undefined');
             }
@@ -450,30 +865,88 @@ document.addEventListener('alpine:init', () => {
 
             // Transform SolutionResult JSON to match legacy CSV format (with camelCase)
             const concurrencyFromOutput = this.parseConcurrencyTimeseriesFromOutputFiles(solutionResult);
+            const { fteLookup, equipmentLookup, fteGroupLookup, equipmentGroupLookup } = this.getResourceNameLookups();
+            console.info('[vis-name-debug] Resource lookups', {
+                fteLookupSize: Object.keys(fteLookup || {}).length,
+                equipmentLookupSize: Object.keys(equipmentLookup || {}).length,
+                fteGroupLookupSize: Object.keys(fteGroupLookup || {}).length,
+                equipmentGroupLookupSize: Object.keys(equipmentGroupLookup || {}).length,
+                fteLookupSample: Object.entries(fteLookup || {}).slice(0, 5),
+                equipmentLookupSample: Object.entries(equipmentLookup || {}).slice(0, 5),
+                fteGroupLookupSample: Object.entries(fteGroupLookup || {}).slice(0, 5),
+                equipmentGroupLookupSample: Object.entries(equipmentGroupLookup || {}).slice(0, 5)
+            });
+            const transformedTestSchedules = testSchedulesArray.map((s) => {
+                    const assignedEquipmentIds = this.normalizeAssignedList(s.assigned_equipment);
+                    const assignedFteIds = this.normalizeAssignedList(s.assigned_fte);
+                    const assignedEquipmentNames = this.resolveAssignedNames(
+                        s.assigned_equipment_names,
+                        assignedEquipmentIds,
+                        equipmentLookup
+                    );
+                    const assignedFteNames = this.resolveAssignedNames(
+                        s.assigned_fte_names,
+                        assignedFteIds,
+                        fteLookup
+                    );
+                    const assignedEquipmentGroups = this.resolveAssignedGroups(
+                        assignedEquipmentIds,
+                        equipmentGroupLookup
+                    );
+                    const assignedFteGroups = this.resolveAssignedGroups(
+                        assignedFteIds,
+                        fteGroupLookup
+                    );
+
+                    return {
+                        testId: s.test_id,
+                        projectLegId: s.project_leg_id,
+                        testName: s.test_name,
+                        startDate: s.start_date
+                            ? (typeof s.start_date === 'string' ? s.start_date : s.start_date.toISOString().split('T')[0])
+                            : toIsoDateFromDay(s.start_day),
+                        startTime: s.start_date
+                            ? (typeof s.start_date === 'string' ? s.start_date.split('T')[1]?.split('.')[0] || '00:00:00' : '00:00:00')
+                            : '00:00:00',
+                        endDate: s.end_date
+                            ? (typeof s.end_date === 'string' ? s.end_date : s.end_date.toISOString().split('T')[0])
+                            : toIsoDateFromDay(s.end_day),
+                        endTime: s.end_date
+                            ? (typeof s.end_date === 'string' ? s.end_date.split('T')[1]?.split('.')[0] || '00:00:00' : '00:00:00')
+                            : '00:00:00',
+                        assignedEquipmentId: assignedEquipmentIds[0] || '',
+                        assignedFteId: assignedFteIds[0] || '',
+                        assignedEquipment: assignedEquipmentNames.join(';'),
+                        assignedFte: assignedFteNames.join(';'),
+                        assignedEquipmentGroup: assignedEquipmentGroups[0] || '',
+                        assignedFteGroup: assignedFteGroups[0] || '',
+                        assignedEquipmentGroups,
+                        assignedFteGroups,
+                        assignedEquipmentIds: assignedEquipmentIds,
+                        assignedFteIds: assignedFteIds
+                    };
+                });
+            console.info('[vis-name-debug] Schedule assignment mapping sample', transformedTestSchedules.slice(0, 5).map((row, index) => ({
+                index,
+                testId: row.testId,
+                projectLegId: row.projectLegId,
+                assignedEquipmentId: row.assignedEquipmentId,
+                assignedFteId: row.assignedFteId,
+                assignedEquipment: row.assignedEquipment,
+                assignedFte: row.assignedFte,
+                assignedEquipmentGroup: row.assignedEquipmentGroup,
+                assignedFteGroup: row.assignedFteGroup
+            })));
+            const fteHolidays = this.getFteHolidays();
+            const holidayBufferSchedules = this.buildHolidayBufferSchedules(
+                transformedTestSchedules,
+                fteHolidays
+            );
             const transformed = {
-                testSchedules: testSchedulesArray.map(s => ({
-                    testId: s.test_id,
-                    projectLegId: s.project_leg_id,
-                    testName: s.test_name,
-                    startDate: s.start_date
-                        ? (typeof s.start_date === 'string' ? s.start_date : s.start_date.toISOString().split('T')[0])
-                        : toIsoDateFromDay(s.start_day),
-                    startTime: s.start_date
-                        ? (typeof s.start_date === 'string' ? s.start_date.split('T')[1]?.split('.')[0] || '00:00:00' : '00:00:00')
-                        : '00:00:00',
-                    endDate: s.end_date
-                        ? (typeof s.end_date === 'string' ? s.end_date : s.end_date.toISOString().split('T')[0])
-                        : toIsoDateFromDay(s.end_day),
-                    endTime: s.end_date
-                        ? (typeof s.end_date === 'string' ? s.end_date.split('T')[1]?.split('.')[0] || '00:00:00' : '00:00:00')
-                        : '00:00:00',
-                    assignedEquipmentId: Array.isArray(s.assigned_equipment) ? s.assigned_equipment[0] : (s.assigned_equipment || ''),
-                    assignedFteId: Array.isArray(s.assigned_fte) ? s.assigned_fte[0] : (s.assigned_fte || ''),
-                    assignedEquipment: Array.isArray(s.assigned_equipment) ? s.assigned_equipment.join(';') : (s.assigned_equipment || ''),
-                    assignedFte: Array.isArray(s.assigned_fte) ? s.assigned_fte.join(';') : (s.assigned_fte || '')
-                })),
+                testSchedules: [...transformedTestSchedules, ...holidayBufferSchedules],
                 equipmentUsage: this.generateEquipmentUsage(solutionResult, testSchedulesArray),
                 fteUsage: this.generateFTEUsage(solutionResult, testSchedulesArray),
+                fteHolidays,
                 concurrencyTimeseries: concurrencyFromOutput.length > 0
                     ? concurrencyFromOutput
                     : this.generateConcurrencyTimeseries(solutionResult, testSchedulesArray)
@@ -530,6 +1003,7 @@ document.addEventListener('alpine:init', () => {
         // Generate equipment usage data
         generateEquipmentUsage(solutionResult, testSchedulesArray = null) {
             const usage = [];
+            const { equipmentLookup, equipmentGroupLookup } = this.getResourceNameLookups();
             const schedules =
                 testSchedulesArray ||
                 solutionResult.test_schedule ||
@@ -538,10 +1012,18 @@ document.addEventListener('alpine:init', () => {
                 solutionResult.testSchedule ||
                 [];
             schedules.forEach(schedule => {
-                const equipmentList = Array.isArray(schedule.assigned_equipment) ? schedule.assigned_equipment : [schedule.assigned_equipment].filter(Boolean);
-                equipmentList.forEach(eqId => {
+                const equipmentList = this.normalizeAssignedList(schedule.assigned_equipment);
+                const equipmentNames = this.resolveAssignedNames(
+                    schedule.assigned_equipment_names,
+                    equipmentList,
+                    equipmentLookup
+                );
+                equipmentList.forEach((eqId, index) => {
+                    const equipmentName = equipmentNames[index] || equipmentLookup[eqId] || eqId;
                     usage.push({
-                        equipmentId: eqId,
+                        equipmentId: equipmentName,
+                        equipmentResourceId: eqId,
+                        equipmentGroup: equipmentGroupLookup[eqId] || '',
                         testId: schedule.test_id,
                         testName: schedule.test_name,
                         startDate: schedule.start_date ? (typeof schedule.start_date === 'string' ? schedule.start_date : schedule.start_date.toISOString().split('T')[0]) : null,
@@ -555,6 +1037,7 @@ document.addEventListener('alpine:init', () => {
         // Generate FTE usage data
         generateFTEUsage(solutionResult, testSchedulesArray = null) {
             const usage = [];
+            const { fteLookup, fteGroupLookup } = this.getResourceNameLookups();
             const schedules =
                 testSchedulesArray ||
                 solutionResult.test_schedule ||
@@ -563,10 +1046,18 @@ document.addEventListener('alpine:init', () => {
                 solutionResult.testSchedule ||
                 [];
             schedules.forEach(schedule => {
-                const fteList = Array.isArray(schedule.assigned_fte) ? schedule.assigned_fte : [schedule.assigned_fte].filter(Boolean);
-                fteList.forEach(fteId => {
+                const fteList = this.normalizeAssignedList(schedule.assigned_fte);
+                const fteNames = this.resolveAssignedNames(
+                    schedule.assigned_fte_names,
+                    fteList,
+                    fteLookup
+                );
+                fteList.forEach((fteId, index) => {
+                    const fteName = fteNames[index] || fteLookup[fteId] || fteId;
                     usage.push({
-                        fteId: fteId,
+                        fteId: fteName,
+                        fteResourceId: fteId,
+                        fteGroup: fteGroupLookup[fteId] || '',
                         testId: schedule.test_id,
                         testName: schedule.test_name,
                         startDate: schedule.start_date ? (typeof schedule.start_date === 'string' ? schedule.start_date : schedule.start_date.toISOString().split('T')[0]) : null,

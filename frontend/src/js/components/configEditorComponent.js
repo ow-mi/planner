@@ -8,8 +8,9 @@
  function configEditorComponent() {
      return {
          jsonImportText: '',
+         copySuccess: false,  // Feedback state for clipboard copy
          weightsPercent: 50,  // 0-100% slider: 0%=fully makespan, 100%=fully priority
-         activeSubtab: 'import',  // Default active subtab
+         activeSubtab: 'weights',  // Default active subtab
          activeTestTab: 'project',
          showAddTestModal: false,
          newTestName: '',
@@ -142,6 +143,57 @@
             setTimeout(() => this.clearSuccessMessage(), 3000);
         },
 
+        /**
+         * Download complete configuration as JSON file
+         * Exports all settings including FTE, Equipment, and Test Configuration
+         */
+        downloadFullConfig() {
+            const configStore = this.$store.config;
+            if (!configStore || !configStore.getFullConfigJson) {
+                this.error = 'Configuration export is unavailable.';
+                return;
+            }
+
+            const configData = configStore.getFullConfigJson();
+            const blob = new Blob([JSON.stringify(configData, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'planner_configuration.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            this.successMessage = 'Configuration exported successfully';
+            setTimeout(() => this.clearSuccessMessage(), 3000);
+        },
+
+        /**
+         * Copy configuration JSON to clipboard
+         * Shows success feedback for 2 seconds
+         */
+        async copyConfigToClipboard() {
+            const configStore = this.$store.config;
+            if (!configStore || !configStore.getFullConfigJson) {
+                this.error = 'Configuration export is unavailable.';
+                return;
+            }
+
+            const configData = configStore.getFullConfigJson();
+            const jsonText = JSON.stringify(configData, null, 2);
+
+            try {
+                await navigator.clipboard.writeText(jsonText);
+                this.copySuccess = true;
+                this.error = null;
+                setTimeout(() => { this.copySuccess = false; }, 2000);
+            } catch (err) {
+                console.error('Failed to copy configuration:', err);
+                this.error = 'Failed to copy to clipboard. Please try again.';
+            }
+        },
+
         resetToDefaults() {
             if (confirm('Are you sure you want to reset all configuration settings to defaults?')) {
                 this.$store.config.resetToDefaults();
@@ -180,6 +232,11 @@
             const makespanWeight = 1 - priorityWeight;
             this.config.weights.makespanWeight = makespanWeight;
             this.config.weights.priorityWeight = priorityWeight;
+        },
+
+        syncLegEndingWeight() {
+            const current = Number(this.config?.weights?.legEndingWeight);
+            this.config.weights.legEndingWeight = Number.isFinite(current) && current >= 0 ? current : 0;
         },
 
         queueOutputUpdate(force = false) {
@@ -263,6 +320,17 @@
          
          get legs() {
               const deadlines = this.$store.config.config.deadlines || [];
+              if (this.activeSubtab === 'legs') {
+                  console.info('[configEditor][legs-view] render snapshot', {
+                      deadlinesCount: deadlines.length,
+                      deadlinesEnabled: Boolean(this.$store.config.sectionEnabled?.deadlinesEnabled),
+                      sample: deadlines.slice(0, 5).map((leg) => ({
+                          project: leg?.project || '',
+                          legId: leg?.legId || '',
+                          branch: leg?.branch || ''
+                      }))
+                  });
+              }
               // Ensure each deadline has UI state properties
               return deadlines.map((leg, index) => {
                   if (!leg._uiId) {
@@ -828,6 +896,7 @@
          // Alias management
          newAliasName: '',
          aliasResourceSelections: {},
+         editingAliasName: '',
 
          /**
           * Get list of available years for calendar (current and next 2 years)
@@ -1185,20 +1254,34 @@
           * @param {string} resourceId - Stored resource ID
           * @returns {string} Human-readable resource name
           */
-         getFteDisplayName(resourceId) {
-             const id = String(resourceId || '').trim();
-             if (!id) {
-                 return '';
-             }
-             const resource = this.fteResources.find((item) => String(item?.id || '').trim() === id);
-             return String(resource?.name || id).trim();
-         },
+          getFteDisplayName(resourceId) {
+              const id = String(resourceId || '').trim();
+              if (!id) {
+                  return '';
+              }
+              const resource = this.fteResources.find((item) => String(item?.id || '').trim() === id);
+              return String(resource?.name || id).trim();
+          },
 
-         /**
-          * Initialize alias selection for a specific alias
-          * @param {string} aliasName - Alias name
-          */
-         initAliasSelection(aliasName) {
+          /**
+           * Resolve Equipment display name by resource ID
+           * @param {string} resourceId - Stored resource ID
+           * @returns {string} Human-readable resource name
+           */
+          getEquipmentDisplayName(resourceId) {
+              const id = String(resourceId || '').trim();
+              if (!id) {
+                  return '';
+              }
+              const resource = this.equipmentResources.find((item) => String(item?.id || '').trim() === id);
+              return String(resource?.name || id).trim();
+          },
+
+          /**
+           * Initialize alias selection for a specific alias
+           * @param {string} aliasName - Alias name
+           */
+          initAliasSelection(aliasName) {
              if (!this.aliasResourceSelections[aliasName]) {
                  this.aliasResourceSelections[aliasName] = [];
              }
@@ -1211,7 +1294,10 @@
              const name = this.newAliasName.trim();
              if (!name) return;
              
-             const selectedResources = this.aliasResourceSelections[name] || [];
+             const validResourceIds = new Set(this.fteResources.map((resource) => String(resource?.id || '').trim()).filter(Boolean));
+             const selectedResources = (this.aliasResourceSelections[name] || [])
+                 .map((resourceId) => String(resourceId || '').trim())
+                 .filter((resourceId, index, list) => resourceId && validResourceIds.has(resourceId) && list.indexOf(resourceId) === index);
              if (selectedResources.length === 0) {
                  alert('Please select at least one resource for the alias');
                  return;
@@ -1220,6 +1306,38 @@
              this.addAliasGroup(name, selectedResources);
              this.newAliasName = '';
              this.aliasResourceSelections[name] = [];
+         },
+
+         startEditAliasGroup(aliasName) {
+             const name = String(aliasName || '').trim();
+             if (!name) return;
+             this.editingAliasName = name;
+             this.aliasResourceSelections[name] = [...(this.fteAliases[name] || [])];
+         },
+
+         saveAliasGroupEdit(aliasName) {
+             const name = String(aliasName || '').trim();
+             if (!name) return;
+             const validResourceIds = new Set(this.fteResources.map((resource) => String(resource?.id || '').trim()).filter(Boolean));
+             const selectedResources = (this.aliasResourceSelections[name] || [])
+                 .map((resourceId) => String(resourceId || '').trim())
+                 .filter((resourceId, index, list) => resourceId && validResourceIds.has(resourceId) && list.indexOf(resourceId) === index);
+             if (typeof this.$store.config.updateAliasGroupMembers === 'function') {
+                 this.$store.config.updateAliasGroupMembers(name, selectedResources);
+             } else {
+                 this.$store.config.addAliasGroup(name, selectedResources);
+             }
+             this.editingAliasName = '';
+         },
+
+         cancelAliasGroupEdit(aliasName) {
+             const name = String(aliasName || '').trim();
+             if (!name) {
+                 this.editingAliasName = '';
+                 return;
+             }
+             this.aliasResourceSelections[name] = [...(this.fteAliases[name] || [])];
+             this.editingAliasName = '';
          },
 
          /**
@@ -1308,6 +1426,7 @@
          // Alias management
          newEquipmentAliasName: '',
          equipmentAliasResourceSelections: {},
+         editingEquipmentAliasName: '',
 
          /**
           * Get list of available years for calendar (current and next 3 years)
@@ -1538,7 +1657,10 @@
              const name = this.newEquipmentAliasName.trim();
              if (!name) return;
              
-             const selectedResources = this.equipmentAliasResourceSelections[name] || [];
+             const validResourceIds = new Set(this.equipmentResources.map((resource) => String(resource?.id || '').trim()).filter(Boolean));
+             const selectedResources = (this.equipmentAliasResourceSelections[name] || [])
+                 .map((resourceId) => String(resourceId || '').trim())
+                 .filter((resourceId, index, list) => resourceId && validResourceIds.has(resourceId) && list.indexOf(resourceId) === index);
              if (selectedResources.length === 0) {
                  alert('Please select at least one equipment for the alias');
                  return;
@@ -1547,6 +1669,38 @@
              this.addEquipmentAliasGroup(name, selectedResources);
              this.newEquipmentAliasName = '';
              this.equipmentAliasResourceSelections[name] = [];
+         },
+
+         startEditEquipmentAliasGroup(aliasName) {
+             const name = String(aliasName || '').trim();
+             if (!name) return;
+             this.editingEquipmentAliasName = name;
+             this.equipmentAliasResourceSelections[name] = [...(this.equipmentAliases[name] || [])];
+         },
+
+         saveEquipmentAliasGroupEdit(aliasName) {
+             const name = String(aliasName || '').trim();
+             if (!name) return;
+             const validResourceIds = new Set(this.equipmentResources.map((resource) => String(resource?.id || '').trim()).filter(Boolean));
+             const selectedResources = (this.equipmentAliasResourceSelections[name] || [])
+                 .map((resourceId) => String(resourceId || '').trim())
+                 .filter((resourceId, index, list) => resourceId && validResourceIds.has(resourceId) && list.indexOf(resourceId) === index);
+             if (typeof this.$store.config.updateEquipmentAliasGroupMembers === 'function') {
+                 this.$store.config.updateEquipmentAliasGroupMembers(name, selectedResources);
+             } else {
+                 this.$store.config.addEquipmentAliasGroup(name, selectedResources);
+             }
+             this.editingEquipmentAliasName = '';
+         },
+
+         cancelEquipmentAliasGroupEdit(aliasName) {
+             const name = String(aliasName || '').trim();
+             if (!name) {
+                 this.editingEquipmentAliasName = '';
+                 return;
+             }
+             this.equipmentAliasResourceSelections[name] = [...(this.equipmentAliases[name] || [])];
+             this.editingEquipmentAliasName = '';
          },
 
          /**

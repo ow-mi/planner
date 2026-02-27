@@ -61,6 +61,35 @@ document.addEventListener('alpine:init', () => {
         // Check if theme is active
         isActive(themeId) {
             return this.$store.theme.currentTheme === themeId;
+        },
+
+        /**
+         * Clear all session data and reset to defaults
+         * Prompts user for confirmation before clearing localStorage
+         */
+        clearSession() {
+            const confirmed = window.confirm(
+                'Clear all session data?\n\nThis will remove:\n' +
+                '• Uploaded CSV data\n' +
+                '• Configuration settings\n' +
+                '• Solver results\n\n' +
+                'This action cannot be undone.'
+            );
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                // Clear localStorage
+                localStorage.clear();
+                console.log('[themeToggle] Session cleared, reloading page...');
+                
+                // Reload page to reset all state
+                window.location.reload();
+            } catch (error) {
+                console.error('[themeToggle] Error clearing session:', error);
+                window.alert('Error clearing session: ' + error.message);
+            }
         }
     }));
 });

@@ -37,8 +37,10 @@ class BasePriorityConfig:
         """Validate configuration parameters."""
         errors = []
 
-        # Validate weights sum to 1.0
-        total_weight = sum(self.weights.values())
+        # Validate makespan/priority split sums to 1.0
+        makespan_weight = float(self.weights.get("makespan_weight", 0.0))
+        priority_weight = float(self.weights.get("priority_weight", 0.0))
+        total_weight = makespan_weight + priority_weight
         if abs(total_weight - 1.0) > 0.001:
             errors.append(f"Weights must sum to 1.0, got {total_weight}")
 
@@ -127,6 +129,7 @@ class LegEndDatesConfig(BasePriorityConfig):
     leg_compactness_penalty_per_day: float = 0.0  # Penalty for stretching leg duration
     leg_deadline_penalties: Dict[str, float] = field(default_factory=dict)  # leg_id -> penalty override
     leg_compactness_penalties: Dict[str, float] = field(default_factory=dict)  # leg_id -> compactness override
+    leg_ending_weight: float = 0.0  # Extra force to pull leg completion dates earlier
     allow_parallel_within_deadlines: bool = True
 
     def validate(self) -> List[str]:
@@ -140,6 +143,8 @@ class LegEndDatesConfig(BasePriorityConfig):
             errors.append("deadline_penalty_per_day must be non-negative")
         if self.leg_compactness_penalty_per_day < 0:
             errors.append("leg_compactness_penalty_per_day must be non-negative")
+        if self.leg_ending_weight < 0:
+            errors.append("leg_ending_weight must be non-negative")
         for leg_id, penalty in (self.leg_deadline_penalties or {}).items():
             if not isinstance(penalty, (int, float)) or penalty < 0:
                 errors.append(f"leg_deadline_penalties[{leg_id}] must be non-negative")
@@ -312,6 +317,11 @@ def load_priority_config_from_dict(
 
     if mode == PriorityMode.LEG_END_DATES:
         from datetime import datetime
+
+        if "leg_ending_weight" not in config_data:
+            weights_dict = config_data.get("weights") or {}
+            if isinstance(weights_dict, dict) and "leg_ending_weight" in weights_dict:
+                config_data["leg_ending_weight"] = float(weights_dict["leg_ending_weight"])
 
         if "leg_deadlines" in config_data:
             deadlines = {}

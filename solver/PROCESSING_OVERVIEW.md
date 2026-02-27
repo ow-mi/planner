@@ -28,13 +28,17 @@ Input CSV Files → Data Loading → Validation → Model Building → Solving �
 3. **Resource Loading** (`load_resource_windows()`): Loads FTE and equipment availability
 4. **DUT Mapping** (`load_test_duts()`): Maps tests to DUT identifiers
 5. **Priority Configuration** (`load_priority_config()`): Loads scheduling priorities
-6. **Dependency Detection** (`detect_leg_dependencies()`): Auto-detects leg dependencies
+6. **Dependency Detection** (`detect_leg_dependencies()`): Builds dependencies from `data_test.csv.next_leg` on each leg's last test row
 
 **Validation Performed:**
 - File existence checks
 - Data format validation (ISO weeks, numeric fields)
 - Referential integrity (tests reference valid legs)
 - Sequence continuity within legs
+- `next_leg` validation:
+  - only allowed on the last test of each leg
+  - targets must be explicit `project_leg_id` values
+  - multiple targets must be separated with `;`
 - Resource assignment validity
 
 ### 2. Data Validation & Preprocessing

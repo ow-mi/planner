@@ -1,6 +1,7 @@
 """Service for spreadsheet discovery and validation."""
 
 import os
+import re
 import tempfile
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
@@ -219,6 +220,8 @@ class SpreadsheetService:
     def _validate_row_values(self, df: pd.DataFrame) -> List["ColumnValidationError"]:
         """Validate row-level values for type and format."""
         errors = []
+        valid_leg_ids = self._build_valid_leg_ids(df)
+        last_row_index_by_leg = self._build_last_row_index_by_leg(df)
 
         for idx, row in df.iterrows():
             # Validate duration_days is numeric
@@ -250,7 +253,109 @@ class SpreadsheetService:
                             )
                         )
 
+            if "next_leg" in df.columns:
+                raw_next_leg = ""
+                if pd.notna(row["next_leg"]):
+                    raw_next_leg = str(row["next_leg"]).strip()
+
+                if raw_next_leg:
+                    if "," in raw_next_leg:
+                        errors.append(
+                            ColumnValidationError(
+                                row_index=idx + 2,
+                                column_name="next_leg",
+                                value=raw_next_leg,
+                                expected_type="semicolon-separated project_leg_id list",
+                                error_message="Use ';' (not ',') to separate multiple next_leg targets",
+                                category=ValidationErrorCategory.InvalidValue,
+                            )
+                        )
+
+                    leg_key = self._build_leg_key_for_row(row)
+                    last_idx_for_leg = last_row_index_by_leg.get(leg_key)
+                    if last_idx_for_leg is not None and idx != last_idx_for_leg:
+                        errors.append(
+                            ColumnValidationError(
+                                row_index=idx + 2,
+                                column_name="next_leg",
+                                value=raw_next_leg,
+                                expected_type="value only on last test row of the same project/leg/branch",
+                                error_message="next_leg can only be set on the last test row of each leg branch",
+                                category=ValidationErrorCategory.InvalidValue,
+                            )
+                        )
+
+                    next_leg_tokens = [
+                        token.strip() for token in raw_next_leg.split(";") if token.strip()
+                    ]
+                    if not next_leg_tokens:
+                        errors.append(
+                            ColumnValidationError(
+                                row_index=idx + 2,
+                                column_name="next_leg",
+                                value=raw_next_leg,
+                                expected_type="project_leg_id",
+                                error_message="next_leg must include one or more non-empty project_leg_id values",
+                                category=ValidationErrorCategory.InvalidValue,
+                            )
+                        )
+                    else:
+                        for token in next_leg_tokens:
+                            if token not in valid_leg_ids:
+                                errors.append(
+                                    ColumnValidationError(
+                                        row_index=idx + 2,
+                                        column_name="next_leg",
+                                        value=token,
+                                        expected_type="existing project_leg_id from this spreadsheet",
+                                        error_message=f"Unknown next_leg target '{token}'",
+                                        category=ValidationErrorCategory.InvalidValue,
+                                    )
+                                )
+
         return errors
+
+    @staticmethod
+    def _slugify_identifier(value: object) -> str:
+        slug = re.sub(r"[^a-z0-9]+", "_", str(value or "").strip().lower())
+        return slug.strip("_")
+
+    def _build_leg_key_for_row(self, row: pd.Series) -> Tuple[str, str, str]:
+        project = str(row.get("project", "") if pd.notna(row.get("project")) else "").strip()
+        leg = str(row.get("leg", "") if pd.notna(row.get("leg")) else "").strip()
+        branch = str(row.get("branch", "") if pd.notna(row.get("branch")) else "").strip()
+        return (project, leg, branch)
+
+    def _build_valid_leg_ids(self, df: pd.DataFrame) -> set:
+        if "project" not in df.columns or "leg" not in df.columns:
+            return set()
+
+        valid_leg_ids = set()
+        has_branch = "branch" in df.columns
+        for _, row in df.iterrows():
+            project_slug = self._slugify_identifier(row.get("project"))
+            leg_slug = self._slugify_identifier(row.get("leg"))
+            if not project_slug or not leg_slug:
+                continue
+
+            branch_raw = row.get("branch") if has_branch else ""
+            branch_slug = self._slugify_identifier(branch_raw)
+            if branch_slug:
+                valid_leg_ids.add(f"{project_slug}_{leg_slug}_{branch_slug}")
+            else:
+                valid_leg_ids.add(f"{project_slug}_{leg_slug}")
+
+        return valid_leg_ids
+
+    def _build_last_row_index_by_leg(self, df: pd.DataFrame) -> Dict[Tuple[str, str, str], int]:
+        if "project" not in df.columns or "leg" not in df.columns:
+            return {}
+
+        last_index_by_leg: Dict[Tuple[str, str, str], int] = {}
+        for idx, row in df.iterrows():
+            key = self._build_leg_key_for_row(row)
+            last_index_by_leg[key] = idx
+        return last_index_by_leg
 
 
 # Global instance

@@ -8,22 +8,6 @@
     <!-- Subtab Navigation Sidebar -->
     <div class="subtab-container">
         <div class="subtab-sidebar">
-            <!-- Import -->
-            <button
-                type="button"
-                class="subtab-btn"
-                :class="{ 'active': activeSubtab === 'import' }"
-                @click="setActiveSubtab('import')"
-                @keydown.enter.prevent="setActiveSubtab('import')"
-                @keydown.space.prevent="setActiveSubtab('import')"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-                Import
-            </button>
             <!-- Weights -->
             <button
                 type="button"
@@ -112,6 +96,22 @@
                 </svg>
                 Test
             </button>
+            <!-- Import/Export -->
+            <button
+                type="button"
+                class="subtab-btn"
+                :class="{ 'active': activeSubtab === 'import' }"
+                @click="setActiveSubtab('import')"
+                @keydown.enter.prevent="setActiveSubtab('import')"
+                @keydown.space.prevent="setActiveSubtab('import')"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Import/Export
+            </button>
         </div>
         
         <div class="subtab-content">
@@ -171,6 +171,32 @@
                     <button @click="downloadRunSnapshot()" class="btn" style="margin-left: 0.5rem;">Save Run Snapshot (JSON + CSV)</button>
                 </div>
                 
+                <!-- Export Section -->
+                <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                    <h4 style="margin: 0 0 1rem 0;">Export Configuration</h4>
+                    <p style="margin: 0 0 1rem 0; color: var(--text-light); font-size: 0.875rem;">Download or copy the complete configuration including FTE, Equipment, and Test settings.</p>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                        <button @click="downloadFullConfig()" class="btn btn-primary" type="button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem; vertical-align: middle;">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Download Configuration JSON
+                        </button>
+                        <button @click="copyConfigToClipboard()" class="btn btn-secondary" type="button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem; vertical-align: middle;">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Copy to Clipboard
+                        </button>
+                        <span x-show="copySuccess" style="color: var(--success); font-size: 0.875rem; font-weight: 500;">
+                            ✓ Copied!
+                        </span>
+                    </div>
+                </div>
+                
                 <!-- Phase 6: Validation Warnings Panel -->
                 <div x-show="importWarnings" class="validation-warnings-panel" style="margin-top: 1.5rem; border: 1px solid #f0ad4e; border-radius: 0.375rem; background: #fffbe6;">
                     <div style="padding: 1rem; background: #fcf8e3; border-bottom: 1px solid #f0ad4e; border-radius: 0.375rem 0.375rem 0 0; display: flex; justify-content: space-between; align-items: center;">
@@ -216,34 +242,6 @@
                             </details>
                         </div>
                         
-                        <!-- FTE Resources Mismatches -->
-                        <div x-show="importWarnings?.mismatches?.fteResources?.length" style="margin-bottom: 0.75rem;">
-                            <details>
-                                <summary style="cursor: pointer; color: #8a6d3b; font-weight: 600; font-size: 0.875rem;">
-                                    FTE Resources (<span x-text="importWarnings?.mismatches?.fteResources?.length || 0"></span>)
-                                </summary>
-                                <ul style="margin: 0.5rem 0 0 1.25rem; color: #8a6d3b; font-size: 0.8125rem;">
-                                    <template x-for="fte in importWarnings?.mismatches?.fteResources || []" :key="fte">
-                                        <li x-text="'• ' + fte"></li>
-                                    </template>
-                                </ul>
-                            </details>
-                        </div>
-                        
-                        <!-- Equipment Resources Mismatches -->
-                        <div x-show="importWarnings?.mismatches?.equipmentResources?.length" style="margin-bottom: 0.75rem;">
-                            <details>
-                                <summary style="cursor: pointer; color: #8a6d3b; font-weight: 600; font-size: 0.875rem;">
-                                    Equipment Resources (<span x-text="importWarnings?.mismatches?.equipmentResources?.length || 0"></span>)
-                                </summary>
-                                <ul style="margin: 0.5rem 0 0 1.25rem; color: #8a6d3b; font-size: 0.8125rem;">
-                                    <template x-for="eq in importWarnings?.mismatches?.equipmentResources || []" :key="eq">
-                                        <li x-text="'• ' + eq"></li>
-                                    </template>
-                                </ul>
-                            </details>
-                        </div>
-                        
                         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f0ad4e; display: flex; gap: 0.5rem; align-items: center;">
                             <span style="font-size: 0.8125rem; color: #8a6d3b;">You can still import, but these entities will not match CSV data.</span>
                         </div>
@@ -260,27 +258,18 @@
                 <!-- Mode & Objective Weights Sub-section -->
                 <div class="subsection">
                     <div class="section-header">
-                        <div class="flex-container" style="margin-bottom: 1rem;">
-                            <h3 style="margin: 0;">Configuration Mode</h3>
-                            <label class="checkbox-label">
-                                <input type="checkbox" x-model="sectionEnabled.modeEnabled" @change="queueOutputUpdate(true)">
-                                Enable
-                            </label>
-                        </div>
+                        <h3 style="margin: 0 0 1rem 0;">Configuration Mode</h3>
                     </div>
                     <div class="form-group">
                         <label for="mode">Scheduling Mode</label>
-                        <select id="mode" x-model="config.mode" :disabled="!sectionEnabled.modeEnabled" class="form-control">
+                        <select id="mode" x-model="config.mode" class="form-control">
                             <option value="leg_end_dates">Leg End Dates</option>
                             <option value="leg_priority">Leg Priority</option>
-                            <option value="end_date_priority">End Date Priority</option>
-                            <option value="end_date_sticky">End Date Sticky</option>
-                            <option value="resource_bottleneck">Resource Bottleneck</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="description">Description</label>
-                        <textarea id="description" x-model="config.description" :disabled="!sectionEnabled.modeEnabled"
+                        <textarea id="description" x-model="config.description"
                                   placeholder="A human-readable description of what this configuration does."
                                   class="form-control" rows="3"></textarea>
                     </div>
@@ -291,13 +280,7 @@
                 <!-- Weights Slider Sub-section -->
                 <div class="subsection">
                     <div class="section-header">
-                        <div class="flex-container" style="margin-bottom: 1rem;">
-                            <h3 style="margin: 0;">Objective Function Weights</h3>
-                            <label class="checkbox-label">
-                                <input type="checkbox" x-model="sectionEnabled.modeEnabled" x-on:change="$store.config.updateOutputSettings()">
-                                Enable
-                            </label>
-                        </div>
+                        <h3 style="margin: 0 0 1rem 0;">Objective Function Weights</h3>
                     </div>
                     <div class="form-group">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-weight: 600;">
@@ -306,7 +289,7 @@
                             <span :style="{ color: weightsPercent == 100 ? 'var(--primary-color)' : 'var(--text-light)' }">Priority (100%)</span>
                         </div>
                         <input type="range" id="makespan_priority_slider" x-model.number="weightsPercent"
-                               :disabled="!sectionEnabled.modeEnabled" min="0" max="100" step="1" class="form-control"
+                               min="0" max="100" step="1" class="form-control"
                                @input="syncWeightsToConfig()"
                                style="width: 100%;">
                         <div style="margin-top: 0.5rem; text-align: center; color: var(--text-light); font-size: 0.9rem;">
@@ -322,6 +305,22 @@
                                 <strong>Makespan:</strong> <span x-text="Math.round((100 - weightsPercent) / 100 * 100)"></span>%
                             </span>
                         </div>
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label for="leg_ending_weight">Leg Ending Weight</label>
+                        <input
+                            type="number"
+                            id="leg_ending_weight"
+                            min="0"
+                            step="0.01"
+                            class="form-control"
+                            x-model.number="config.weights.legEndingWeight"
+                            @input="syncLegEndingWeight()"
+                            placeholder="0.00"
+                        >
+                        <p style="margin: 0.5rem 0 0 0; color: var(--text-light); font-size: 0.875rem;">
+                            Extra makespan-side force to finish as many legs as early as possible.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -832,7 +831,7 @@
                                 <div>End</div>
                                 <div></div>
                             </div>
-                            <template x-for="(holiday, index) in fteHolidays" :key="holiday.id">
+                            <template x-for="(holiday, index) in fteHolidays" :key="holiday.id || ('fte-holiday-' + index)">
                                 <div style="display: grid; grid-template-columns: 1fr auto auto 50px; padding: 0.75rem 1rem; border-top: 1px solid var(--border-color); align-items: center;">
                                     <div x-text="holiday.name" style="font-weight: 500;"></div>
                                     <div x-text="holiday.startDate" style="font-family: monospace; color: var(--text-light);"></div>
@@ -903,7 +902,31 @@
                                             </template>
                                             <span x-show="!resources || resources.length === 0" style="font-size: 0.8125rem; color: var(--text-light); font-style: italic;">None</span>
                                         </div>
+                                        <div x-show="editingAliasName === aliasName" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+                                            <div style="font-size: 0.875rem; color: var(--text-light); margin-bottom: 0.5rem;">Edit group members</div>
+                                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                                <template x-for="fte in fteResources" :key="fte.id">
+                                                    <label style="display: flex; align-items: center; gap: 0.25rem; padding: 0.375rem 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;" :style="isAliasResourceSelected(aliasName, fte.id) ? 'border-color: var(--primary-color); background: var(--primary-color-10, rgba(59,130,246,0.1));' : ''">
+                                                        <input type="checkbox" :checked="isAliasResourceSelected(aliasName, fte.id)" @change="toggleAliasResource(aliasName, fte.id)" style="margin: 0;">
+                                                        <span x-text="fte.name || fte.id"></span>
+                                                    </label>
+                                                </template>
+                                            </div>
+                                            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                                                <button @click="saveAliasGroupEdit(aliasName)" class="btn btn-primary btn-sm" type="button">Save</button>
+                                                <button @click="cancelAliasGroupEdit(aliasName)" class="btn btn-sm" type="button">Cancel</button>
+                                            </div>
+                                        </div>
                                     </div>
+                                    <button
+                                        x-show="editingAliasName !== aliasName"
+                                        @click="startEditAliasGroup(aliasName)"
+                                        class="btn btn-sm"
+                                        type="button"
+                                        title="Edit group members"
+                                    >
+                                        Edit
+                                    </button>
                                     <button
                                         @click="removeAliasGroup(aliasName)"
                                         class="btn btn-danger btn-sm"
@@ -1173,7 +1196,7 @@
                                 <div>End</div>
                                 <div></div>
                             </div>
-                            <template x-for="(holiday, index) in equipmentHolidays" :key="holiday.id">
+                            <template x-for="(holiday, index) in equipmentHolidays" :key="holiday.id || ('equipment-holiday-' + index)">
                                 <div style="display: grid; grid-template-columns: 1fr auto auto 50px; padding: 0.75rem 1rem; border-top: 1px solid var(--border-color); align-items: center;">
                                     <div x-text="holiday.name" style="font-weight: 500;"></div>
                                     <div x-text="holiday.startDate" style="font-family: monospace; color: var(--text-light);"></div>
@@ -1227,22 +1250,54 @@
                             <p>No equipment groups configured. Create groups to map logical names to multiple equipment resources.</p>
                         </div>
 
-                        <div x-show="Object.keys(equipmentAliases).length > 0" style="display: grid; gap: 1rem;">
+                        <div x-show="Object.keys(equipmentAliases).length > 0" class="fte-resources-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
                             <template x-for="(resources, aliasName) in equipmentAliases" :key="aliasName">
-                                <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                                        <h5 style="margin: 0; font-size: 1.1rem;" x-text="aliasName"></h5>
-                                        <button @click="removeEquipmentAliasGroup(aliasName)" class="btn btn-sm btn-danger" type="button" style="background: transparent; border: none; color: var(--danger); cursor: pointer;">
+                                <div class="fte-resource-item" style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.375rem; background: var(--bg-primary);">
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="display: grid; grid-template-columns: minmax(180px, 1fr) auto; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem;">
+                                            <div style="font-weight: 600;" x-text="aliasName"></div>
+                                            <span style="font-size: 0.75rem; color: var(--text-light);" x-text="'group_id: ' + aliasName"></span>
+                                        </div>
+                                        <div style="font-size: 0.8125rem; color: var(--text-light); margin-bottom: 0.35rem;">
+                                            equipment_names
+                                        </div>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                                            <template x-for="resName in resources" :key="resName">
+                                                <span style="padding: 0.2rem 0.55rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 0.25rem; font-size: 0.8125rem;" x-text="getEquipmentDisplayName(resName)"></span>
+                                            </template>
+                                            <span x-show="!resources || resources.length === 0" style="font-size: 0.8125rem; color: var(--text-light); font-style: italic;">None</span>
+                                        </div>
+                                        <div x-show="editingEquipmentAliasName === aliasName" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+                                            <div style="font-size: 0.875rem; color: var(--text-light); margin-bottom: 0.5rem;">Edit group members</div>
+                                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                                <template x-for="equipment in equipmentResources" :key="equipment.id">
+                                                    <label style="display: flex; align-items: center; gap: 0.25rem; padding: 0.375rem 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 0.25rem; cursor: pointer; font-size: 0.875rem;" :style="isEquipmentAliasResourceSelected(aliasName, equipment.id) ? 'border-color: var(--primary-color); background: var(--primary-color-10, rgba(59,130,246,0.1));' : ''">
+                                                        <input type="checkbox" :checked="isEquipmentAliasResourceSelected(aliasName, equipment.id)" @change="toggleEquipmentAliasResource(aliasName, equipment.id)" style="margin: 0;">
+                                                        <span x-text="equipment.name || equipment.id"></span>
+                                                    </label>
+                                                </template>
+                                            </div>
+                                            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                                                <button @click="saveEquipmentAliasGroupEdit(aliasName)" class="btn btn-primary btn-sm" type="button">Save</button>
+                                                <button @click="cancelEquipmentAliasGroupEdit(aliasName)" class="btn btn-sm" type="button">Cancel</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        x-show="editingEquipmentAliasName !== aliasName"
+                                        @click="startEditEquipmentAliasGroup(aliasName)"
+                                        class="btn btn-sm"
+                                        type="button"
+                                        title="Edit group members"
+                                    >
+                                        Edit
+                                    </button>
+                                    <button @click="removeEquipmentAliasGroup(aliasName)" class="btn btn-danger btn-sm" type="button" title="Remove group">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <polyline points="3 6 5 6 21 6"></polyline>
                                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                                             </svg>
                                         </button>
-                                    </div>
-                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                        <template x-for="resName in resources" :key="resName">
-                                            <span style="padding: 0.25rem 0.625rem; background: var(--success); color: white; border-radius: 0.25rem; font-size: 0.875rem;" x-text="resName"></span>
-                                        </template>
                                     </div>
                                 </div>
                             </template>

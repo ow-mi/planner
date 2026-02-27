@@ -78,13 +78,29 @@ class ApiService {
             return `${project}__${legId}__${branch}`;
         };
 
+        const legEndingWeight = normalizeNumber(
+            source.weights?.leg_ending_weight ??
+            source.weights?.legEndingWeight ??
+            source.leg_ending_weight ??
+            source.legEndingWeight,
+            0.0
+        );
+
         const canonical = {
             mode: source.mode || 'leg_end_dates',
             description: source.description || '',
             weights: {
-                makespan_weight: normalizeNumber(source.weights?.makespan_weight, 0.2),
-                priority_weight: normalizeNumber(source.weights?.priority_weight, 0.8)
-            }
+                makespan_weight: normalizeNumber(
+                    source.weights?.makespan_weight ?? source.weights?.makespanWeight,
+                    0.2
+                ),
+                priority_weight: normalizeNumber(
+                    source.weights?.priority_weight ?? source.weights?.priorityWeight,
+                    0.8
+                ),
+                leg_ending_weight: legEndingWeight
+            },
+            leg_ending_weight: legEndingWeight
         };
 
         const isUiShape = Array.isArray(source.deadlines) ||

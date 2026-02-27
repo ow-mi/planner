@@ -70,7 +70,8 @@ describe('ApiService canonical config mapping', () => {
             description: 'ui shape',
             weights: {
                 makespan_weight: 0.3,
-                priority_weight: 0.7
+                priority_weight: 0.7,
+                leg_ending_weight: 0.0
             },
             deadlines: [
                 { legId: 'leg-1', deadlineDate: '2027-05-01' },
@@ -94,8 +95,10 @@ describe('ApiService canonical config mapping', () => {
             description: 'ui shape',
             weights: {
                 makespan_weight: 0.3,
-                priority_weight: 0.7
+                priority_weight: 0.7,
+                leg_ending_weight: 0.0
             },
+            leg_ending_weight: 0.0,
             leg_deadlines: {
                 'leg-1': '2027-05-01',
                 'leg-2': '2027-06-10'
@@ -159,7 +162,7 @@ describe('ApiService canonical config mapping', () => {
         const configStoreShape = {
             mode: 'leg_end_dates',
             description: 'config store shape',
-            weights: { makespanWeight: 0.2, priorityWeight: 0.8 },
+            weights: { makespanWeight: 0.2, priorityWeight: 0.8, legEndingWeight: 2.5 },
             legDeadlines: { 'mwcu__2.1': '2026-W18.5' },
             legStartDeadlines: { 'mwcu__2.1': '2026-W08.5' },
             legDeadlinePenalties: { 'mwcu__2.1': 1000 },
@@ -171,6 +174,12 @@ describe('ApiService canonical config mapping', () => {
 
         const mapped = service.toCanonicalPriorityConfig(configStoreShape);
 
+        expect(mapped.weights).toEqual({
+            makespan_weight: 0.2,
+            priority_weight: 0.8,
+            leg_ending_weight: 2.5
+        });
+        expect(mapped.leg_ending_weight).toBe(2.5);
         expect(mapped.leg_deadlines).toEqual({ 'mwcu__2.1': '2026-05-02' });
         expect(mapped.leg_start_deadlines).toEqual({ 'mwcu__2.1': '2026-02-21' });
         expect(mapped.leg_deadline_penalties).toEqual({ 'mwcu__2.1': 1000 });
@@ -221,7 +230,8 @@ describe('ApiService canonical config mapping', () => {
                 description: 'canonical already',
                 weights: {
                     makespan_weight: 0.2,
-                    priority_weight: 0.8
+                    priority_weight: 0.8,
+                    leg_ending_weight: 0.0
                 },
                 leg_deadlines: { 'leg-1': '2027-01-01' }
             },
@@ -244,8 +254,10 @@ describe('ApiService canonical config mapping', () => {
             description: 'canonical already',
             weights: {
                 makespan_weight: 0.2,
-                priority_weight: 0.8
+                priority_weight: 0.8,
+                leg_ending_weight: 0.0
             },
+            leg_ending_weight: 0.0,
             leg_deadlines: {
                 'leg-1': '2027-01-01'
             }

@@ -237,7 +237,8 @@ describe('fileStore folder import flow', () => {
                     fteResources: [],
                     equipmentResources: [],
                     fteRequired: 2,
-                    equipmentRequired: 3
+                    equipmentRequired: 3,
+                    fteTimePercentage: 25
                 }
             },
             fte: { resources: [], aliases: { team_alpha: ['alice', 'bob'] } },
@@ -298,6 +299,8 @@ describe('fileStore folder import flow', () => {
         expect(payload.tables.tests.rows[0][6]).toBe(3);
         expect(payload.tables.tests.rows[0][7]).toBe('fte_alice;fte_bob');
         expect(payload.tables.tests.rows[0][8]).toBe('setup_rig_1;setup_rig_2');
+        expect(payload.tables.tests.headers).toContain('fte_time_pct');
+        expect(payload.tables.tests.rows[0][10]).toBe(25);
     });
 
     test('migrated CSV uses resolved per-test required counts when config store provides overrides', async () => {
@@ -309,7 +312,8 @@ describe('fileStore folder import flow', () => {
                     fteResources: [],
                     equipmentResources: [],
                     fteRequired: 1,
-                    equipmentRequired: 1
+                    equipmentRequired: 1,
+                    fteTimePercentage: 100
                 }
             },
             fte: { resources: [], aliases: {} },
@@ -318,6 +322,7 @@ describe('fileStore folder import flow', () => {
                 if (level === 'tests' && configId === 'P__L__1__T1') {
                     if (field === 'fteRequired') return { value: 4 };
                     if (field === 'equipmentRequired') return { value: 5 };
+                    if (field === 'fteTimePercentage') return { value: 40 };
                 }
                 return { value: this.testConfig.defaults[field] };
             }
@@ -337,6 +342,7 @@ describe('fileStore folder import flow', () => {
         expect(payload.tables.tests.rows).toHaveLength(1);
         expect(payload.tables.tests.rows[0][5]).toBe(4);
         expect(payload.tables.tests.rows[0][6]).toBe(5);
+        expect(payload.tables.tests.rows[0][10]).toBe(40);
     });
 
     test('getSolverInputPayload normalizes migrated tests even when all required tables already exist', async () => {
@@ -370,6 +376,8 @@ describe('fileStore folder import flow', () => {
         expect(payload.tables.tests.headers[0]).toBe('project_leg_id');
         expect(payload.tables.tests.headers[1]).toBe('test_id');
         expect(payload.tables.tests.rows[0][0]).toBe('mwcu_2_1');
+        expect(payload.tables.tests.headers).toContain('next_leg');
+        expect(payload.tables.tests.rows[0][11]).toBe('');
     });
 
     test('migrated CSV converts FTE holidays/day-off into date availability windows', async () => {

@@ -48,6 +48,13 @@ describe('visualizer component csvData guards', () => {
         expect(storeScript).toMatch(/available_fte/);
         expect(storeScript).toMatch(/available_equipment/);
     });
+
+    test('visualization store should include FTE holidays and holiday buffer schedule generation', () => {
+        expect(storeScript).toMatch(/getFteHolidays\(\)/);
+        expect(storeScript).toMatch(/buildHolidayBufferSchedules\(/);
+        expect(storeScript).toMatch(/testName:\s*'Buff'/);
+        expect(storeScript).toMatch(/fteHolidays/);
+    });
 });
 
 describe('getTemplateRenderer eval-based execution', () => {

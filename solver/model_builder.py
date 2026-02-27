@@ -1043,13 +1043,24 @@ def setup_leg_end_dates_objective(
         model.model.Add(late_days >= 0)
         deadline_penalties.append(deadline_penalty_per_day * late_days)
 
-    # Objective: makespan weight + deadline penalties
+    # Objective:
+    # - makespan term for overall finish
+    # - priority term for deadline/compactness rules
+    # - optional leg-ending force to pull leg completions earlier
     makespan_term = config.weights["makespan_weight"] * model.makespan_var
     penalty_term = config.weights["priority_weight"] * (
         sum(deadline_penalties) + sum(compactness_penalties)
     )
+    leg_ending_force = float(getattr(config, "leg_ending_weight", 0.0) or 0.0)
+    leg_ending_term = 0
+    if leg_ending_force > 0 and leg_completion_vars:
+        leg_ending_term = (
+            config.weights["makespan_weight"]
+            * leg_ending_force
+            * sum(leg_completion_vars.values())
+        )
 
-    return [makespan_term, penalty_term]
+    return [makespan_term, penalty_term, leg_ending_term]
 
 
 def _normalize_leg_deadline_key(raw_key: str) -> str:

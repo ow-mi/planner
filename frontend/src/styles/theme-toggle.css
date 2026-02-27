@@ -11,6 +11,58 @@
     order: 2;
 }
 
+/* Header Controls Container - wraps clear session and theme selector */
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem; /* Spacing between buttons */
+    flex-shrink: 0;
+    margin-left: auto; /* Push to right side of header */
+}
+
+/* Clear Session Button - Danger styled button in header */
+.clear-session-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    background-color: oklch(var(--er));
+    color: oklch(var(--erc) / 1);
+    border: 1px solid oklch(var(--er));
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.clear-session-btn:hover {
+    background-color: oklch(var(--er) / 0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.clear-session-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.clear-session-btn svg {
+    flex-shrink: 0;
+}
+
+/* Hide button text on small screens, show icon only */
+.clear-session-btn .btn-text {
+    display: none;
+}
+
+@media (min-width: 640px) {
+    .clear-session-btn .btn-text {
+        display: inline-block;
+    }
+}
+
 /* Ensure tabs come before theme toggle in flex order */
 .tabs-bar .tabs {
     order: 1;
@@ -51,7 +103,7 @@
 
 /* Theme Dropdown - Wider and with proper sizing */
 .theme-dropdown {
-    min-width: 320px;
+    min-width: 400px;
     max-width: min(90vw, 450px);
     max-height: 70vh;
     min-height: 200px;

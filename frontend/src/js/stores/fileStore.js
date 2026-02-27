@@ -610,6 +610,44 @@ function getResolvedRequiredCount(configStore, testIds, field, fallback) {
     return fallbackValue;
 }
 
+function normalizeTimePercentage(value, fallback = 100) {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) {
+        return fallback;
+    }
+    return Math.max(0, Math.min(100, numericValue));
+}
+
+function getResolvedTimePercentage(configStore, testIds, field, fallback) {
+    const fallbackValue = normalizeTimePercentage(fallback, 100);
+    if (!configStore) {
+        return fallbackValue;
+    }
+
+    const candidateIds = Array.isArray(testIds) ? testIds : [testIds];
+    for (const candidateId of candidateIds) {
+        if (!candidateId) {
+            continue;
+        }
+
+        if (typeof configStore.getResolvedFieldForLevel === 'function') {
+            const resolved = configStore.getResolvedFieldForLevel('tests', candidateId, field);
+            if (resolved && resolved.value !== undefined) {
+                return normalizeTimePercentage(resolved.value, fallbackValue);
+            }
+        }
+
+        if (typeof configStore.getResolvedTestSetting === 'function') {
+            const value = configStore.getResolvedTestSetting(candidateId, field);
+            if (value !== undefined) {
+                return normalizeTimePercentage(value, fallbackValue);
+            }
+        }
+    }
+
+    return fallbackValue;
+}
+
 function getResolvedResourceSelection(configStore, testIds, field, fallbackValues) {
     const fallback = Array.isArray(fallbackValues) ? fallbackValues : [];
     if (!configStore) {
@@ -652,6 +690,7 @@ function parseMigratedCsvTables(csvData, configStore = null) {
     const testIdx = headers.indexOf('test');
     const durationIdx = headers.indexOf('duration_days');
     const descriptionIdx = headers.indexOf('description');
+    const nextLegIdx = headers.indexOf('next_leg');
     if (projectIdx < 0 || legIdx < 0 || testIdx < 0 || durationIdx < 0) {
         return null;
     }
@@ -661,6 +700,7 @@ function parseMigratedCsvTables(csvData, configStore = null) {
     const configuredEquipment = Array.isArray(configDefaults.equipmentResources) ? configDefaults.equipmentResources : [];
     const defaultFteRequired = normalizeRequiredCount(configDefaults.fteRequired, 1);
     const defaultEquipmentRequired = normalizeRequiredCount(configDefaults.equipmentRequired, 1);
+    const defaultFteTimePct = normalizeTimePercentage(configDefaults.fteTimePercentage, 100);
     const fteResources = Array.isArray(configStore?.fte?.resources) ? configStore.fte.resources : [];
     const equipmentResources = Array.isArray(configStore?.equipment?.resources) ? configStore.equipment.resources : [];
     const fteAliases = configStore?.fte?.aliases || {};
@@ -723,6 +763,7 @@ function parseMigratedCsvTables(csvData, configStore = null) {
         const branch = branchIdx >= 0 ? getCell(row, branchIdx) : '';
         const testName = getCell(row, testIdx) || 'test';
         const description = descriptionIdx >= 0 ? getCell(row, descriptionIdx) : testName;
+        const nextLeg = nextLegIdx >= 0 ? getCell(row, nextLegIdx) : '';
         const parsedDuration = Number(getCell(row, durationIdx));
         const durationDays = Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : 1.0;
 
@@ -755,6 +796,7 @@ function parseMigratedCsvTables(csvData, configStore = null) {
         const resolvedConfigTestId = buildResolvedConfigTestId(project, leg, branch, nextSequence, testName);
         const fteRequired = getResolvedRequiredCount(configStore, [resolvedConfigTestId, testId], 'fteRequired', defaultFteRequired);
         const equipmentRequired = getResolvedRequiredCount(configStore, [resolvedConfigTestId, testId], 'equipmentRequired', defaultEquipmentRequired);
+        const fteTimePct = getResolvedTimePercentage(configStore, [resolvedConfigTestId, testId], 'fteTimePercentage', defaultFteTimePct);
         const selectedFte = getResolvedResourceSelection(
             configStore,
             [resolvedConfigTestId, testId],
@@ -799,7 +841,9 @@ function parseMigratedCsvTables(csvData, configStore = null) {
             equipmentRequired,
             assignedFte,
             assignedEquipment,
-            nextSequence
+            nextSequence,
+            fteTimePct,
+            nextLeg
         ]);
         testDutRows.push([testId, dutCounter]);
         dutCounter += 1;
@@ -863,7 +907,9 @@ function parseMigratedCsvTables(csvData, configStore = null) {
                 'equipment_required',
                 'fte_assigned',
                 'equipment_assigned',
-                'sequence_index'
+                'sequence_index',
+                'fte_time_pct',
+                'next_leg'
             ],
             rows: testsRows
         },
@@ -1065,14 +1111,30 @@ document.addEventListener('alpine:init', () => {
                 // Phase 6: Update CSV entities in config store for validation
                 const configStore = typeof Alpine !== 'undefined' && Alpine.store ? Alpine.store('config') : null;
                 if (configStore) {
+                    console.info('[fileStore][import-folder] syncing CSV into config store', {
+                        selectedCsv: this.selectedCsv || null,
+                        parsedCsvCount: Object.keys(this.parsedCsvData || {}).length,
+                        preSyncLegCount: Object.keys(configStore.testHierarchy?.legs || {}).length
+                    });
                     configStore.updateCsvEntities(this.parsedCsvData);
                     if (this.selectedCsv && this.parsedCsvData[this.selectedCsv]) {
                         configStore.syncConfigFromSelectedCsv(this.parsedCsvData[this.selectedCsv]);
+                        console.info('[fileStore][import-folder] csv sync completed', {
+                            selectedCsv: this.selectedCsv,
+                            postSyncLegCount: Object.keys(configStore.testHierarchy?.legs || {}).length
+                        });
                     }
                 }
 
                 if (this.importedConfig && configStore && typeof configStore.loadJsonConfiguration === 'function') {
+                    console.info('[fileStore][import-folder] loading imported JSON config after CSV sync', {
+                        preJsonLoadLegCount: Object.keys(configStore.testHierarchy?.legs || {}).length,
+                        importedConfigHasTestConfig: Boolean(this.importedConfig?.testConfig || this.importedConfig?.test_config)
+                    });
                     configStore.loadJsonConfiguration(this.importedConfig);
+                    console.info('[fileStore][import-folder] imported JSON load completed', {
+                        postJsonLoadLegCount: Object.keys(configStore.testHierarchy?.legs || {}).length
+                    });
                 }
             } catch (error) {
                 this.error = error?.message || 'Failed to import inputs from folder.';

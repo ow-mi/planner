@@ -32,7 +32,14 @@ function dataEditorComponent() {
             console.log('Data editor component initialized');
             this.loadRowSelectionState();
 
-            // Watch for file changes
+            // Initialize from store selection (from Upload tab)
+            const storeSelection = this.$store.files.selectedCsv;
+            if (storeSelection) {
+                this.selectedCsv = storeSelection;
+                this.displayCsvData();
+            }
+
+            // Watch for file changes from Upload tab
             this.$watch('$store.files.selectedCsv', (newVal) => {
                 if (newVal) {
                     this.selectedCsv = newVal;

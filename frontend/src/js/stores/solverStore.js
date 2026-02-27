@@ -215,7 +215,8 @@ document.addEventListener('alpine:init', () => {
         config: {
             timeLimit: 300,
             debugLevel: 'INFO',
-            outputFolder: ''
+            outputFolder: '',
+            plotUpdateInterval: 2
         },
         isLoading: false,
 
@@ -244,6 +245,8 @@ document.addEventListener('alpine:init', () => {
         activeEventSource: null,
         activePollInterval: null,
         progressTimeline: [],
+        lastPlotUpdateTime: null,
+        plotUpdateCounter: 0,
 
         // Initialization
         init() {
@@ -1061,6 +1064,8 @@ document.addEventListener('alpine:init', () => {
             scenario.liveScheduleHash = null;
             scenario.liveScheduleUpdatedAt = null;
             scenario.liveResults = null;
+            this.lastPlotUpdateTime = null;
+            this.plotUpdateCounter = 0;
             console.info('[solverStore] Starting scenario run', {
                 scenarioId,
                 name: scenario.name
@@ -1343,38 +1348,49 @@ document.addEventListener('alpine:init', () => {
                 this.message = progress.phase || this.message || 'Running...';
             }
 
-            const schedulePreview = Array.isArray(event.schedule_preview) ? event.schedule_preview : [];
-            if (schedulePreview.length > 0) {
-                scenario.liveSchedule = schedulePreview;
-                scenario.liveScheduleHash = event.schedule_hash || null;
-                scenario.liveScheduleUpdatedAt = Date.now();
-                console.info('[solverStore][stream] Live schedule snapshot received', {
-                    scenarioId,
-                    rows: schedulePreview.length,
-                    hash: scenario.liveScheduleHash,
-                    makespan: streamedMakespan
-                });
-            }
+            this.plotUpdateCounter += 1;
+            const now = Date.now();
+            const intervalSeconds = Number(this.config.plotUpdateInterval ?? 0);
+            const intervalMs = Number.isFinite(intervalSeconds) && intervalSeconds > 0 ? intervalSeconds * 1000 : 0;
+            const shouldUpdatePlot = intervalMs === 0
+                || this.lastPlotUpdateTime === null
+                || (now - this.lastPlotUpdateTime) >= intervalMs;
+
             const objectiveValue = plotPoint.objective ?? metrics.objective_value ?? null;
-            const hasLiveSignal = (
-                (streamedMakespan !== null && streamedMakespan !== undefined)
-                || (objectiveValue !== null && objectiveValue !== undefined)
-                || (Array.isArray(scenario.liveSchedule) && scenario.liveSchedule.length > 0)
-            );
-            if (hasLiveSignal) {
-                scenario.liveResults = {
-                    execution_id: scenario.runId || null,
-                    status: 'FEASIBLE',
-                    makespan: (streamedMakespan !== null && streamedMakespan !== undefined) ? Number(streamedMakespan) : null,
-                    test_schedule: Array.isArray(scenario.liveSchedule) ? scenario.liveSchedule : [],
-                    resource_utilization: {},
-                    output_files: {},
-                    written_output_paths: {},
-                    solver_stats: {
-                        partial: true,
-                        objective_value: objectiveValue
-                    }
-                };
+            if (shouldUpdatePlot) {
+                this.lastPlotUpdateTime = now;
+                const schedulePreview = Array.isArray(event.schedule_preview) ? event.schedule_preview : [];
+                if (schedulePreview.length > 0) {
+                    scenario.liveSchedule = schedulePreview;
+                    scenario.liveScheduleHash = event.schedule_hash || null;
+                    scenario.liveScheduleUpdatedAt = now;
+                    console.info('[solverStore][stream] Live schedule snapshot received', {
+                        scenarioId,
+                        rows: schedulePreview.length,
+                        hash: scenario.liveScheduleHash,
+                        makespan: streamedMakespan
+                    });
+                }
+                const hasLiveSignal = (
+                    (streamedMakespan !== null && streamedMakespan !== undefined)
+                    || (objectiveValue !== null && objectiveValue !== undefined)
+                    || (Array.isArray(scenario.liveSchedule) && scenario.liveSchedule.length > 0)
+                );
+                if (hasLiveSignal) {
+                    scenario.liveResults = {
+                        execution_id: scenario.runId || null,
+                        status: 'FEASIBLE',
+                        makespan: (streamedMakespan !== null && streamedMakespan !== undefined) ? Number(streamedMakespan) : null,
+                        test_schedule: Array.isArray(scenario.liveSchedule) ? scenario.liveSchedule : [],
+                        resource_utilization: {},
+                        output_files: {},
+                        written_output_paths: {},
+                        solver_stats: {
+                            partial: true,
+                            objective_value: objectiveValue
+                        }
+                    };
+                }
                 if (schedulePreview.length === 0) {
                     console.info('[solverStore][stream] Metrics update without schedule snapshot', {
                         scenarioId,
@@ -1700,6 +1716,8 @@ document.addEventListener('alpine:init', () => {
             this.results = null;
             this.settingsUsed = null;
             this.progressTimeline = [];
+            this.lastPlotUpdateTime = null;
+            this.plotUpdateCounter = 0;
         },
 
         // Check if solver has results

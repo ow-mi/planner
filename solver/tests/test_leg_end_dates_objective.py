@@ -281,3 +281,86 @@ def test_leg_start_deadline_blocks_tests_before_configured_start():
     )
     scheduled = next(item for item in solution.test_schedules if item.test_id == "t1")
     assert scheduled.start_day >= 10
+
+
+def test_leg_ending_weight_prefers_finishing_more_legs_earlier_when_makespan_ties():
+    start = date(2026, 1, 5)
+    legs = {"leg_1": _base_leg("leg_1", start), "leg_2": _base_leg("leg_2", start)}
+    tests = [
+        PlannerTest(
+            test_id="long_leg_test",
+            project_leg_id="leg_1",
+            sequence_index=1,
+            test_name="Long",
+            test_description="",
+            duration_days=4,
+            fte_required=1,
+            equipment_required=1,
+            fte_assigned="fte_a",
+            equipment_assigned="setup_a",
+        ),
+        PlannerTest(
+            test_id="short_leg_test",
+            project_leg_id="leg_2",
+            sequence_index=1,
+            test_name="Short",
+            test_description="",
+            duration_days=1,
+            fte_required=1,
+            equipment_required=1,
+            fte_assigned="fte_a",
+            equipment_assigned="setup_a",
+        ),
+    ]
+    data = PlanningData(
+        legs=legs,
+        tests=tests,
+        fte_windows=[_resource_window("fte_a", start)],
+        equipment_windows=[_resource_window("setup_a", start)],
+        priority_config={},
+        test_duts={test.test_id: 1 for test in tests},
+        leg_dependencies=[],
+    )
+
+    no_leg_ending = _solve_with_config(
+        data,
+        {
+            "mode": "leg_end_dates",
+            "weights": {"makespan_weight": 1.0, "priority_weight": 0.0},
+            "leg_deadlines": {
+                "leg_1": (start + timedelta(days=200)).isoformat(),
+                "leg_2": (start + timedelta(days=200)).isoformat(),
+            },
+            "deadline_penalty_per_day": 0.0,
+            "leg_compactness_penalty_per_day": 0.0,
+            "leg_ending_weight": 0.0,
+        },
+    )
+
+    with_leg_ending = _solve_with_config(
+        data,
+        {
+            "mode": "leg_end_dates",
+            "weights": {"makespan_weight": 1.0, "priority_weight": 0.0},
+            "leg_deadlines": {
+                "leg_1": (start + timedelta(days=200)).isoformat(),
+                "leg_2": (start + timedelta(days=200)).isoformat(),
+            },
+            "deadline_penalty_per_day": 0.0,
+            "leg_compactness_penalty_per_day": 0.0,
+            "leg_ending_weight": 10.0,
+        },
+    )
+
+    no_force_by_test = {item.test_id: item for item in no_leg_ending.test_schedules}
+    with_force_by_test = {item.test_id: item for item in with_leg_ending.test_schedules}
+
+    # Both schedules should keep the same optimal makespan.
+    assert no_leg_ending.makespan_days == with_leg_ending.makespan_days == 5
+
+    # With leg-ending force, the short leg should complete first (start at day 0, end at day 1).
+    assert with_force_by_test["short_leg_test"].end_day == 1
+    assert with_force_by_test["long_leg_test"].start_day == 1
+
+    # Enabling leg-ending force should not delay the short leg completion.
+    assert with_force_by_test["short_leg_test"].end_day <= no_force_by_test["short_leg_test"].end_day

@@ -312,16 +312,16 @@ class FileUploadService:
                             f"Column '{col}' has {int(empty_count)} empty values"
                         )
         
-        # Check duration_days are positive
-        if 'duration_days' in df.columns:
-            # Filter out NaN values first
-            valid_durations = df['duration_days'].dropna()
-            if len(valid_durations) > 0:
-                invalid_durations = (valid_durations <= 0).sum()
-                if invalid_durations > 0:
-                    validation_errors.append(
-                        f"Found {int(invalid_durations)} non-positive duration values"
-                    )
+        # Shared row-level validation (duration + next_leg semantics)
+        row_validation_errors = self.spreadsheet_service._validate_row_values(df)
+        for row_error in row_validation_errors:
+            row_value_suffix = (
+                f" (value: {row_error.value})" if row_error.value is not None else ""
+            )
+            validation_errors.append(
+                f"Row {row_error.row_index}, column '{row_error.column_name}': "
+                f"{row_error.error_message}{row_value_suffix}"
+            )
         
         # Convert data to records (dates already converted to strings)
         data_records = df.fillna('').to_dict('records')

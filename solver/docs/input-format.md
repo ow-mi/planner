@@ -60,13 +60,14 @@ Defines individual tests with resource requirements and constraints.
 - `fte_assigned` (string): Specific FTE assignment or type requirement
 - `equipment_assigned` (string): Specific equipment assignment or type requirement
 - `force_start_week_iso` (string, optional): Forced start week (YYYY-WW format)
+- `next_leg` (string, optional): One or more successor `project_leg_id` values, separated by `;`
 
 **Example:**
 ```csv
-test_id,project_leg_id,sequence_index,test_name,test_description,duration_days,fte_required,equipment_required,fte_assigned,equipment_assigned,force_start_week_iso
-TEST_001,LEG_001_1,1,Power Output Test,Measure maximum power output under standard conditions,2.5,2,1,fte_sofia,EQUIP_SOLAR_001,
-TEST_002,LEG_001_1,2,Efficiency Test,Calculate conversion efficiency across operating range,1.0,1,1,fte_sofia,EQUIP_SOLAR_001,
-TEST_003,LEG_001_2,1,Temperature Test,Test performance under extreme temperatures,3.0,1,2,fte_hengelo,EQUIP_CHAMBER_001,2024-10
+test_id,project_leg_id,sequence_index,test_name,test_description,duration_days,fte_required,equipment_required,fte_assigned,equipment_assigned,force_start_week_iso,next_leg
+TEST_001,LEG_001_1,1,Power Output Test,Measure maximum power output under standard conditions,2.5,2,1,fte_sofia,EQUIP_SOLAR_001,,
+TEST_002,LEG_001_1,2,Efficiency Test,Calculate conversion efficiency across operating range,1.0,1,1,fte_sofia,EQUIP_SOLAR_001,,LEG_001_2;LEG_001_3
+TEST_003,LEG_001_2,1,Temperature Test,Test performance under extreme temperatures,3.0,1,2,fte_hengelo,EQUIP_CHAMBER_001,2024-10,
 ```
 
 **Validation Rules:**
@@ -76,6 +77,9 @@ TEST_003,LEG_001_2,1,Temperature Test,Test performance under extreme temperature
 - `duration_days` must be positive
 - `fte_required` and `equipment_required` must be non-negative integers
 - Resource assignments can be specific IDs or general types
+- `next_leg` can only be populated on the last test row of each leg
+- `next_leg` targets must be valid `project_leg_id` values from `data_legs.csv`
+- When multiple successors exist, `next_leg` must use `;` separators (not commas)
 
 ### data_fte.csv
 

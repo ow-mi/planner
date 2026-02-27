@@ -68,7 +68,16 @@ export async function initCodeEditor(containerElement) {
                         padding: '10px'
                     },
                     '.cm-scroller': {
-                        overflow: 'auto'
+                        overflow: 'auto !important',
+                        scrollbarGutter: 'stable both-edges'
+                    },
+                    '.cm-editor': {
+                        overflow: 'hidden'
+                    },
+                    '.cm-gutters': {
+                        position: 'sticky',
+                        left: '0',
+                        zIndex: '1'
                     }
                 })
             ]

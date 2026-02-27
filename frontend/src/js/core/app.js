@@ -266,17 +266,6 @@ export function app() {
             this.error = null;
         },
 
-        resetUiState() {
-            const confirmed = window.confirm(
-                'Reset all saved UI state? This will remove uploaded CSV data and all saved inputs.'
-            );
-            if (!confirmed) {
-                return;
-            }
-            localStorage.clear();
-            window.location.reload();
-        },
-
         setActiveTab(tabName) {
             if (!this.getValidTabs().includes(tabName)) {
                 console.warn('[app] setActiveTab rejected invalid tab', {

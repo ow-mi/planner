@@ -24,16 +24,6 @@
           </div>
 
           <div x-show="dedupedUploadedFilenames.length > 0">
-              <div class="form-group">
-                  <label for="csv-select">Select a CSV to edit:</label>
-                  <select id="csv-select" x-model="selectedCsv" @change="onCsvSelectionChanged()" class="form-control">
-                      <option value="">-- Select a file --</option>
-                     <template x-for="fileName in dedupedUploadedFilenames" :key="fileName">
-                         <option :value="fileName" x-text="fileName"></option>
-                     </template>
-                  </select>
-              </div>
-
              <div x-show="activeCsvData.headers.length > 0">
                  <div style="overflow-x: auto;">
                      <table>
@@ -109,23 +99,30 @@ function dataEditorComponent() {
             return Object.keys(parsedData).sort();
         },
  
-        init() {
-            console.log('[data-editor] Component initialized');
-            this.loadRowSelectionState();
+         init() {
+             console.log('[data-editor] Component initialized');
+             this.loadRowSelectionState();
 
-            // Debug: Log available data
-            console.log('[data-editor] Available parsedCsvData:', Object.keys(this.$store.files.parsedCsvData || {}));
-            console.log('[data-editor] Direct uploads:', this.$store.files.directUploads?.length || 0);
+             // Debug: Log available data
+             console.log('[data-editor] Available parsedCsvData:', Object.keys(this.$store.files.parsedCsvData || {}));
+             console.log('[data-editor] Direct uploads:', this.$store.files.directUploads?.length || 0);
 
-            // Watch for file changes
-            this.$watch('$store.files.selectedCsv', (newVal) => {
-                console.log('[data-editor] selectedCsv changed:', newVal);
-                if (newVal) {
-                    this.selectedCsv = newVal;
-                    this.displayCsvData();
-                }
-            });
-        },
+             // Initialize from store selection
+             const storeSelection = this.$store.files.selectedCsv;
+             if (storeSelection) {
+                 this.selectedCsv = storeSelection;
+                 this.displayCsvData();
+             }
+
+             // Watch for file changes from Upload tab
+             this.$watch('$store.files.selectedCsv', (newVal) => {
+                 console.log('[data-editor] selectedCsv changed:', newVal);
+                 if (newVal) {
+                     this.selectedCsv = newVal;
+                     this.displayCsvData();
+                 }
+             });
+         },
 
         onCsvSelectionChanged() {
             if (!this.selectedCsv) {

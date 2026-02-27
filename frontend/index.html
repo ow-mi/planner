@@ -85,14 +85,6 @@
         <div class="app-content">
             <!-- Main application container -->
             <div x-data="app()" x-init="initApp()" x-cloak>
-         <button
-             type="button"
-             class="floating-reset-btn"
-             @click="resetUiState()"
-             title="Reset saved UI state"
-         >
-             Reset UI
-         </button>
          <!-- Tabs container - loaded via HTMX -->
          <div id="tabs-container" data-loaded="false"></div>
          
@@ -117,6 +109,9 @@
        <script src="src/js/stores/solverStore.js"></script>
        <script src="src/js/stores/batchStore.js"></script>
        <script src="src/js/stores/visualizationStore.js"></script>
+
+       <!-- Load external plot template source files -->
+       <script src="src/js/plot-templates-loader.js"></script>
 
        <!-- Load legacy templates (d3-based visualizations) -->
        <script src="src/js/legacy-templates.js"></script>

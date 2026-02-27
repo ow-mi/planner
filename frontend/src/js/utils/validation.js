@@ -248,6 +248,7 @@ function validateConfiguration(config) {
         // Validate weights
         const makespanWeight = config.weights.makespan_weight;
         const priorityWeight = config.weights.priority_weight;
+        const legEndingWeight = config.weights.leg_ending_weight;
 
         if (typeof makespanWeight !== 'number' || makespanWeight < 0 || makespanWeight > 1) {
             errors.push('makespan_weight must be a number between 0 and 1');
@@ -261,6 +262,10 @@ function validateConfiguration(config) {
         const weightSum = makespanWeight + priorityWeight;
         if (Math.abs(weightSum - 1.0) > 0.001) {
             errors.push('makespan_weight + priority_weight must equal 1.0');
+        }
+
+        if (legEndingWeight !== undefined && (typeof legEndingWeight !== 'number' || legEndingWeight < 0)) {
+            errors.push('leg_ending_weight must be a non-negative number');
         }
     }
 

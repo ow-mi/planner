@@ -39,6 +39,7 @@ def _build_request(
     output_folder: str | None = None,
     input_folder: str | None = None,
     debug_level: str = "INFO",
+    scenario_name: str | None = None,
 ):
     return SolverRequest(
         csv_files={
@@ -52,6 +53,7 @@ def _build_request(
         debug_level=debug_level,
         output_folder=output_folder,
         input_folder=input_folder,
+        scenario_name=scenario_name,
     )
 
 
@@ -354,3 +356,19 @@ def test_run_solver_stop_preserves_latest_plan_results(monkeypatch, tmp_path):
     assert len(schedules) == 1
     assert schedules[0].get("test_id") == "T1"
     assert queue.completed_ids == [execution_id]
+
+
+def test_derive_run_name_prefers_scenario_name_when_output_folder_missing():
+    orchestrator = ExecutionOrchestrator(
+        state_store=StateStore(),
+        file_ops=FileOperationsService(),
+        queue_service=_FakeQueueService(),
+    )
+
+    assert (
+        orchestrator._derive_run_name(
+            output_folder=None,
+            scenario_name="My Scenario Name",
+        )
+        == "My Scenario Name"
+    )
