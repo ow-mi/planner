@@ -1,0 +1,17 @@
+{
+  "run_id": "64533d4e-9c6d-4ecf-8b40-502b13f68f54",
+  "run_name": "Run 1",
+  "status": "COMPLETED",
+  "created_at": "2026-02-27T14:14:20.239837",
+  "started_at": "2026-02-27T14:14:20.427766",
+  "completed_at": "2026-02-27T14:14:31.117509",
+  "time_limit": 10.0,
+  "debug_level": "INFO",
+  "requested_output_folder": null,
+  "artifact_paths": {
+    "input_original": "C:\\Users\\x3092808\\adslkfjalsdkjfl;adsj\\ok_lets_hope_that_this_works\\planner\\runs\\20260227_141420_run_1\\64533d4e-9c6d-4ecf-8b40-502b13f68f54\\input_original",
+    "input_effective": "C:\\Users\\x3092808\\adslkfjalsdkjfl;adsj\\ok_lets_hope_that_this_works\\planner\\runs\\20260227_141420_run_1\\64533d4e-9c6d-4ecf-8b40-502b13f68f54\\input_effective",
+    "output": "C:\\Users\\x3092808\\adslkfjalsdkjfl;adsj\\ok_lets_hope_that_this_works\\planner\\runs\\20260227_141420_run_1\\64533d4e-9c6d-4ecf-8b40-502b13f68f54\\output",
+    "plots": "C:\\Users\\x3092808\\adslkfjalsdkjfl;adsj\\ok_lets_hope_that_this_works\\planner\\runs\\20260227_141420_run_1\\64533d4e-9c6d-4ecf-8b40-502b13f68f54\\plots"
+  }
+}

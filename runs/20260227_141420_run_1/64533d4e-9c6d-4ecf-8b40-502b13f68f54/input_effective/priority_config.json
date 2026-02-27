@@ -1,0 +1,65 @@
+{
+  "mode": "leg_end_dates",
+  "description": "Each leg has a target completion date. Legs can be scheduled in parallel if they don't exceed their deadlines.",
+  "weights": {
+    "makespan_weight": 1,
+    "priority_weight": 0,
+    "leg_ending_weight": 200000
+  },
+  "leg_ending_weight": 200000,
+  "leg_deadlines": {
+    "mwcu__2.2": "2028-03-28",
+    "mwcu__3.1": "2028-02-01",
+    "mwcu__4.1": "2027-03-30",
+    "mwcu__4.2": "2027-08-03",
+    "mwcu__5.1": "2027-03-09",
+    "mwcu__5.2.1": "2027-08-31",
+    "mwcu__5.2.2": "2027-03-09",
+    "mwcu__6": "2027-03-09"
+  },
+  "leg_start_deadlines": {
+    "mwcu__2.1": "2027-01-12",
+    "mwcu__2.2": "2027-01-12",
+    "mwcu__3.1": "2027-01-12",
+    "mwcu__3.2": "2027-01-12",
+    "mwcu__4.1": "2026-09-29",
+    "mwcu__4.2": "2027-05-11",
+    "mwcu__5.1": "2026-09-29",
+    "mwcu__5.2.1": "2027-01-12",
+    "mwcu__5.2.2": "2027-01-12",
+    "mwcu__6": "2026-09-29",
+    "mwcu__7.1": "2027-01-12",
+    "mwcu__7.2": "2027-01-12"
+  },
+  "leg_deadline_penalties": {
+    "mwcu__2.1": 0,
+    "mwcu__2.2": 2,
+    "mwcu__3.1": 1,
+    "mwcu__3.2": 0,
+    "mwcu__4.1": 1,
+    "mwcu__4.2": 1,
+    "mwcu__5.1": 1,
+    "mwcu__5.2.1": 1,
+    "mwcu__5.2.2": 1,
+    "mwcu__6": 1,
+    "mwcu__7.1": 0,
+    "mwcu__7.2": 0
+  },
+  "leg_compactness_penalties": {
+    "mwcu__2.1": 0.1,
+    "mwcu__2.2": 0.1,
+    "mwcu__3.1": 0.1,
+    "mwcu__3.2": 0.1,
+    "mwcu__4.1": 0.1,
+    "mwcu__4.2": 0.1,
+    "mwcu__5.1": 0.1,
+    "mwcu__5.2.1": 0.1,
+    "mwcu__5.2.2": 0.1,
+    "mwcu__6": 0.1,
+    "mwcu__7.1": 0.1,
+    "mwcu__7.2": 0.1
+  },
+  "deadline_penalty_per_day": 1000,
+  "leg_compactness_penalty_per_day": 500,
+  "allow_parallel_within_deadlines": 100
+}

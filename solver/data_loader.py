@@ -69,6 +69,23 @@ from .config.settings import REQUIRED_INPUT_FILES
 from .utils.week_utils import WEEK_VALUE_RE, normalize_week_value, parse_iso_week
 
 
+def _normalize_next_leg_value(value: object) -> Optional[str]:
+    """Normalize optional next_leg values; treat NaN-like tokens as empty."""
+    if value is None:
+        return None
+
+    # Handles numpy/pandas NaN/NA values.
+    if pd.isna(value):
+        return None
+
+    raw = str(value).strip()
+    if not raw:
+        return None
+    if raw.lower() == "nan":
+        return None
+    return raw
+
+
 @dataclass
 class Leg:
     """
@@ -307,7 +324,6 @@ def load_tests(input_folder: str) -> List[Test]:
         "test_description",
         "fte_assigned",
         "equipment_assigned",
-        "next_leg",
     ]
     for col in str_cols:
         if col in df.columns:
@@ -394,11 +410,7 @@ def load_tests(input_folder: str) -> List[Test]:
             ),
             force_start_week_iso=row.get("force_start_week_iso"),
             fte_time_pct=float(row.get("fte_time_pct", 100.0)),
-            next_leg=(
-                str(row.get("next_leg")).strip()
-                if pd.notna(row.get("next_leg")) and str(row.get("next_leg")).strip()
-                else None
-            ),
+            next_leg=_normalize_next_leg_value(row.get("next_leg")),
         )
         for _, row in df.iterrows()
     ]
@@ -792,7 +804,7 @@ def validate_data(data: PlanningData) -> List[str]:
 
         max_sequence = max(t.sequence_index for t in tests)
         for test in tests:
-            raw_next_leg = (test.next_leg or "").strip()
+            raw_next_leg = _normalize_next_leg_value(test.next_leg) or ""
             if not raw_next_leg:
                 continue
 
@@ -895,7 +907,7 @@ def detect_leg_dependencies(legs: Dict[str, Leg], tests: List[Test]) -> List[Leg
         if not leg_tests:
             continue
         last_test = max(leg_tests, key=lambda test: test.sequence_index)
-        raw_next_leg = last_test.next_leg
+        raw_next_leg = _normalize_next_leg_value(last_test.next_leg)
         if not raw_next_leg:
             continue
 

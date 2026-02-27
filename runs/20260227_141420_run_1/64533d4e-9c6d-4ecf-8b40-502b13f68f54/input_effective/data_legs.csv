@@ -1,0 +1,13 @@
+project_id,project_name,project_leg_id,leg_number,leg_name,priority,start_iso_week
+mwcu,mwcu,mwcu_2_1,2.1,Leg 2.1,1,2025-W01
+mwcu,mwcu,mwcu_2_2,2.2,Leg 2.2,1,2025-W01
+mwcu,mwcu,mwcu_3_1,3.1,Leg 3.1,1,2025-W01
+mwcu,mwcu,mwcu_3_2,3.2,Leg 3.2,1,2025-W01
+mwcu,mwcu,mwcu_4_1,4.1,Leg 4.1,1,2025-W01
+mwcu,mwcu,mwcu_4_2,4.2,Leg 4.2,1,2025-W01
+mwcu,mwcu,mwcu_5_1,5.1,Leg 5.1,1,2025-W01
+mwcu,mwcu,mwcu_5_2_1,5.2.1,Leg 5.2.1,1,2025-W01
+mwcu,mwcu,mwcu_5_2_2,5.2.2,Leg 5.2.2,1,2025-W01
+mwcu,mwcu,mwcu_6,6,Leg 6,1,2025-W01
+mwcu,mwcu,mwcu_7_1,7.1,Leg 7.1,1,2025-W01
+mwcu,mwcu,mwcu_7_2,7.2,Leg 7.2,1,2025-W01

@@ -246,3 +246,52 @@ def test_validate_data_reports_next_leg_format_and_position_errors():
     assert any("uses ',' in next_leg" in error for error in errors)
     assert any("only the last test of a leg can define next_leg" in error for error in errors)
     assert any("unknown next_leg target 'leg_b,leg_c'" in error for error in errors)
+
+
+def test_validate_data_ignores_nan_next_leg_values():
+    legs = {"leg_a": _make_leg("leg_a")}
+    tests = [
+        PlannerTest(
+            test_id="a_1",
+            project_leg_id="leg_a",
+            sequence_index=1,
+            test_name="A1",
+            test_description="",
+            duration_days=1.0,
+            fte_required=1,
+            equipment_required=1,
+            fte_assigned="fte_team",
+            equipment_assigned="setup_lab",
+            next_leg="nan",
+        ),
+    ]
+
+    data = PlanningData(
+        legs=legs,
+        tests=tests,
+        fte_windows=[
+            ResourceWindow(
+                resource_id="fte_team",
+                start_iso_week="2026-W01.0",
+                end_iso_week="2026-W10.0",
+                start_monday=date(2026, 1, 5),
+                end_monday=date(2026, 3, 16),
+            )
+        ],
+        equipment_windows=[
+            ResourceWindow(
+                resource_id="setup_lab",
+                start_iso_week="2026-W01.0",
+                end_iso_week="2026-W10.0",
+                start_monday=date(2026, 1, 5),
+                end_monday=date(2026, 3, 16),
+            )
+        ],
+        priority_config={},
+        test_duts={"a_1": 1},
+        leg_dependencies=detect_leg_dependencies(legs, tests),
+    )
+
+    errors = validate_data(data)
+
+    assert not any("next_leg" in error.lower() for error in errors)
