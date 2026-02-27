@@ -5,139 +5,167 @@
 # Default: Frontend on 3000, Backend on 8000
 #
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+set -euo pipefail
 
-# Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Parse ports
 FRONTEND_PORT="${1:-3000}"
 BACKEND_PORT="${2:-8000}"
 
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Planner Redesign Startup${NC}"
-echo -e "${BLUE}========================================${NC}"
-echo ""
-echo -e "${GREEN}Frontend:${NC} http://localhost:$FRONTEND_PORT"
-echo -e "${GREEN}Backend:${NC}  http://localhost:$BACKEND_PORT"
-echo ""
+RUN_DIR="$SCRIPT_DIR/.run"
+LOG_DIR="$SCRIPT_DIR/.runlogs"
+STATE_PATH="$RUN_DIR/state.json"
+FRONTEND_LOG="$LOG_DIR/frontend.log"
+BACKEND_LOG="$LOG_DIR/backend.log"
 
-# Check if ports are already in use
-check_port() {
-    local port=$1
-    local name=$2
-    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1 || netstat -tuln 2>/dev/null | grep -q ":$port "; then
-        echo -e "${RED}Error: Port $port is already in use. $name may already be running.${NC}"
-        return 1
+mkdir -p "$RUN_DIR" "$LOG_DIR"
+
+info() { printf '[INFO] %s\n' "$1"; }
+ok() { printf '[OK]   %s\n' "$1"; }
+warn() { printf '[WARN] %s\n' "$1"; }
+err() { printf '[ERR]  %s\n' "$1" >&2; }
+
+get_python() {
+    if [ -x "$SCRIPT_DIR/.venv/bin/python" ]; then
+        printf '%s\n' "$SCRIPT_DIR/.venv/bin/python"
+        return
     fi
-    return 0
+    if command -v python3 >/dev/null 2>&1; then
+        printf 'python3\n'
+        return
+    fi
+    if command -v python >/dev/null 2>&1; then
+        printf 'python\n'
+        return
+    fi
+    err "Python is not installed or not in PATH."
+    exit 1
 }
 
-# Check Python availability
-check_python() {
-    if command -v python3 &> /dev/null; then
-        PYTHON_CMD="python3"
-    elif command -v python &> /dev/null; then
-        PYTHON_CMD="python"
-    else
-        echo -e "${RED}Error: Python is not installed or not in PATH${NC}"
-        exit 1
+port_in_use() {
+    local port="$1"
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -Pi :"$port" -sTCP:LISTEN -t >/dev/null 2>&1
+        return $?
     fi
+    if command -v ss >/dev/null 2>&1; then
+        ss -ltn 2>/dev/null | grep -q ":$port "
+        return $?
+    fi
+    netstat -tuln 2>/dev/null | grep -q ":$port "
 }
 
-# Cleanup function to kill background processes on exit
-cleanup() {
-    echo ""
-    echo -e "${YELLOW}Shutting down services...${NC}"
-    if [ -n "$FRONTEND_PID" ]; then
-        kill $FRONTEND_PID 2>/dev/null
-        echo -e "${GREEN}✓ Frontend stopped${NC}"
-    fi
-    if [ -n "$BACKEND_PID" ]; then
-        kill $BACKEND_PID 2>/dev/null
-        echo -e "${GREEN}✓ Backend stopped${NC}"
-    fi
-    exit 0
+wait_port() {
+    local port="$1"
+    local retries="${2:-50}"
+    local i=0
+    while [ "$i" -lt "$retries" ]; do
+        if port_in_use "$port"; then
+            return 0
+        fi
+        i=$((i + 1))
+        sleep 0.5
+    done
+    return 1
 }
 
-# Set trap to cleanup on CTRL+C
-trap cleanup SIGINT SIGTERM
+wait_http() {
+    local url="$1"
+    local retries="${2:-50}"
+    local i=0
+    while [ "$i" -lt "$retries" ]; do
+        if command -v curl >/dev/null 2>&1; then
+            if curl -fsS --max-time 3 "$url" >/dev/null 2>&1; then
+                return 0
+            fi
+        else
+            if "$PYTHON_CMD" -c "import urllib.request; urllib.request.urlopen('$url', timeout=3)" >/dev/null 2>&1; then
+                return 0
+            fi
+        fi
+        i=$((i + 1))
+        sleep 0.6
+    done
+    return 1
+}
 
-# Check prerequisites
-check_python
+PYTHON_CMD="$(get_python)"
+info "Python command: $PYTHON_CMD"
 
-# Check ports
-check_port $FRONTEND_PORT "Frontend" || exit 1
-check_port $BACKEND_PORT "Backend" || exit 1
-
-# Set PYTHONPATH so imports work correctly (backend is inside project root)
-export PYTHONPATH="$SCRIPT_DIR:$PYTHONPATH"
-
-# Check if virtual environment exists and activate it BEFORE starting services
-if [ -d "$SCRIPT_DIR/.venv" ]; then
-    source "$SCRIPT_DIR/.venv/bin/activate"
-    echo -e "${GREEN}✓ Activated virtual environment${NC}"
-fi
-
-echo -e "${YELLOW}Starting services...${NC}"
-echo ""
-
-# Start Frontend (Python HTTP server)
-echo -e "${BLUE}Starting Frontend on port $FRONTEND_PORT...${NC}"
-cd frontend
-$PYTHON_CMD -m http.server $FRONTEND_PORT &
-FRONTEND_PID=$!
-cd ..
-
-# Wait a moment to ensure frontend started
-sleep 1
-if ! kill -0 $FRONTEND_PID 2>/dev/null; then
-    echo -e "${RED}Error: Frontend failed to start${NC}"
+if port_in_use "$FRONTEND_PORT"; then
+    err "Frontend port $FRONTEND_PORT is already in use."
     exit 1
 fi
-echo -e "${GREEN}✓ Frontend running (PID: $FRONTEND_PID)${NC}"
-echo ""
-
-# Start Backend (Uvicorn)
-echo -e "${BLUE}Starting Backend on port $BACKEND_PORT...${NC}"
-
-# Check for uvicorn
-if ! $PYTHON_CMD -c "import uvicorn" 2>/dev/null; then
-    echo -e "${YELLOW}Warning: Uvicorn not found. Installing dependencies...${NC}"
-    pip install -r backend/requirements.txt
+if port_in_use "$BACKEND_PORT"; then
+    err "Backend port $BACKEND_PORT is already in use."
+    exit 1
 fi
 
-# Run uvicorn from project root with correct PYTHONPATH
-$PYTHON_CMD -m uvicorn backend.src.api.main:app --host 0.0.0.0 --port $BACKEND_PORT --reload \
-    --reload-dir backend/src &
+if ! "$PYTHON_CMD" -c "import uvicorn" >/dev/null 2>&1; then
+    warn "uvicorn not found; installing backend requirements."
+    "$PYTHON_CMD" -m pip install -r backend/requirements.txt
+fi
+
+info "Starting frontend on port $FRONTEND_PORT..."
+(
+    cd "$SCRIPT_DIR/frontend"
+    "$PYTHON_CMD" -m http.server "$FRONTEND_PORT"
+) >>"$FRONTEND_LOG" 2>&1 &
+FRONTEND_PID=$!
+
+if ! wait_port "$FRONTEND_PORT" 40; then
+    err "Frontend did not open port $FRONTEND_PORT. See $FRONTEND_LOG"
+    kill "$FRONTEND_PID" >/dev/null 2>&1 || true
+    exit 1
+fi
+ok "Frontend is listening on port $FRONTEND_PORT (PID $FRONTEND_PID)."
+
+info "Starting backend on port $BACKEND_PORT..."
+(
+    cd "$SCRIPT_DIR"
+    "$PYTHON_CMD" -m uvicorn backend.src.api.main:app --host 0.0.0.0 --port "$BACKEND_PORT" --reload --reload-dir backend/src
+) >>"$BACKEND_LOG" 2>&1 &
 BACKEND_PID=$!
 
-# Wait a moment to ensure backend started
-sleep 2
-if ! kill -0 $BACKEND_PID 2>/dev/null; then
-    echo -e "${RED}Error: Backend failed to start${NC}"
-    kill $FRONTEND_PID 2>/dev/null
+if ! wait_port "$BACKEND_PORT" 60; then
+    err "Backend did not open port $BACKEND_PORT. See $BACKEND_LOG"
+    kill "$BACKEND_PID" >/dev/null 2>&1 || true
+    kill "$FRONTEND_PID" >/dev/null 2>&1 || true
     exit 1
 fi
-echo -e "${GREEN}✓ Backend running (PID: $BACKEND_PID)${NC}"
-echo ""
 
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}  All services started successfully!${NC}"
-echo -e "${GREEN}========================================${NC}"
-echo ""
-echo -e "${BLUE}Frontend:${NC} http://localhost:$FRONTEND_PORT"
-echo -e "${BLUE}Backend API:${NC} http://localhost:$BACKEND_PORT"
-echo -e "${BLUE}API Docs:${NC} http://localhost:$BACKEND_PORT/docs"
-echo ""
-echo -e "${YELLOW}Press CTRL+C to stop all services${NC}"
-echo ""
+if ! wait_http "http://localhost:$BACKEND_PORT/api/health" 60; then
+    err "Backend health check failed. See $BACKEND_LOG"
+    kill "$BACKEND_PID" >/dev/null 2>&1 || true
+    kill "$FRONTEND_PID" >/dev/null 2>&1 || true
+    exit 1
+fi
+ok "Backend is healthy on port $BACKEND_PORT (PID $BACKEND_PID)."
 
-# Wait for both processes
-wait
+cat > "$STATE_PATH" <<EOF
+{
+  "started_at": "$(date '+%Y-%m-%dT%H:%M:%S')",
+  "frontend_port": $FRONTEND_PORT,
+  "backend_port": $BACKEND_PORT,
+  "frontend_host_pid": $FRONTEND_PID,
+  "backend_host_pid": $BACKEND_PID,
+  "frontend_log": "$FRONTEND_LOG",
+  "backend_log": "$BACKEND_LOG",
+  "mode": "headless"
+}
+EOF
+
+echo ""
+ok "All services started."
+echo "Frontend:    http://localhost:$FRONTEND_PORT"
+echo "Backend API: http://localhost:$BACKEND_PORT"
+echo "API Docs:    http://localhost:$BACKEND_PORT/docs"
+echo "Health:      http://localhost:$BACKEND_PORT/api/health"
+echo ""
+echo "Logs:"
+echo "  Frontend: $FRONTEND_LOG"
+echo "  Backend:  $BACKEND_LOG"
+echo ""
+echo "Stop services with:"
+echo "  ./stop.sh"
