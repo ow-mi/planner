@@ -177,7 +177,7 @@ echo.
 call :log "[INFO] Step 3/6: Installing Python dependencies..."
 echo [3/6] Installing Python dependencies...
 echo Python package installer output will be shown below.
-python -m pip install --upgrade pip
+%PYTHON_CMD% -m pip install --upgrade pip
 if %ERRORLEVEL% neq 0 (
     call :log "[ERROR] Failed to upgrade pip"
     echo [ERROR] Failed to upgrade pip
@@ -185,7 +185,7 @@ if %ERRORLEVEL% neq 0 (
     pause
     exit /b 1
 )
-python -m pip install -r backend\requirements.txt
+%PYTHON_CMD% -m pip install -r backend\requirements.txt
 if %ERRORLEVEL% neq 0 (
     call :log "[ERROR] Failed to install backend dependencies"
     echo [ERROR] Failed to install backend dependencies
@@ -194,7 +194,7 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 if exist solver\requirements.txt (
-    python -m pip install -r solver\requirements.txt
+    %PYTHON_CMD% -m pip install -r solver\requirements.txt
     if %ERRORLEVEL% neq 0 (
         call :log "[ERROR] Failed to install solver dependencies"
         echo [ERROR] Failed to install solver dependencies
@@ -283,154 +283,41 @@ echo.
 call :log "[INFO] Step 5/6: Downloading browser dependencies for offline use..."
 echo [5/6] Downloading browser dependencies for offline use...
 if not exist deps mkdir deps
-cd deps
+pushd deps
 
-:: Helper function for downloads with retry
-:: Force TLS 1.2 per call because each PowerShell invocation starts in a fresh process
-set "DOWNLOAD_RETRIES=0"
+call :download_with_retry "htmx.min.js" "https://unpkg.com/htmx.org@2.0.0/dist/htmx.min.js" "htmx.js"
+if errorlevel 1 goto :download_failed
 
-:download_htmx
-set /a DOWNLOAD_RETRIES+=1
-call :log "[INFO] Downloading htmx.min.js (attempt %DOWNLOAD_RETRIES%)..."
-echo Downloading htmx.min.js...
-powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://unpkg.com/htmx.org@2.0.0/dist/htmx.min.js' -OutFile 'htmx.min.js'" >> "%INSTALL_LOG%" 2>&1
-if errorlevel 1 (
-    if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
-        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
-        timeout /t 2 >nul
-        goto download_htmx
-    )
-    call :log "[ERROR] Failed to download htmx.js after 3 attempts"
-    echo [ERROR] Failed to download htmx.js after 3 attempts
-    echo See log: "%INSTALL_LOG%"
-    pause
-    exit /b 1
-)
+call :download_with_retry "alpinejs.min.js" "https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js" "alpinejs"
+if errorlevel 1 goto :download_failed
 
-set "DOWNLOAD_RETRIES=0"
-:download_alpine
-set /a DOWNLOAD_RETRIES+=1
-call :log "[INFO] Downloading alpinejs.min.js (attempt %DOWNLOAD_RETRIES%)..."
-echo Downloading alpinejs.min.js...
-powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js' -OutFile 'alpinejs.min.js'" >> "%INSTALL_LOG%" 2>&1
-if errorlevel 1 (
-    if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
-        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
-        timeout /t 2 >nul
-        goto download_alpine
-    )
-    call :log "[ERROR] Failed to download alpinejs after 3 attempts"
-    echo [ERROR] Failed to download alpinejs after 3 attempts
-    echo See log: "%INSTALL_LOG%"
-    pause
-    exit /b 1
-)
+call :download_with_retry "d3.v7.min.js" "https://d3js.org/d3.v7.min.js" "d3.js"
+if errorlevel 1 goto :download_failed
 
-set "DOWNLOAD_RETRIES=0"
-:download_d3
-set /a DOWNLOAD_RETRIES+=1
-call :log "[INFO] Downloading d3.v7.min.js (attempt %DOWNLOAD_RETRIES%)..."
-echo Downloading d3.v7.min.js...
-powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://d3js.org/d3.v7.min.js' -OutFile 'd3.v7.min.js'" >> "%INSTALL_LOG%" 2>&1
-if errorlevel 1 (
-    if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
-        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
-        timeout /t 2 >nul
-        goto download_d3
-    )
-    call :log "[ERROR] Failed to download d3.js after 3 attempts"
-    echo [ERROR] Failed to download d3.js after 3 attempts
-    echo See log: "%INSTALL_LOG%"
-    pause
-    exit /b 1
-)
+call :download_with_retry "papaparse.min.js" "https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js" "papaparse"
+if errorlevel 1 goto :download_failed
 
-set "DOWNLOAD_RETRIES=0"
-:download_papaparse
-set /a DOWNLOAD_RETRIES+=1
-call :log "[INFO] Downloading papaparse.min.js (attempt %DOWNLOAD_RETRIES%)..."
-echo Downloading papaparse.min.js...
-powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js' -OutFile 'papaparse.min.js'" >> "%INSTALL_LOG%" 2>&1
-if errorlevel 1 (
-    if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
-        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
-        timeout /t 2 >nul
-        goto download_papaparse
-    )
-    call :log "[ERROR] Failed to download papaparse after 3 attempts"
-    echo [ERROR] Failed to download papaparse after 3 attempts
-    echo See log: "%INSTALL_LOG%"
-    pause
-    exit /b 1
-)
+call :download_with_retry "jszip.min.js" "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" "jszip"
+if errorlevel 1 goto :download_failed
 
-set "DOWNLOAD_RETRIES=0"
-:download_jszip
-set /a DOWNLOAD_RETRIES+=1
-call :log "[INFO] Downloading jszip.min.js (attempt %DOWNLOAD_RETRIES%)..."
-echo Downloading jszip.min.js...
-powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js' -OutFile 'jszip.min.js'" >> "%INSTALL_LOG%" 2>&1
-if errorlevel 1 (
-    if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
-        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
-        timeout /t 2 >nul
-        goto download_jszip
-    )
-    call :log "[ERROR] Failed to download jszip after 3 attempts"
-    echo [ERROR] Failed to download jszip after 3 attempts
-    echo See log: "%INSTALL_LOG%"
-    pause
-    exit /b 1
-)
+call :download_with_retry "tailwindcss.js" "https://cdn.tailwindcss.com" "tailwindcss"
+if errorlevel 1 goto :download_failed
 
-set "DOWNLOAD_RETRIES=0"
-:download_tailwind
-set /a DOWNLOAD_RETRIES+=1
-call :log "[INFO] Downloading tailwindcss.js (attempt %DOWNLOAD_RETRIES%)..."
-echo Downloading tailwindcss.js...
-powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://cdn.tailwindcss.com' -OutFile 'tailwindcss.js'" >> "%INSTALL_LOG%" 2>&1
-if errorlevel 1 (
-    if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
-        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
-        timeout /t 2 >nul
-        goto download_tailwind
-    )
-    call :log "[ERROR] Failed to download tailwindcss after 3 attempts"
-    echo [ERROR] Failed to download tailwindcss after 3 attempts
-    echo See log: "%INSTALL_LOG%"
-    pause
-    exit /b 1
-)
+call :download_with_retry "daisyui.css" "https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" "daisyui"
+if errorlevel 1 goto :download_failed
 
-set "DOWNLOAD_RETRIES=0"
-:download_daisyui
-set /a DOWNLOAD_RETRIES+=1
-call :log "[INFO] Downloading daisyui.css (attempt %DOWNLOAD_RETRIES%)..."
-echo Downloading daisyui.css...
-powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css' -OutFile 'daisyui.css'" >> "%INSTALL_LOG%" 2>&1
-if errorlevel 1 (
-    if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
-        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
-        timeout /t 2 >nul
-        goto download_daisyui
-    )
-    call :log "[ERROR] Failed to download daisyui after 3 attempts"
-    echo [ERROR] Failed to download daisyui after 3 attempts
-    echo See log: "%INSTALL_LOG%"
-    pause
-    exit /b 1
-)
-
-cd ..
+popd
 call :log "[OK] Browser dependencies downloaded"
 echo [OK] Browser dependencies downloaded
+goto :downloads_done
+
+:download_failed
+popd
+echo See log: "%INSTALL_LOG%"
+pause
+exit /b 1
+
+:downloads_done
 
 echo.
 call :log "[INFO] Step 6/6: Creating offline frontend index..."
@@ -441,8 +328,10 @@ if not exist index-online.html (
 
 call :log "[INFO] Generating offline index..."
 
+set "OFFLINE_INDEX_SCRIPT=%PROJECT_ROOT%scripts\generate-offline-index.ps1"
+
 :: Check if the PowerShell script exists before calling it
-if not exist "%~dp0scripts\generate-offline-index.ps1" (
+if not exist "%OFFLINE_INDEX_SCRIPT%" (
     call :log "[WARN] generate-offline-index.ps1 not found - skipping offline index generation"
     echo.
     echo [WARN] generate-offline-index.ps1 not found in scripts/
@@ -453,7 +342,7 @@ if not exist "%~dp0scripts\generate-offline-index.ps1" (
     goto :skip_offline_index
 )
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\generate-offline-index.ps1" -ProjectRoot "%PROJECT_ROOT:~0,-1%" >> "%INSTALL_LOG%" 2>&1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%OFFLINE_INDEX_SCRIPT%" -ProjectRoot "%PROJECT_ROOT:~0,-1%" >> "%INSTALL_LOG%" 2>&1
 if %ERRORLEVEL% neq 0 (
     call :log "[WARN] Failed to generate offline index - continuing with online index"
     echo [WARN] Failed to generate offline index. Continuing with online index.html
@@ -491,9 +380,36 @@ exit /b 0
 :: ========================================
 
 :log
-echo [%DATE% %TIME%] %* >> "%INSTALL_LOG%"
-echo %*
+set "LOG_MESSAGE=%~1"
+echo [%DATE% %TIME%] %LOG_MESSAGE% >> "%INSTALL_LOG%"
+echo %LOG_MESSAGE%
 goto :eof
+
+:download_with_retry
+set "DOWNLOAD_TARGET=%~1"
+set "DOWNLOAD_URL=%~2"
+set "DOWNLOAD_LABEL=%~3"
+set "DOWNLOAD_RETRIES=0"
+
+:download_retry_loop
+set /a DOWNLOAD_RETRIES+=1
+call :log "[INFO] Downloading %DOWNLOAD_TARGET% (attempt %DOWNLOAD_RETRIES%)..."
+echo Downloading %DOWNLOAD_TARGET%...
+powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri '%DOWNLOAD_URL%' -OutFile '%DOWNLOAD_TARGET%'" >> "%INSTALL_LOG%" 2>&1
+if not errorlevel 1 (
+    exit /b 0
+)
+
+if %DOWNLOAD_RETRIES% lss 3 (
+    call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
+    echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
+    timeout /t 2 >nul
+    goto :download_retry_loop
+)
+
+call :log "[ERROR] Failed to download %DOWNLOAD_LABEL% after 3 attempts"
+echo [ERROR] Failed to download %DOWNLOAD_LABEL% after 3 attempts
+exit /b 1
 
 :trim_backslash
 :: Removes trailing backslashes from a path
