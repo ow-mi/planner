@@ -15,9 +15,8 @@ echo [%DATE% %TIME%] Starting installation... > "%INSTALL_LOG%"
 set "PROJECT_ROOT=%~dp0"
 cd /d "%PROJECT_ROOT%"
 
-:: Set TLS 1.2 for downloads (required for modern HTTPS)
-:: This global setting is applied once; individual download commands don't need to repeat it
-powershell -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12" 2>nul
+:: Best-effort TLS 1.2 setup for this process; download commands still set TLS explicitly
+powershell.exe -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12" 2>nul
 
 echo ===================================
 echo PV Planner - Installation Script
@@ -285,18 +284,18 @@ if not exist deps mkdir deps
 cd deps
 
 :: Helper function for downloads with retry
-:: Note: TLS 1.2 is set globally at script start; no need for per-command TLS settings
+:: Force TLS 1.2 per call because each PowerShell invocation starts in a fresh process
 set "DOWNLOAD_RETRIES=0"
 
 :download_htmx
 set /a DOWNLOAD_RETRIES+=1
 call :log "[INFO] Downloading htmx.min.js (attempt %DOWNLOAD_RETRIES%)..."
 echo Downloading htmx.min.js...
-powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing -Uri 'https://unpkg.com/htmx.org@2.0.0/dist/htmx.min.js' -OutFile 'htmx.min.js' } catch { exit 1 }" >> "%INSTALL_LOG%" 2>&1
-if %ERRORLEVEL% neq 0 (
+powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://unpkg.com/htmx.org@2.0.0/dist/htmx.min.js' -OutFile 'htmx.min.js'" >> "%INSTALL_LOG%" 2>&1
+if errorlevel 1 (
     if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)..."
-        echo [WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)...
+        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
+        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
         timeout /t 2 >nul
         goto download_htmx
     )
@@ -312,11 +311,11 @@ set "DOWNLOAD_RETRIES=0"
 set /a DOWNLOAD_RETRIES+=1
 call :log "[INFO] Downloading alpinejs.min.js (attempt %DOWNLOAD_RETRIES%)..."
 echo Downloading alpinejs.min.js...
-powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing -Uri 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js' -OutFile 'alpinejs.min.js' } catch { exit 1 }" >> "%INSTALL_LOG%" 2>&1
-if %ERRORLEVEL% neq 0 (
+powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js' -OutFile 'alpinejs.min.js'" >> "%INSTALL_LOG%" 2>&1
+if errorlevel 1 (
     if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)..."
-        echo [WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)...
+        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
+        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
         timeout /t 2 >nul
         goto download_alpine
     )
@@ -332,11 +331,11 @@ set "DOWNLOAD_RETRIES=0"
 set /a DOWNLOAD_RETRIES+=1
 call :log "[INFO] Downloading d3.v7.min.js (attempt %DOWNLOAD_RETRIES%)..."
 echo Downloading d3.v7.min.js...
-powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing -Uri 'https://d3js.org/d3.v7.min.js' -OutFile 'd3.v7.min.js' } catch { exit 1 }" >> "%INSTALL_LOG%" 2>&1
-if %ERRORLEVEL% neq 0 (
+powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://d3js.org/d3.v7.min.js' -OutFile 'd3.v7.min.js'" >> "%INSTALL_LOG%" 2>&1
+if errorlevel 1 (
     if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)..."
-        echo [WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)...
+        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
+        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
         timeout /t 2 >nul
         goto download_d3
     )
@@ -352,11 +351,11 @@ set "DOWNLOAD_RETRIES=0"
 set /a DOWNLOAD_RETRIES+=1
 call :log "[INFO] Downloading papaparse.min.js (attempt %DOWNLOAD_RETRIES%)..."
 echo Downloading papaparse.min.js...
-powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing -Uri 'https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js' -OutFile 'papaparse.min.js' } catch { exit 1 }" >> "%INSTALL_LOG%" 2>&1
-if %ERRORLEVEL% neq 0 (
+powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js' -OutFile 'papaparse.min.js'" >> "%INSTALL_LOG%" 2>&1
+if errorlevel 1 (
     if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)..."
-        echo [WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)...
+        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
+        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
         timeout /t 2 >nul
         goto download_papaparse
     )
@@ -372,11 +371,11 @@ set "DOWNLOAD_RETRIES=0"
 set /a DOWNLOAD_RETRIES+=1
 call :log "[INFO] Downloading jszip.min.js (attempt %DOWNLOAD_RETRIES%)..."
 echo Downloading jszip.min.js...
-powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing -Uri 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js' -OutFile 'jszip.min.js' } catch { exit 1 }" >> "%INSTALL_LOG%" 2>&1
-if %ERRORLEVEL% neq 0 (
+powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js' -OutFile 'jszip.min.js'" >> "%INSTALL_LOG%" 2>&1
+if errorlevel 1 (
     if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)..."
-        echo [WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)...
+        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
+        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
         timeout /t 2 >nul
         goto download_jszip
     )
@@ -392,11 +391,11 @@ set "DOWNLOAD_RETRIES=0"
 set /a DOWNLOAD_RETRIES+=1
 call :log "[INFO] Downloading tailwindcss.js (attempt %DOWNLOAD_RETRIES%)..."
 echo Downloading tailwindcss.js...
-powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing -Uri 'https://cdn.tailwindcss.com' -OutFile 'tailwindcss.js' } catch { exit 1 }" >> "%INSTALL_LOG%" 2>&1
-if %ERRORLEVEL% neq 0 (
+powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://cdn.tailwindcss.com' -OutFile 'tailwindcss.js'" >> "%INSTALL_LOG%" 2>&1
+if errorlevel 1 (
     if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)..."
-        echo [WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)...
+        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
+        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
         timeout /t 2 >nul
         goto download_tailwind
     )
@@ -412,11 +411,11 @@ set "DOWNLOAD_RETRIES=0"
 set /a DOWNLOAD_RETRIES+=1
 call :log "[INFO] Downloading daisyui.css (attempt %DOWNLOAD_RETRIES%)..."
 echo Downloading daisyui.css...
-powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing -Uri 'https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css' -OutFile 'daisyui.css' } catch { exit 1 }" >> "%INSTALL_LOG%" 2>&1
-if %ERRORLEVEL% neq 0 (
+powershell.exe -NoProfile -Command "$ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css' -OutFile 'daisyui.css'" >> "%INSTALL_LOG%" 2>&1
+if errorlevel 1 (
     if %DOWNLOAD_RETRIES% lss 3 (
-        call :log "[WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)..."
-        echo [WARN] Download failed, retrying (%DOWNLOAD_RETRIES%/3)...
+        call :log "[WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3..."
+        echo [WARN] Download failed, retrying %DOWNLOAD_RETRIES%/3...
         timeout /t 2 >nul
         goto download_daisyui
     )
