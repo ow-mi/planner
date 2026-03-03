@@ -450,7 +450,7 @@ if not exist "%~dp0scripts\generate-offline-index.ps1" (
     exit /b 1
 )
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\generate-offline-index.ps1" -ProjectRoot "%~dp0" >> "%INSTALL_LOG%" 2>&1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\generate-offline-index.ps1" -ProjectRoot "%PROJECT_ROOT:~0,-1%" >> "%INSTALL_LOG%" 2>&1
 if %ERRORLEVEL% neq 0 (
     call :log "[ERROR] Failed to generate offline index"
     echo [ERROR] Failed to generate offline index. See log: "%INSTALL_LOG%"
