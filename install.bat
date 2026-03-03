@@ -176,7 +176,8 @@ echo [OK] Virtual environment ready
 echo.
 call :log "[INFO] Step 3/6: Installing Python dependencies..."
 echo [3/6] Installing Python dependencies...
-python -m pip install --upgrade pip >> "%INSTALL_LOG%" 2>&1
+echo Python package installer output will be shown below.
+python -m pip install --upgrade pip
 if %ERRORLEVEL% neq 0 (
     call :log "[ERROR] Failed to upgrade pip"
     echo [ERROR] Failed to upgrade pip
@@ -184,7 +185,7 @@ if %ERRORLEVEL% neq 0 (
     pause
     exit /b 1
 )
-python -m pip install -r backend\requirements.txt >> "%INSTALL_LOG%" 2>&1
+python -m pip install -r backend\requirements.txt
 if %ERRORLEVEL% neq 0 (
     call :log "[ERROR] Failed to install backend dependencies"
     echo [ERROR] Failed to install backend dependencies
@@ -193,7 +194,7 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 if exist solver\requirements.txt (
-    python -m pip install -r solver\requirements.txt >> "%INSTALL_LOG%" 2>&1
+    python -m pip install -r solver\requirements.txt
     if %ERRORLEVEL% neq 0 (
         call :log "[ERROR] Failed to install solver dependencies"
         echo [ERROR] Failed to install solver dependencies
@@ -263,7 +264,8 @@ if not exist package.json (
 )
 
 call :log "[INFO] Running npm install..."
-call npm install >> "%INSTALL_LOG%" 2>&1
+echo npm install output will be shown below.
+call npm install
 if %ERRORLEVEL% neq 0 (
     call :log "[ERROR] npm install failed"
     echo [ERROR] npm install failed
