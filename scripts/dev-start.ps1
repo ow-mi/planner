@@ -1042,6 +1042,9 @@ watchdog_enabled: $($RestartOnCrash.IsPresent)
 
     Write-Host ""
     Write-Ok "All services started."
+    Write-Host ""
+    Write-Info "Open http://localhost:$resolvedFrontendPort in your browser to use the application."
+    Write-Host ""
     Write-Host "Frontend:    http://localhost:$resolvedFrontendPort"
     Write-Host "Backend API: http://localhost:$resolvedBackendPort"
     Write-Host "API Docs:    http://localhost:$resolvedBackendPort/docs"
