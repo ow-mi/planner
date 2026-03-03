@@ -441,29 +441,38 @@ if not exist index-online.html (
 
 call :log "[INFO] Generating offline index..."
 
-:: Validate that the PowerShell script exists before calling it
+:: Check if the PowerShell script exists before calling it
 if not exist "%~dp0scripts\generate-offline-index.ps1" (
-    call :log "[ERROR] generate-offline-index.ps1 not found"
+    call :log "[WARN] generate-offline-index.ps1 not found - skipping offline index generation"
     echo.
-    echo [ERROR] generate-offline-index.ps1 not found in scripts/
-    echo Make sure you are running from the project root directory.
-    echo See log: "%INSTALL_LOG%"
-    pause
-    exit /b 1
+    echo [WARN] generate-offline-index.ps1 not found in scripts/
+    echo Skipping offline index generation. The frontend will use the online index.html.
+    echo To enable offline functionality, re-download the latest release from the repository.
+    echo Continuing with installation...
+    echo.
+    goto :skip_offline_index
 )
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\generate-offline-index.ps1" -ProjectRoot "%PROJECT_ROOT:~0,-1%" >> "%INSTALL_LOG%" 2>&1
 if %ERRORLEVEL% neq 0 (
-    call :log "[ERROR] Failed to generate offline index"
-    echo [ERROR] Failed to generate offline index. See log: "%INSTALL_LOG%"
-    pause
-    exit /b 1
+    call :log "[WARN] Failed to generate offline index - continuing with online index"
+    echo [WARN] Failed to generate offline index. Continuing with online index.html
+    echo See log: "%INSTALL_LOG%" for details.
+    echo.
+    goto :skip_offline_index
 )
-
-cd /d "%PROJECT_ROOT%"
 
 call :log "[OK] Offline index generated at frontend\index.html"
 echo [OK] Offline index generated at frontend\index.html
+goto :index_done
+
+:skip_offline_index
+call :log "[INFO] Using online frontend/index.html (CDN-based dependencies)"
+echo [INFO] Using online frontend/index.html (CDN-based dependencies)
+
+:index_done
+
+cd /d "%PROJECT_ROOT%"
 
 echo.
 echo ===================================
