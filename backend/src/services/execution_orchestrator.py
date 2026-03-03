@@ -931,7 +931,7 @@ class ExecutionOrchestrator:
             extra={
                 "execution_id": execution_id,
                 "category": category,
-                "message": message,
+                "error_message": message,
                 "phase": execution.current_phase,
             },
         )
