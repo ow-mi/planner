@@ -7,14 +7,19 @@
 # Do not add version-specific URLs here to avoid version mismatch issues.
 
 param(
+    [Parameter(Mandatory = $true)]
     [string]$ProjectRoot
 )
 
 $ErrorActionPreference = "Stop"
 
+# Normalize the batch-provided path before composing child paths.
+$ProjectRoot = $ProjectRoot.Trim().Trim('"')
+$ProjectRoot = $ProjectRoot.TrimEnd('\', '/')
+
 # Navigate to frontend directory
-$FrontendDir = Join-Path $ProjectRoot "frontend"
-Set-Location $FrontendDir
+$FrontendDir = Join-Path -Path $ProjectRoot -ChildPath "frontend"
+Set-Location -LiteralPath $FrontendDir
 
 Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Generating offline index from: $FrontendDir"
 
