@@ -35,10 +35,9 @@ echo PV Planner - Starting...
 echo ==================================
 echo.
 
-:: Run PowerShell and capture output to both console and log
-:: We use PowerShell's Tee-Object by running the command through PowerShell itself
+:: Stream output live to the console while also appending it to the bootstrap log
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
-    "& { $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File '%SCRIPT_DIR%scripts\dev-start.ps1' %* 2>&1; $output | Tee-Object -FilePath '%BOOTSTRAP_LOG%' -Append; $output | ForEach-Object { $_ } }"
+    "& { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File '%SCRIPT_DIR%scripts\dev-start.ps1' %* 2>&1 | Tee-Object -FilePath '%BOOTSTRAP_LOG%' -Append; exit $LASTEXITCODE }"
 set PS_EXIT_CODE=%ERRORLEVEL%
 
 :: 5. Check exit code and display appropriate message
@@ -62,3 +61,9 @@ echo ==================================
 echo Startup completed successfully
 echo ==================================
 echo.
+echo Use the Frontend URL shown above to open the app in your browser.
+echo If you did not override the port, the default frontend address is:
+echo   http://localhost:3000
+echo.
+pause
+exit /b 0
