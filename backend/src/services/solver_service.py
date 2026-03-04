@@ -20,6 +20,7 @@ from backend.src.api.models.responses import (
     SolverResults,
     SolverStatusEnum,
 )
+from backend.src.runtime_config import get_checkpoint_dir
 from backend.src.services.batch_job_manager import BatchJobManager
 from backend.src.services.execution_orchestrator import ExecutionOrchestrator
 from backend.src.services.file_operations_service import FileOperationsService
@@ -222,7 +223,7 @@ class SolverService:
         }
 
     def _write_checkpoint(self, execution_id: str) -> str:
-        checkpoint_dir = "/tmp/solver_checkpoints"
+        checkpoint_dir = get_checkpoint_dir()
         os.makedirs(checkpoint_dir, exist_ok=True)
         checkpoint_path = os.path.join(checkpoint_dir, f"{execution_id}.json")
 

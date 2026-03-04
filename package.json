@@ -1,11 +1,57 @@
 {
   "name": "planning-test-program",
+  "private": true,
   "version": "1.0.0",
   "description": "PV Planning Presentation Tool - HTMX + Alpine.js + DaisyUI",
+  "main": "electron/main.js",
   "type": "module",
   "scripts": {
     "serve": "python3 -m http.server 5173 --directory frontend",
     "serve:node": "npx serve frontend -l 5173",
-    "test": "cd frontend && NODE_OPTIONS=--experimental-vm-modules jest"
+    "test": "cd frontend && NODE_OPTIONS=--experimental-vm-modules jest",
+    "package:backend": "python -m PyInstaller pyinstaller/backend.spec --noconfirm",
+    "electron:dev": "electron .",
+    "verify:desktop-package": "node scripts/verify-desktop-package.mjs",
+    "build:desktop": "node scripts/build-desktop.mjs"
+  },
+  "devDependencies": {
+    "electron": "30.5.1",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "com.plannerredesign.desktop",
+    "productName": "Planner Redesign",
+    "files": [
+      "electron/**/*",
+      "frontend/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/backend",
+        "to": "backend",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "sample_data/sample_data.csv",
+        "to": "sample-data/sample_data.csv"
+      },
+      {
+        "from": "sample_data/planner_configuration.json",
+        "to": "sample-data/planner_configuration.json"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

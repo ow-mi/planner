@@ -6,6 +6,8 @@ import tempfile
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
+from backend.src.runtime_config import get_app_data_root
+
 
 class FileHandler:
     @staticmethod
@@ -26,7 +28,7 @@ class FileHandler:
         timestamp = FileHandler._format_timestamp(created_at)
         normalized_run_name = FileHandler._normalize_run_name(run_name)
 
-        root = runs_root or os.getcwd()
+        root = runs_root or get_app_data_root()
         run_root = os.path.join(
             root,
             "runs",

@@ -38,6 +38,16 @@ function fileUploadComponent() {
             await this.$store.files.importFolder();
         },
 
+        async browseForFolder() {
+            if (!window.desktopRuntime || typeof window.desktopRuntime.pickFolder !== 'function') {
+                return;
+            }
+            const selectedPath = await window.desktopRuntime.pickFolder();
+            if (selectedPath) {
+                this.$store.files.setBaseFolderPath(selectedPath);
+            }
+        },
+
         setBaseFolderPath(value) {
             this.$store.files.setBaseFolderPath(value);
         },

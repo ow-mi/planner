@@ -126,6 +126,45 @@
             </button>
         </div>
     </div>
+
+    <div class="section" style="margin-top: 1.5rem;">
+        <h3>Import Existing Input Folder</h3>
+        <p>Use a local folder that already contains the solver input CSV files and configuration.</p>
+
+        <div class="form-group">
+            <label for="folder-path-input">Folder Path</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input
+                    id="folder-path-input"
+                    type="text"
+                    class="input input-bordered"
+                    x-model="baseFolderPath"
+                    placeholder="Select or enter a folder path"
+                    style="flex: 1;"
+                >
+                <button
+                    class="btn btn-secondary"
+                    type="button"
+                    @click="browseForFolder()"
+                    x-show="window.desktopRuntime && typeof window.desktopRuntime.pickFolder === 'function'"
+                >
+                    Browse
+                </button>
+                <button
+                    class="btn btn-primary"
+                    type="button"
+                    @click="importFolder()"
+                    :disabled="isLoading || !baseFolderPath"
+                >
+                    Import Folder
+                </button>
+            </div>
+        </div>
+
+        <div x-show="error" class="validation-error" style="margin-top: 0.5rem;">
+            <span x-text="error"></span>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -430,6 +469,16 @@ function fileUploadComponent() {
             const store = Alpine.store('files');
             if (store && typeof store.importFolder === 'function') {
                 await store.importFolder();
+            }
+        },
+
+        async browseForFolder() {
+            if (!window.desktopRuntime || typeof window.desktopRuntime.pickFolder !== 'function') {
+                return;
+            }
+            const selectedPath = await window.desktopRuntime.pickFolder();
+            if (selectedPath) {
+                this.$store.files.setBaseFolderPath(selectedPath);
             }
         },
 

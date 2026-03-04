@@ -3,8 +3,36 @@
  *
  * Handles all backend API requests with standardized error handling
  */
+function resolveRuntimeApiBaseUrl() {
+    const fallbackUrl = 'http://localhost:8000/api';
+    if (typeof window === 'undefined') {
+        return fallbackUrl;
+    }
+
+    try {
+        if (window.desktopRuntime) {
+            const runtimeConfig = typeof window.desktopRuntime.getConfig === 'function'
+                ? window.desktopRuntime.getConfig()
+                : window.desktopRuntime;
+            const apiBaseUrl = runtimeConfig && runtimeConfig.apiBaseUrl;
+            if (typeof apiBaseUrl === 'string' && apiBaseUrl.trim()) {
+                return apiBaseUrl.trim();
+            }
+        }
+    } catch (error) {
+        console.warn('Unable to read desktop runtime config, falling back to default API URL.', error);
+    }
+
+    const browserOverride = window.PLANNER_API_BASE_URL;
+    if (typeof browserOverride === 'string' && browserOverride.trim()) {
+        return browserOverride.trim();
+    }
+
+    return fallbackUrl;
+}
+
 class ApiService {
-    constructor(baseUrl = 'http://localhost:8000/api') {
+    constructor(baseUrl = resolveRuntimeApiBaseUrl()) {
         this.baseUrl = baseUrl;
         this.lastCanonicalPriorityConfig = null;
         this.lastExecuteSolverPayload = null;
@@ -986,7 +1014,7 @@ class ApiService {
 }
 
 // Create global instance
-window.apiService = new ApiService();
+window.apiService = new ApiService(resolveRuntimeApiBaseUrl());
 
 // Export for module usage
 if (typeof module !== 'undefined' && module.exports) {

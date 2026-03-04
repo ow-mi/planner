@@ -7,6 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.src.api.models.responses import ErrorResponse, ErrorDetails, ErrorCategory
+from backend.src.runtime_config import (
+    get_allowed_origin_regex,
+    get_allowed_origins,
+)
 from backend.src.services.factory import ServiceFactory
 from backend.src.services.solver_service import SolverService
 from backend.src.services.queue_service import ExecutionQueueService
@@ -61,18 +65,13 @@ def get_state_store() -> StateStore:
 
 
 # Configure CORS
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
-# Allow any localhost port for dev servers (e.g., 3000, 5173)
-localhost_origin_regex = r"^http://(localhost|127\\.0\\.0\\.1)(:\\d+)?$"
+origins = get_allowed_origins()
+allowed_origin_regex = get_allowed_origin_regex()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=localhost_origin_regex,
+    allow_origin_regex=allowed_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

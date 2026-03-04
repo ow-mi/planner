@@ -8,6 +8,7 @@ from backend.src.api.models.responses import (
     BatchScenarioResultItem,
     BatchSummaryArtifact,
 )
+from backend.src.runtime_config import get_runs_root
 from backend.src.utils.file_handler import FileHandler
 
 
@@ -105,7 +106,7 @@ class FileOperationsService:
         if output_root:
             output_dir = Path(output_root) / "batch_summaries" / batch_id
         else:
-            output_dir = Path(os.getcwd()) / "runs" / "batch_summaries" / batch_id
+            output_dir = Path(get_runs_root()) / "batch_summaries" / batch_id
         output_dir.mkdir(parents=True, exist_ok=True)
 
         summary_csv_path = output_dir / "batch_summary.csv"
